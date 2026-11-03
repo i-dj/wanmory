@@ -1,0 +1,169 @@
+import { Folder } from 'lucide-react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { createDir, type DirListing, listDirs } from '@/lib/api'
+import Modal, { Button } from '@/components/ui/Modal'
+import { cx } from '@/lib/cx'
+import TextField from '@/components/ui/TextField'
+import Tooltip from '@/components/ui/Tooltip'
+
+// DirPicker 浏览服务器上的目录并选择一个，可以新建文件夹。只能浏览后端允许的范围。
+export default function DirPicker({
+  title,
+  initialPath,
+  onCancel,
+  onConfirm,
+}: {
+  title: string
+  initialPath: string
+  onCancel: () => void
+  onConfirm: (path: string) => Promise<void>
+}) {
+  const [listing, setListing] = useState<DirListing | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [newName, setNewName] = useState<string | null>(null) // 不为 null 时显示新建输入框
+  const [busy, setBusy] = useState(false)
+
+  const open = useCallback(async (path: string, fallbackToRoots = false) => {
+    setLoading(true)
+    setError('')
+    setNewName(null)
+    try {
+      setListing(await listDirs(path))
+    } catch (e) {
+      // 当前值不在可浏览范围内（或已被删除）时，从根目录列表开始
+      if (fallbackToRoots) setListing(await listDirs(''))
+      else setError((e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    open(initialPath, true)
+  }, [open, initialPath])
+
+  const atRoots = listing !== null && listing.path === ''
+
+  const submitNewFolder = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!listing || !newName?.trim()) return
+    setBusy(true)
+    setError('')
+    try {
+      const dir = await createDir(listing.path, newName.trim())
+      await open(dir.path) // 建好后直接进入新文件夹，点确认就选中它
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const confirm = async () => {
+    if (!listing || atRoots) return
+    setBusy(true)
+    setError('')
+    try {
+      await onConfirm(listing.path)
+    } catch (e) {
+      setError((e as Error).message)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={title}
+      onClose={onCancel}
+      footer={
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="min-w-0 text-body text-muted">
+            {atRoots || !listing ? (
+              '先进入一个目录'
+            ) : (
+              <>
+                将使用：<span className="font-mono break-all text-fg">{listing.path}</span>
+              </>
+            )}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button onClick={onCancel}>取消</Button>
+            <Button primary onClick={confirm} disabled={busy || loading || !listing || atRoots}>
+              确认
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-4 py-2">
+        <button
+          type="button"
+          onClick={() => listing && listing.parent !== null && open(listing.parent)}
+          disabled={!listing || listing.parent === null || loading}
+          className="shrink-0 rounded-control border border-line px-2 py-1 text-body hover:bg-accent-soft disabled:opacity-40"
+          aria-label="上一级"
+        >
+          ↑ 上一级
+        </button>
+        <Tooltip label={listing?.path}>
+          <div className="min-w-0 flex-1 truncate font-mono text-body">
+            {listing ? listing.path || '可以浏览的目录' : '加载中…'}
+          </div>
+        </Tooltip>
+        {!atRoots && listing && newName === null && (
+          <button
+            type="button"
+            onClick={() => setNewName('')}
+            className="shrink-0 rounded-control border border-line px-2 py-1 text-body hover:bg-accent-soft"
+          >
+            ＋ 新建文件夹
+          </button>
+        )}
+      </div>
+
+      {error && <p className="mx-4 mt-3 rounded-control bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>}
+
+      {newName !== null && (
+        <form onSubmit={submitNewFolder} className="flex items-center gap-2 border-b border-line px-4 pt-4 pb-3">
+          <TextField
+            label="新文件夹名称"
+            autoFocus
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            maxLength={255}
+            className="min-w-0 flex-1"
+          />
+          <Button type="submit" primary disabled={busy || !newName.trim()}>
+            创建
+          </Button>
+          <Button onClick={() => setNewName(null)}>取消</Button>
+        </form>
+      )}
+
+      {/* 固定最小高度，进出文件夹时弹出框不会忽高忽低 */}
+      <ul className={cx('min-h-64', loading && 'opacity-50')}>
+        {listing?.dirs.map((d) => (
+          <li key={d.path}>
+            <button
+              type="button"
+              onClick={() => open(d.path)}
+              className="flex w-full items-center gap-2 px-4 py-2 text-left text-body hover:bg-accent-soft"
+            >
+              <FolderIcon />
+              <span className={cx('min-w-0 flex-1 truncate', atRoots && 'font-mono text-body')}>{d.name}</span>
+              <span className="text-muted">›</span>
+            </button>
+          </li>
+        ))}
+        {listing && listing.dirs.length === 0 && (
+          <li className="px-4 py-6 text-center text-body text-muted">这里没有子文件夹</li>
+        )}
+      </ul>
+    </Modal>
+  )
+}
+
+function FolderIcon() {
+  return <Folder className="size-5 shrink-0 fill-accent text-accent" strokeWidth={1.5} />
+}

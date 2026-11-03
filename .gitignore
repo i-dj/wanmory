@@ -1,0 +1,29 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Go
+server/bin/
+*.exe
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+web/dist/
+# 前端打包结果复制到这里后嵌进 Go 程序，不提交
+server/internal/webui/dist/*
+!server/internal/webui/dist/.gitkeep
+
+# 开发时上传的照片和生成的缩略图
+data/
+
+# Env
+.env
+.env.*
+!.env.example

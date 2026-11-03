@@ -1,0 +1,21 @@
+# 用户部署用。镜像默认从 ghcr.io 拉；国内拉不动时设 WANMORY_REGISTRY 换成国内的镜像仓库地址
+services:
+  server:
+    image: ${WANMORY_REGISTRY:-ghcr.io/i-dj}/wanmory-server:${WANMORY_VERSION:-latest}
+    environment:
+      WANMORY_ML_URL: http://ml:3003   # 内置 AI 服务（下面的 ml）。单独启动的 AI 服务在网页「设置 → AI 服务」里选「远程」、填地址
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # 内置 AI 服务：只在 Docker 内部网络里，不对外开端口，只有上面的后端连它。
+  # 模型不自动下载，在网页「设置 → AI 服务」里点下载。下到挂载的 ./models 目录，重建容器不用再下；
+  # 去掉 volumes 那两行就存在容器里，删掉容器要重新下载
+  ml:
+    image: ${WANMORY_REGISTRY:-ghcr.io/i-dj}/wanmory-ml:${WANMORY_VERSION:-latest}
+    volumes:
+      - ./models:/models
+    environment:
+      WANMORY_MODEL_DIR: /models
+      WANMORY_AUTO_DOWNLOAD: "0"
+    restart: unless-stopped

@@ -1,0 +1,62 @@
+# 开发用
+name: wanmory
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: wanmory-db
+    environment:
+      POSTGRES_USER: wanmory
+      POSTGRES_PASSWORD: wanmory_dev_pw
+      POSTGRES_DB: wanmory
+    ports:
+      - "127.0.0.1:5432:5432"      # 只允许本机访问
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "wanmory", "-d", "wanmory"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # 在容器里跑后端，本机不用装 ExifTool、libvips、FFmpeg：
+  #   docker compose -f docker/docker-compose.dev.yml --profile server up --build
+  # 和 make run 都用 8080 端口，二选一。
+  server:
+    profiles: ["server"]
+    build:
+      context: ..                      # 仓库根目录：镜像里要同时打包前端和后端
+      dockerfile: server/Dockerfile
+    environment:
+      DATABASE_URL: postgres://wanmory:wanmory_dev_pw@postgres:5432/wanmory
+      # 内置 AI 服务：下面的 ml 容器。单独启动的（make ml-run，能用 Mac 的显卡）在设置里选「远程」、
+      # 填 http://host.docker.internal:3003
+      WANMORY_ML_URL: http://ml:3003
+      TZ: ${WANMORY_TZ:-Asia/Shanghai}   # 照片 EXIF 没有时区时按这个时区解释
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - appdata:/data                   # 上传的照片和缩略图
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 内置 AI 服务（容器里只能用 CPU）。make live 会一起启动它；端口只开给本机（make run 跑的后端连 127.0.0.1:3103），
+  # 不对外。模型不自动下载，在相册的「设置 → AI 服务」里点下载，存到挂载的 data/models 里，重建容器不用再下。
+  # Mac 上想用显卡就再用 make ml-run 单独启动一个，设置里选「远程」
+  ml:
+    build: ../ml
+    image: wanmory-ml:dev
+    environment:
+      WANMORY_MODEL_DIR: /models
+      WANMORY_AUTO_DOWNLOAD: "0"
+    volumes:
+      - ../data/models:/models
+    ports:
+      - "127.0.0.1:3103:3003"
+
+volumes:
+  pgdata:
+  appdata:

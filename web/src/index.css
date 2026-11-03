@@ -1,0 +1,644 @@
+@import 'tailwindcss';
+
+/* 设计规范：颜色、字号、圆角都在这里定义成变量，组件里只用这些名字（bg-surface、text-body、rounded-control……），
+   不直接写像素值，改一处全站跟着变。深色模式只在下面换颜色变量的值，组件里不用写 dark: 前缀。
+
+   字号
+     text-title    26px  页面大标题（窄屏 24px）
+     text-heading  16px  对话框、卡片、分组的标题
+     text-body     14px  标准字号：正文、按钮、菜单、输入框、侧边栏
+     text-caption  12px  说明文字、提示、数量
+     text-micro    11px  照片上的小角标、日历里的数字、时间线年份
+
+   圆角（从小到大，外面的容器圆角大、里面的元素圆角小）
+     rounded-item     6px   菜单里的一行、小标签
+     rounded-control  8px   按钮、输入框、下拉框
+     rounded-panel   10px   菜单、下拉列表、浮层卡片
+     rounded-dialog  14px   对话框、确认卡片、上传面板
+
+   边框
+     border-line         平时的边框、分隔线
+     border-line-strong  鼠标移上去、输入框聚焦时的边框（只比平时亮一点，不变成强调色） */
+@theme {
+  --text-title: 26px;
+  --text-title--line-height: 1.25;
+  --text-heading: 16px;
+  --text-heading--line-height: 1.4;
+  --text-body: 14px;
+  --text-body--line-height: 1.45;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+  --text-micro: 11px;
+  --text-micro--line-height: 1.35;
+
+  --radius-item: 6px;
+  --radius-control: 8px;
+  --radius-panel: 10px;
+  --radius-dialog: 14px;
+
+  /* 浅色主题：近白的冷灰，菜单栏比内容区更白；强调色是饱和一些的蓝，选中的菜单项浅蓝底蓝字 */
+  --color-page: #f6f7f9;
+  --color-sidebar: #fbfcfd; /* 左侧菜单栏 */
+  --color-surface: #ffffff;
+  --color-fg: #111827;
+  --color-muted: #6b7280;
+  --color-line: #e6e8ec;
+  --color-line-strong: #d1d5db;
+  --color-accent: #2563eb;
+  --color-accent-soft: #eaf1fe;
+  --color-select: #2563eb; /* 选中照片的边框和拖选框，和强调色一样 */
+  --color-on-accent: #ffffff; /* 强调色底上的字和图标：浅色模式白字，深色模式强调色亮，用黑字（和 Windows 一样） */
+  --color-nav-active: #eaf1fe; /* 左边菜单选中的那一行：浅色主题浅蓝底蓝字，深色主题中性灰底白字 */
+  --color-nav-active-fg: #2563eb;
+  --color-danger: #dc2626;
+  --color-ok: #16a34a;
+  --color-warn: #d97706;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+}
+
+@layer base {
+  /* 深色主题：设置里选了深色（或者跟随系统、系统是深色）时加在 <html> 上，见 lib/theme.ts。
+     大图查看器、幻灯片也用它，不管选的是什么主题都是深色，照片在黑底上看着最准 */
+  :root.theme-dark,
+  .theme-dark {
+    color-scheme: dark;
+    --color-page: #272727;
+    --color-sidebar: #202020;
+    --color-surface: #2f2f2f;
+    --color-fg: #ffffff;
+    --color-muted: #a0a0a0;
+    --color-line: #383838;
+    --color-line-strong: #4d4d4d;
+    --color-accent: #60cdff;
+    --color-accent-soft: #1f3a48;
+    --color-select: #60cdff;
+    --color-on-accent: #000000;
+    --color-nav-active: rgb(255 255 255 / 0.08);
+    --color-nav-active-fg: #ffffff;
+    --color-danger: #ff99a4;
+    --color-ok: #6ccb5f;
+    --color-warn: #fcd34d;
+  }
+
+  :root {
+    color-scheme: light;
+    /* 一直给滚动条留位置。不留的话，照片刚好差不多一屏高时会来回抖：
+       出现滚动条 → 网格变窄 → 格子变矮 → 不用滚动了，滚动条消失 → 网格变宽 → 又需要滚动…… */
+    scrollbar-gutter: stable;
+    /* 滚到顶或到底就停住，不像弹簧一样还能再拉出一截（macOS、iOS 的回弹效果），和 iCloud 照片一样 */
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-page font-sans text-fg antialiased;
+    overscroll-behavior: none;
+  }
+}
+
+/* 缩放滑块，像 macOS「照片」：细轨道，左边走过的部分是亮色，圆形的拇指带一圈亮边。
+   走过多少由组件写进 --filled。 */
+@layer components {
+  .zoom-range {
+    appearance: none;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .zoom-range::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to right,
+      var(--color-fg) var(--filled, 50%),
+      color-mix(in srgb, var(--color-muted) 45%, transparent) var(--filled, 50%)
+    );
+  }
+  .zoom-range::-moz-range-track {
+    height: 3px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--color-muted) 45%, transparent);
+  }
+  .zoom-range::-moz-range-progress {
+    height: 3px;
+    border-radius: 9999px;
+    background: var(--color-fg);
+  }
+  .zoom-range::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -7.5px; /* (轨道 3px − 拇指 18px) / 2，让拇指居中 */
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    border: 2px solid var(--color-fg);
+    background: color-mix(in srgb, var(--color-muted) 55%, var(--color-page));
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+    transition:
+      transform 120ms ease-out,
+      background-color 120ms ease-out;
+  }
+  /* 按住滑钮时缩小一点、变亮，像按下去一样，让人知道抓住了，可以左右拖 */
+  .zoom-range:active::-webkit-slider-thumb {
+    transform: scale(0.85);
+    background: var(--color-fg);
+    box-shadow: none;
+  }
+  .zoom-range:active::-moz-range-thumb {
+    transform: scale(0.85);
+    background: var(--color-fg);
+    box-shadow: none;
+  }
+  .zoom-range::-moz-range-thumb {
+    transition:
+      transform 120ms ease-out,
+      background-color 120ms ease-out;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    border: 2px solid var(--color-fg);
+    background: color-mix(in srgb, var(--color-muted) 55%, var(--color-page));
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  }
+  .zoom-range:focus-visible {
+    outline: none;
+  }
+  .zoom-range:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 所有浮在页面上的面板——菜单、下拉列表、提示气泡、删除确认、对话框——都用同一种毛玻璃，透明度只在这里改。
+   底部浮动的选择栏（.selection-bar）也用它。--glass-opacity 是底色留多少：越大越实，越小背后透出来的越多 */
+:root {
+  --glass-opacity: 88%;
+  --glass-blur: blur(24px) saturate(1.8);
+}
+@layer components {
+  .glass-menu,
+  .glass-dialog {
+    background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
+    border: 1px solid var(--color-line); /* 和输入框、按钮同一种边框，四边一样粗 */
+  }
+  .glass-menu {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  /* 对话框的模糊放在垫在后面的 ::before 上，不放在对话框本身：带 backdrop-filter 的元素里面的东西（对话框里的
+     下拉框、搜索提示）再模糊时只看得到这个元素里面，模糊不到后面的页面，看着比别的菜单透明得多 */
+  .glass-dialog {
+    position: relative;
+    isolation: isolate;
+  }
+  .glass-dialog::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  /* 菜单、下拉列表、提示气泡：再加柔和的投影；长到要滚动时滚动条细一点、颜色淡一点。对话框的投影各自写 */
+  .glass-menu {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-fg) 22%, transparent) transparent;
+  }
+}
+
+/* 照片页顶上固定的工具栏：像浏览器顶栏一样半透明、磨砂，滚上来的照片模糊着透出来。
+   模糊要够强：工具栏两边伸到页面左右留白里，那段底下没有照片，模糊得狠一些，照片的颜色会晕开过去，看不出接缝 */
+@layer components {
+  /* 底色和模糊也放在 ::before 上：工具栏上按钮弹出的菜单（排序、筛选……）才模糊得到后面的照片，和别的菜单一样 */
+  .glass-bar {
+    isolation: isolate;
+  }
+  .glass-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: color-mix(in srgb, var(--color-page) 72%, transparent);
+    backdrop-filter: blur(30px) saturate(1.8);
+    -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  }
+}
+
+/* 登录页左边的彩色光斑：慢慢飘、慢慢变大变小 */
+@keyframes art-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -30px) scale(1.08);
+  }
+  66% {
+    transform: translate(-30px, 35px) scale(0.95);
+  }
+}
+.art-blob {
+  animation: art-drift 18s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-blob {
+    animation: none;
+  }
+}
+
+/* 提示气泡：淡入，稍微放大一点 */
+@layer components {
+  .tooltip-in {
+    animation: tooltip-in 120ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tooltip-in {
+      animation: none;
+    }
+  }
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* 弹出的确认卡片：从按钮方向稍微往下、从稍小一点弹到原大 */
+@layer components {
+  .popover-card {
+    transform-origin: top center;
+    animation: popover-pop 200ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .popover-card {
+      animation: none;
+    }
+  }
+}
+
+/* 提示框（AlertHost）：遮罩淡入，卡片从略小、略低处弹出来 */
+@keyframes alert-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes alert-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+}
+.alert-backdrop {
+  animation: alert-fade 160ms ease-out;
+}
+.alert-card {
+  animation: alert-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+/* 左下角的提示：从下面略小地弹上来；关掉时往左滑出、淡掉，同时这一格的高度收起来，上面的卡片顺着落下。
+   底下的进度条 5 秒缩完（缩完就关掉），鼠标放在卡片上时停住 */
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+@keyframes notice-out {
+  to {
+    opacity: 0;
+    transform: translateX(-24px) scale(0.98);
+  }
+}
+@keyframes notice-out-fade {
+  to {
+    opacity: 0;
+  }
+}
+.notice-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.notice-slot-leaving {
+  grid-template-rows: 0fr;
+}
+@keyframes notice-countdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+.notice-card {
+  animation: notice-in 280ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.notice-card.notice-leaving {
+  animation: notice-out 220ms ease-in forwards;
+}
+.notice-countdown {
+  animation: notice-countdown 5s linear forwards;
+}
+.notice-card:hover .notice-countdown {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert-backdrop,
+  .alert-card,
+  .notice-card {
+    animation: none;
+  }
+  .notice-card.notice-leaving {
+    animation: notice-out-fade 150ms ease-in forwards; /* 少动画时只淡掉；还得有个动画，播完才会拿掉这条 */
+  }
+  .notice-slot {
+    transition: none;
+  }
+}
+
+@keyframes popover-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-6px);
+  }
+}
+
+/* 信息栏和编辑位置里的小地图（Leaflet + OpenStreetMap）。
+   深色区域里把底图反色再转回色相，变成深色地图，和 macOS「照片」的深色地图接近；图钉不反色 */
+@layer components {
+  .map-frame {
+    /* leaflet.css 不在 Tailwind 的 layer 里，它的 .leaflet-container 浅灰底色优先，得 !important；
+       不然底图还没出来、或者图块之间的缝隙，在深色主题下是一块块、一条条浅灰 */
+    background: var(--color-line) !important;
+    font: inherit;
+  }
+  /* 缩放到非整数级（0.25、0.5 一档）时图块按小数缩放，相邻两块之间会露出一条 1 像素的缝，
+     地图上横着几条细线。每块多画半个像素盖住缝 */
+  .map-frame .leaflet-tile-container img.leaflet-tile {
+    width: 256.5px !important;
+    height: 256.5px !important;
+  }
+  /* 点了地图，地图会拿到焦点，浏览器给它画一圈蓝色的焦点框，像外面套了个框，不要 */
+  .map-frame:focus,
+  .map-frame:focus-visible {
+    outline: none;
+  }
+  /* 深色主题下底图反色成深色（选了深色主题，或者大图查看器这种总是深色的地方） */
+  .theme-dark .map-frame .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.85) saturate(0.8);
+  }
+  /* 卫星地球：背后是太空，浅色、深色模式都一样 */
+  .globe-map {
+    background: radial-gradient(circle at 50% 50%, #0d1830 0%, #03050b 70%);
+  }
+  .globe-map .maplibregl-marker {
+    cursor: pointer;
+  }
+  /* 卫星图是照片，深色模式下也不反色 */
+  .map-frame.satellite-map .leaflet-tile-pane {
+    filter: none !important;
+  }
+  .map-frame .leaflet-control-attribution {
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+    color: var(--color-muted);
+    font-size: 10px;
+    line-height: 1.4;
+    padding: 0 4px;
+  }
+  .map-frame .leaflet-control-attribution a {
+    color: inherit;
+  }
+  /* 图钉：圆角的照片缩略图，深色边框，下面一个小尖角指着位置 */
+  .map-pin {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    border: 3px solid #1c1c1e;
+    background: #1c1c1e;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.45);
+  }
+  /* 选择器要比 leaflet 的 .leaflet-container .leaflet-marker-pane img（width: auto）更具体 */
+  .leaflet-marker-pane .map-pin img {
+    width: 100% !important;
+    height: 100%;
+    border-radius: 7px;
+    object-fit: cover;
+  }
+  .map-pin::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    margin-left: -7px;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 8px solid #1c1c1e;
+  }
+  /* 「足迹」图钉右上角的照片张数 */
+  /* 足迹的简笔地图：海是带一点蓝的底色，陆地是浅灰的块，去过的国家、省州颜色深一点；海岸线、虚线国界、点线经纬线 */
+  .map-frame.sketch-map {
+    /* leaflet.css 不在 Tailwind 的 layer 里，它的 .leaflet-container 背景色优先，得 !important */
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-page)) !important;
+  }
+  .sketch-land {
+    fill: color-mix(in srgb, var(--color-fg) 13%, var(--color-page));
+    fill-opacity: 1;
+    stroke: color-mix(in srgb, var(--color-fg) 55%, transparent);
+    stroke-width: 1.1px;
+    stroke-linejoin: round;
+  }
+  .sketch-land.sketch-visited {
+    fill: color-mix(in srgb, var(--color-accent) 22%, var(--color-page));
+  }
+  .sketch-border {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-fg) 30%, transparent);
+    stroke-width: 0.8px;
+    stroke-dasharray: 3 3;
+  }
+  .sketch-grid {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-fg) 14%, transparent);
+    stroke-width: 0.7px;
+    stroke-dasharray: 1 5;
+  }
+  .sketch-map .leaflet-control-attribution {
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  }
+  /* 足迹地图的图钉：大一点的照片，白边，张数写在照片左下角 */
+  .place-pin {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    border-radius: 14px;
+    border: 3px solid white;
+    background: white;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 0.4);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .place-pin:hover {
+    transform: scale(1.06);
+  }
+  .place-pin img,
+  .leaflet-marker-pane .place-pin img {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 11px;
+    object-fit: cover;
+  }
+  .place-pin span {
+    position: absolute;
+    left: 7px;
+    bottom: 4px;
+    color: white;
+    font:
+      700 15px/1.2 system-ui,
+      sans-serif;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 0.8);
+  }
+  .place-pin::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    margin-left: -8px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+  }
+  .map-count {
+    position: absolute;
+    top: -9px;
+    right: -11px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 9999px;
+    border: 2px solid #1c1c1e;
+    background: var(--color-accent);
+    color: white;
+    font:
+      600 11px/18px system-ui,
+      sans-serif;
+    text-align: center;
+  }
+  .map-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    border: 3px solid white;
+    background: var(--color-select);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  }
+}
+
+/* 幻灯片暂停按钮外圈的进度环：描边从无到满一圈 */
+@keyframes slideshow-ring {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 幻灯片的音量、速度滑块：细轨道，走过的部分是文字色（currentColor，音量是白色、速度是系统蓝），
+   拇指是白色的圆，外面一圈同样的颜色。走过多少由组件写进 --filled */
+@layer components {
+  .slideshow-range {
+    appearance: none;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .slideshow-range::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, currentColor var(--filled, 50%), rgb(255 255 255 / 0.28) var(--filled, 50%));
+  }
+  .slideshow-range::-moz-range-track {
+    height: 3px;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.28);
+  }
+  .slideshow-range::-moz-range-progress {
+    height: 3px;
+    border-radius: 9999px;
+    background: currentColor;
+  }
+  .slideshow-range::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -6.5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    background: white;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  }
+  .slideshow-range::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    background: white;
+  }
+  .slideshow-range:focus-visible {
+    outline: none;
+  }
+  .slideshow-range:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--color-select);
+    outline-offset: 2px;
+  }
+}
+
+/* 选中照片后底部浮动的深色操作栏（SelectionBar）。不放进 @layer：要压过按钮上 text-accent、hover:bg-accent-soft 这些工具类，
+   栏上的按钮在深色底上是白色图标；按钮弹出的菜单、删除确认改成往上弹，文字颜色照常 */
+.selection-bar {
+  animation: selection-bar-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+/* 深色毛玻璃，透明度和菜单、弹出层用同一个 --glass-opacity。底色和模糊放在垫在后面的 ::before 上，不放在栏本身：
+   带 backdrop-filter 的元素里面的东西（栏上按钮弹出的菜单）再模糊时只看得到这个元素里面，菜单伸出栏外的部分
+   就模糊不了，背后的照片清清楚楚透出来，看着比栏透明得多 */
+.selection-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in srgb, #171717 var(--glass-opacity), transparent);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+.selection-bar button:not([role='menu'] *, [role='dialog'] *) {
+  color: white;
+}
+.selection-bar button:not([role='menu'] *, [role='dialog'] *):is(:hover, .bg-accent-soft) {
+  background-color: rgb(255 255 255 / 0.15);
+}
+.selection-bar button[aria-label^='删除']:not([role='menu'] *, [role='dialog'] *) {
+  color: #f87171;
+}
+.selection-bar [role='menu'],
+.selection-bar [role='dialog'] {
+  top: auto;
+  bottom: calc(100% + 0.75rem);
+  margin-top: 0;
+  transform-origin: bottom center;
+  color: var(--color-fg);
+}
+@keyframes selection-bar-in {
+  from {
+    opacity: 0;
+    translate: -50% 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .selection-bar {
+    animation: none;
+  }
+}

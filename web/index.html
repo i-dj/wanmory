@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wanmory 万象</title>
+    <!-- 样式表和脚本加载完之前就按主题（设置里选的，没选跟随系统）给 <html> 加上 theme-dark、画好背景，
+         刷新时不会先白一下再变黑。和 src/lib/theme.ts 的规则一致，颜色和 src/index.css 里的 --color-page 一致 -->
+    <script>
+      try {
+        var t = localStorage.getItem('wanmory.theme')
+        if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.classList.add('theme-dark')
+      } catch (e) {}
+    </script>
+    <style>
+      html {
+        background: #f6f7f9;
+      }
+      html.theme-dark {
+        background: #272727;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

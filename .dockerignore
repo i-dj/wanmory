@@ -1,0 +1,9 @@
+# 构建上下文是仓库根目录，只需要 server/ 和 web/ 的源码
+.git
+data/
+**/node_modules/
+web/dist/
+server/bin/
+server/internal/webui/dist/
+ml/
+docs/
