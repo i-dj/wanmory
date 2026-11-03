@@ -3,7 +3,8 @@
 #   docker build -f server/Dockerfile .
 
 # ---- 打包前端 ----
-FROM node:24-trixie-slim AS web
+# 网页文件和 CPU 架构无关：在构建机本身的架构上打包一次（BUILDPLATFORM），不在模拟器里重复做
+FROM --platform=$BUILDPLATFORM node:24-trixie-slim AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
@@ -11,14 +12,16 @@ COPY web/ ./
 RUN npm run build
 
 # ---- 编译后端，把前端嵌进去 ----
-FROM golang:1.26-trixie AS build
+# 也在构建机本身的架构上编译，用 GOARCH 交叉编译出目标架构（TARGETARCH）的程序
+FROM --platform=$BUILDPLATFORM golang:1.26-trixie AS build
+ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ ./
 COPY --from=web /web/dist/ ./internal/webui/dist/
 # 纯 Go 程序，不需要 cgo，编出来是静态文件
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/wanmory ./cmd/wanmory
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/wanmory ./cmd/wanmory
 
 # ---- 运行 ----
 FROM debian:trixie-slim
