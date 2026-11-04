@@ -27,3 +27,6 @@ data/
 .env
 .env.*
 !.env.example
+
+# TypeScript 增量编译的缓存
+*.tsbuildinfo

@@ -13,6 +13,7 @@ import {
 import { cx } from '@/lib/cx'
 import { personPath } from '@/lib/views'
 import { showError } from '@/lib/dialog'
+import { useCurrentUser } from '@/lib/session'
 
 const POLL_MS = 4000 // 还在识别时多久刷新一次进度和人物
 
@@ -30,6 +31,7 @@ export default function PeoplePage({
   onChanged: () => Promise<void> // 改了名字、识别有进展时刷新人物列表
 }) {
   const status = useFaceStatus(onChanged)
+  const { guest } = useCurrentUser() // 访客：不能起名字、合并
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [merging, setMerging] = useState(false)
@@ -72,7 +74,7 @@ export default function PeoplePage({
           <h1 className="text-title font-semibold">人物</h1>
           <p className="mt-1 text-body text-muted">{status ? statusLine(status) : '\u00a0'}</p>
         </div>
-        {!!people?.length && (
+        {!!people?.length && !guest && (
           <div className="flex shrink-0 items-center gap-2 pt-1">
             {selecting ? (
               <>
@@ -147,7 +149,7 @@ export default function PeoplePage({
                 </span>
               )}
             </a>
-            {!selecting && <PersonName person={p} onRename={(name) => rename(p, name)} />}
+            {!selecting && <PersonName person={p} readOnly={guest} onRename={(name) => rename(p, name)} />}
           </li>
         ))}
       </ul>
@@ -254,9 +256,23 @@ function MergeDialog({
 
 // PersonName 是卡片左下角的名字：点一下变成输入框，回车或点别处保存，Esc 放弃。
 // 没起名字时平常不显示，指到卡片上才出现「添加名字」
-function PersonName({ person, onRename }: { person: Person; onRename: (name: string) => Promise<void> }) {
+function PersonName({
+  person,
+  readOnly,
+  onRename,
+}: {
+  person: Person
+  readOnly?: boolean // 访客：只显示名字，不能点了改
+  onRename: (name: string) => Promise<void>
+}) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(person.name)
+  if (readOnly)
+    return person.name ? (
+      <span className="absolute bottom-2.5 left-3 max-w-[calc(100%-1.5rem)] truncate text-heading font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">
+        {person.name}
+      </span>
+    ) : null
   const save = async () => {
     setEditing(false)
     const value = name.trim()

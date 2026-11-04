@@ -8,6 +8,7 @@ import (
 	"io/fs"
 
 	"github.com/wanmory/wanmory/server/internal/assets"
+	"github.com/wanmory/wanmory/server/internal/auth"
 	"github.com/wanmory/wanmory/server/internal/config"
 	"github.com/wanmory/wanmory/server/internal/settings"
 	"github.com/wanmory/wanmory/server/internal/storage"
@@ -39,6 +40,18 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 				return nil, fmt.Errorf("%w：%v", settings.ErrInvalid, err)
 			}
 			return resolved, nil
+		},
+	})
+
+	r.Register(settings.Def{
+		Key:         auth.SettingGuest,
+		Label:       "访客浏览",
+		Description: "没登录的人能不能只读浏览：图库里没隐藏的照片、共享给所有人的相册、人物、足迹。不能上传、修改，看不到任何人的私有相册和已隐藏的照片。能连上这台服务器的人都能看到，开到外网时建议关掉。",
+		Kind:        settings.KindChoice,
+		Default:     "on",
+		Choices: []settings.Choice{
+			{Value: "on", Label: "打开", Hint: "没登录也能看共享的照片"},
+			{Value: "off", Label: "关闭", Hint: "必须登录才能看"},
 		},
 	})
 

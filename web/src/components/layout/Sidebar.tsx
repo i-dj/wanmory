@@ -12,6 +12,7 @@ import {
   Layers,
   Upload,
   BookImage,
+  LogIn,
 } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 import type { AssetStats } from '@/lib/api'
@@ -53,6 +54,7 @@ export default function Sidebar({
   collapsed?: boolean // 宽屏上收起（点进某个人、某个地方、某个相册时），照片铺满；回到列表再展开。窄屏顶上那排标签不收
   navigate: (to: string) => void
 }) {
+  const { guest, signIn } = useCurrentUser()
   const viewItem = (view: View, icon: LucideIcon, count?: number) => (
     <NavItem
       key={view.path}
@@ -90,8 +92,9 @@ export default function Sidebar({
             <div className="text-caption text-muted">Wanmory</div>
           </div>
         </div>
+        {/* 访客只能浏览：没有上传，换成「登录」 */}
         <div className="hidden px-4 pb-7 md:block">
-          <SidebarUpload onFiles={onUpload} />
+          {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 py-2 md:flex-1 md:flex-col md:overflow-y-auto md:px-4 md:py-0">
           {/* 常用的一组：图库、相册、人物、足迹、收藏、星级；一道横线下面是整理用的：最近添加、连拍、隐藏、删除 */}
@@ -110,17 +113,22 @@ export default function Sidebar({
           <div className="mx-1 my-3 hidden h-px shrink-0 bg-line md:block" />
           <SectionLabel>其他</SectionLabel>
           {viewItem(RECENT, Clock)}
-          <NavItem
-            href={BURSTS_PATH}
-            label="连拍整理"
-            icon={Layers}
-            active={path === BURSTS_PATH}
-            navigate={navigate}
-          />
-          {viewItem(HIDDEN, EyeOff)}
-          {viewItem(DELETED, Trash2)}
-          {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
-          <div className="md:hidden">{settings}</div>
+          {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
+          {!guest && (
+            <>
+              <NavItem
+                href={BURSTS_PATH}
+                label="连拍整理"
+                icon={Layers}
+                active={path === BURSTS_PATH}
+                navigate={navigate}
+              />
+              {viewItem(HIDDEN, EyeOff)}
+              {viewItem(DELETED, Trash2)}
+              {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
+              <div className="md:hidden">{settings}</div>
+            </>
+          )}
         </nav>
         <div className="hidden border-t border-line px-3 py-2.5 md:block">
           <ProfileCard active={path === SETTINGS_PATH} onOpen={() => navigate(SETTINGS_PATH)} />
@@ -239,17 +247,27 @@ function RatingRow({
   )
 }
 
+// BIG_BUTTON 是菜单顶上那个大按钮的样子（上传文件，访客看到的是登录）
+const BIG_BUTTON =
+  'flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-fg text-body font-semibold text-page transition hover:bg-fg/85 active:scale-[0.98]'
+
+// SidebarSignIn 是访客看到的大按钮「登录」，在「上传文件」的位置
+function SidebarSignIn({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={BIG_BUTTON}>
+      <LogIn className="size-4.5" strokeWidth={2.2} />
+      登录
+    </button>
+  )
+}
+
 // SidebarUpload 是菜单顶上的大按钮「上传文件」：点了打开选择文件的窗口（照片、视频、HEIC、DNG 都能选，可以多选）。
 // 深色底白字（深色模式反过来），是整个菜单里最显眼的一个；不加阴影，鼠标放上去是小手、颜色稍微变浅一点，按下去稍微缩一下
 function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
   const input = useRef<HTMLInputElement>(null)
   return (
     <>
-      <button
-        type="button"
-        onClick={() => openFilePicker(input.current)}
-        className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-fg text-body font-semibold text-page transition hover:bg-fg/85 active:scale-[0.98]"
-      >
+      <button type="button" onClick={() => openFilePicker(input.current)} className={BIG_BUTTON}>
         <Upload className="size-4.5" strokeWidth={2.2} />
         上传文件
       </button>
@@ -270,8 +288,16 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
 
 // ProfileCard 是菜单最下面一行：登录的人，小圆头像（名字的第一个字）、名字，右边齿轮打开设置
 function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }) {
-  const { user } = useCurrentUser()
+  const { user, guest } = useCurrentUser()
   const { name } = user
+  // 访客：只显示「访客」，登录用上面的大按钮
+  if (guest)
+    return (
+      <div className="flex items-center gap-2.5 px-2.5 py-1.5">
+        <UserAvatar user={user} className="size-7 text-caption" />
+        <span className="min-w-0 flex-1 truncate text-body font-medium">访客</span>
+      </div>
+    )
   return (
     <div className="flex items-center gap-2.5 px-2.5 py-1.5">
       <UserAvatar user={user} className="size-7 text-caption" />

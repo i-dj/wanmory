@@ -29,7 +29,7 @@ export default function AlbumsPage({
   const [context, setContext] = useState<{ id: string; x: number; y: number } | null>(null) // 右键的哪个相册、在哪
   const [picking, setPicking] = useState<Album | null>(null) // 正在给哪个相册选封面
   const [privacy, setPrivacy] = useState<Album | null>(null) // 正在改哪个相册的「谁能看」
-  const { user } = useCurrentUser()
+  const { user, guest } = useCurrentUser() // 访客：不能新建、改相册
   return (
     <section className="pt-6">
       <div className="flex items-start justify-between gap-4">
@@ -39,14 +39,16 @@ export default function AlbumsPage({
             {albums?.length ? `${albums.length.toLocaleString()} 个相册` : ' '}
           </p>
         </div>
-        <div className="shrink-0 pt-1">
-          <Button primary onClick={onNew}>
-            <span className="flex items-center gap-1">
-              <Plus className="size-4" strokeWidth={2.2} />
-              新建相册
-            </span>
-          </Button>
-        </div>
+        {!guest && (
+          <div className="shrink-0 pt-1">
+            <Button primary onClick={onNew}>
+              <span className="flex items-center gap-1">
+                <Plus className="size-4" strokeWidth={2.2} />
+                新建相册
+              </span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {albums && albums.length === 0 && (
@@ -63,6 +65,7 @@ export default function AlbumsPage({
           <li
             key={album.id}
             onContextMenu={(e) => {
+              if (guest) return
               e.preventDefault()
               setContext({ id: album.id, x: e.clientX, y: e.clientY })
             }}
@@ -105,18 +108,20 @@ export default function AlbumsPage({
               </span>
             </a>
             {/* 「…」在照片上：深色圆底，白色三个点 */}
-            <div className="absolute top-2 right-2 rounded-full bg-black/45 opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100 [&_button]:text-white [&_button:hover]:bg-white/20">
-              <AlbumMenu
-                album={album}
-                visible={false}
-                onEdit={() => onEdit(album)}
-                onDelete={() => onDelete(album)}
-                onChangeCover={() => setPicking(album)}
-                onPrivacy={() => setPrivacy(album)}
-                contextAt={context?.id === album.id ? context : null}
-                onContextClose={() => setContext(null)}
-              />
-            </div>
+            {!guest && (
+              <div className="absolute top-2 right-2 rounded-full bg-black/45 opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100 [&_button]:text-white [&_button:hover]:bg-white/20">
+                <AlbumMenu
+                  album={album}
+                  visible={false}
+                  onEdit={() => onEdit(album)}
+                  onDelete={() => onDelete(album)}
+                  onChangeCover={() => setPicking(album)}
+                  onPrivacy={() => setPrivacy(album)}
+                  contextAt={context?.id === album.id ? context : null}
+                  onContextClose={() => setContext(null)}
+                />
+              </div>
+            )}
           </li>
         ))}
       </ul>

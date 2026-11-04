@@ -58,6 +58,7 @@ function PhotoGrid({
   layout,
   mosaic = false,
   markHidden = false,
+  readOnly = false,
   selected,
   onVisibleChange,
   onOpen,
@@ -72,6 +73,7 @@ function PhotoGrid({
   sections: Section[]
   layout: GridLayout
   mosaic?: boolean // 拼贴排版：好看的照片放大（相册、人物页用）
+  readOnly?: boolean // 只能看（访客）：照片上不显示选中、收藏这些按钮
   markHidden?: boolean // 隐藏了的照片左下角标「已隐藏」（私有相册、人物页里自己隐藏的照样显示，标出来免得以为别人也看得到）
   selected: Selected
   onVisibleChange?: (range: VisibleRange | null) => void
@@ -180,6 +182,7 @@ function PhotoGrid({
                   width={w}
                   selected={selected.has(asset.id)}
                   markHidden={markHidden}
+                  readOnly={readOnly}
                   onOpen={onOpen}
                   onInfo={onInfo}
                   onChanged={onChanged}

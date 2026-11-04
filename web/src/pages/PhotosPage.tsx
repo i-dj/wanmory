@@ -246,7 +246,8 @@ export default function PhotosPage({
   const setViewerCurrent = useCallback((id: string) => {
     viewerCurrent.current = id
   }, [])
-  const dragging = useFileDrop(active && !viewing, addFiles)
+  const { updateUser, guest } = useCurrentUser() // guest：访客只能浏览，不能选、上传、改
+  const dragging = useFileDrop(active && !viewing && !guest, addFiles)
   const { refresh } = status
   const onChanged = useCallback(
     (asset: Asset) => {
@@ -262,7 +263,6 @@ export default function PhotosPage({
   useClearOnBlankClick(active, selection.clear)
   const toast = useToast()
   // 「设为我的头像」：照片（有缩略图、没删的）的「更多」菜单里，选中一张时和大图查看器里都有
-  const { updateUser } = useCurrentUser()
   const avatarItem = (asset: Asset) =>
     asset.type === 'image' && asset.has_thumbnail && !asset.deleted_at
       ? (close: () => void) => (
@@ -483,7 +483,7 @@ export default function PhotosPage({
         }
         tools={canPlay && !selecting && <ToolbarButton icon={Play} label="播放幻灯片" onClick={playSlideshow} />}
         actions={
-          picking ? (
+          !guest && picking ? (
             <PickActions
               count={selection.selectedAssets.length}
               busy={saving}
@@ -518,7 +518,7 @@ export default function PhotosPage({
         aside={picking && selecting && <SelectionCount assets={selection.selectedAssets} />}
       />
 
-      {selecting && !picking && (
+      {selecting && !picking && !guest && (
         // 选中后操作栏浮在底部中间，不占顶上的工具栏
         <SelectionBar count={selection.selectedAssets.length} onClear={selection.clear}>
           {canPlay && <ToolbarButton icon={Play} label="播放选中的" onClick={playSlideshow} />}
@@ -592,8 +592,9 @@ export default function PhotosPage({
         onOpen={openViewer}
         onInfo={setInfo}
         onChanged={onChanged}
-        onSelect={selection.click}
-        onMarquee={selection.marquee}
+        onSelect={guest ? undefined : selection.click}
+        onMarquee={guest ? undefined : selection.marquee}
+        readOnly={guest}
       />
       <div ref={sentinelRef} aria-hidden="true" />
       {timeline.loadingMore && <p className="py-4 text-center text-body text-muted">加载中…</p>}
@@ -667,30 +668,32 @@ export default function PhotosPage({
           onCurrent={setViewerCurrent}
           onClose={closeViewer}
           // 顶栏右边的按钮和选中照片后工具栏上的一样，操作当前这一张；删除、隐藏后查看器自动换到下一张
-          actions={(asset, menuExtra) => (
-            <SelectionActions
-              assets={[asset]}
-              scope={scopeOf(filter)}
-              busy={saving}
-              albums={albums}
-              album={album}
-              onApply={(patch) => applyTo([asset.id], patch)}
-              onDownload={() => downloadAssets([asset.id])}
-              onAddToAlbum={(target) => addTo(target, [asset.id])}
-              onCreateAlbum={() => onCreateAlbum([asset.id])}
-              onRemoveFromAlbum={() => removeFromCurrentAlbum([asset.id])}
-              onPurge={() => purge([asset.id])}
-              person={person}
-              people={people}
-              onMovePerson={(target) => moveToPerson([asset.id], target)}
-              menuExtra={(close) => (
-                <>
-                  {menuExtra(close)}
-                  {avatarItem(asset)?.(close)}
-                </>
-              )}
-            />
-          )}
+          actions={(asset, menuExtra) =>
+            guest ? null : (
+              <SelectionActions
+                assets={[asset]}
+                scope={scopeOf(filter)}
+                busy={saving}
+                albums={albums}
+                album={album}
+                onApply={(patch) => applyTo([asset.id], patch)}
+                onDownload={() => downloadAssets([asset.id])}
+                onAddToAlbum={(target) => addTo(target, [asset.id])}
+                onCreateAlbum={() => onCreateAlbum([asset.id])}
+                onRemoveFromAlbum={() => removeFromCurrentAlbum([asset.id])}
+                onPurge={() => purge([asset.id])}
+                person={person}
+                people={people}
+                onMovePerson={(target) => moveToPerson([asset.id], target)}
+                menuExtra={(close) => (
+                  <>
+                    {menuExtra(close)}
+                    {avatarItem(asset)?.(close)}
+                  </>
+                )}
+              />
+            )
+          }
         />
       )}
       {toast.message && (

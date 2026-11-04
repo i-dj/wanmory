@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import AlbumDialog from '@/components/albums/AlbumDialog'
 import Sidebar, { SETTINGS_PATH } from '@/components/layout/Sidebar'
 import { useAlbums } from '@/hooks/useAlbums'
@@ -14,7 +14,18 @@ import {
   type SmartOptions,
   updateAlbum,
 } from '@/lib/api'
-import { albumPath, ALBUMS_PATH, BURSTS_PATH, findRoute, LIBRARY, PEOPLE_PATH, PLACES_PATH } from '@/lib/views'
+import {
+  albumPath,
+  ALBUMS_PATH,
+  BURSTS_PATH,
+  DELETED,
+  findRoute,
+  HIDDEN,
+  LIBRARY,
+  PEOPLE_PATH,
+  PLACES_PATH,
+} from '@/lib/views'
+import { useCurrentUser } from '@/lib/session'
 import AlbumsPage from '@/pages/AlbumsPage'
 import PeoplePage from '@/pages/PeoplePage'
 import PersonPage from '@/pages/PersonPage'
@@ -60,6 +71,13 @@ export default function App() {
               : personTab
                 ? 'person'
                 : 'photos'
+  // 访客打开了用不了的页面（设置、连拍整理、已隐藏、最近删除，例如别人发来的链接）：回到图库
+  const { guest } = useCurrentUser()
+  const guestBlocked =
+    guest && (page === 'settings' || page === 'bursts' || path === HIDDEN.path || path === DELETED.path)
+  useEffect(() => {
+    if (guestBlocked) navigate(LIBRARY.path)
+  }, [guestBlocked, navigate])
   const onSettings = page !== 'photos'
   const detail = isDetail(path)
   useDrawerPush(mainRef, detail)

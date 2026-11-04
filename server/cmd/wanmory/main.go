@@ -158,6 +158,10 @@ func run(ctx context.Context) error {
 
 	// 家庭账号：没登录的 /api 请求一律拦下（见 internal/auth）
 	authService := auth.NewService(conn)
+	authService.SetGuest(func(ctx context.Context) bool { // 访客模式：没登录也能只读浏览共享的照片
+		v, err := settings.GetOr(ctx, settingsStore, auth.SettingGuest, "on")
+		return err == nil && v == "on"
+	})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {

@@ -25,6 +25,7 @@ function AssetTile({
   width,
   selected,
   markHidden,
+  readOnly,
   onOpen,
   onChanged,
   onSelect,
@@ -32,6 +33,7 @@ function AssetTile({
   asset: Asset
   width: number // 格子的宽度（像素）
   selected: boolean
+  readOnly?: boolean // 只能看（访客）：不显示悬停时的选中、收藏、星级
   markHidden?: boolean // 隐藏了的照片左下角标一个小眼睛（见 PhotoGrid）
   onOpen: (asset: Asset) => void // 打开大图查看器
   onInfo?: (info: InfoTarget) => void // 照片上不再有「更多」菜单，信息在选中后的浮动栏里看；留着参数不用改调用的地方
@@ -138,7 +140,7 @@ function AssetTile({
               已隐藏
             </span>
           )}
-          {canHover && (
+          {canHover && !readOnly && (
             <TileActions
               asset={asset}
               compact={width < ACTIONS_MIN_WIDTH}

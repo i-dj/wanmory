@@ -45,8 +45,42 @@ var public = map[string]bool{
 	"/api/auth/login": true,
 }
 
+// guestPaths 是访客（没登录、访客模式开着）能读的接口，只有 GET。读服务器目录、设置、AI 服务、相册的私有设置、
+// 「最近删除」都不在里面；改东西的接口一个都不给（回答 403「访客只能浏览」）。
+// 访客在别的地方和「谁都不是」一样：看不到任何人隐藏的照片、私有相册，只给部分成员看的共享相册也看不到
+var guestPaths = []string{
+	"/api/assets", "/api/assets/changes", "/api/assets/dates", "/api/assets/points", "/api/assets/stats",
+	"/api/assets/summary", "/api/albums", "/api/albums/values", "/api/people", "/api/faces/status",
+	"/api/search/options", "/api/users",
+}
+
+// guestPrefixes 是带 ID 的：照片的缩略图、预览、原图、详情，人物页，人脸小图
+var guestPrefixes = []string{"/api/assets/", "/api/people/", "/api/faces/"}
+
+func guestAllowed(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	if r.URL.Query().Get("view") == "deleted" { // 最近删除
+		return false
+	}
+	p := r.URL.Path
+	for _, g := range guestPaths {
+		if p == g {
+			return true
+		}
+	}
+	for _, g := range guestPrefixes {
+		if strings.HasPrefix(p, g) && !strings.HasSuffix(p, "/privacy") {
+			return true
+		}
+	}
+	return false
+}
+
 // Middleware 拦住没登录的 /api 请求（401）；登录了的把人放进 context。网页本身（/api 以外）不拦，
-// 打开网页先显示登录页，登录后才去请求数据
+// 打开网页先显示登录页，登录后才去请求数据。访客模式开着时，没登录的人能只读浏览（见 guestPaths），
+// 请求里没有人（UserFrom 是 nil）
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/api/") || public[r.URL.Path] {
@@ -60,7 +94,7 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 		}
 		c, err := r.Cookie(CookieName)
 		if err != nil {
-			httpx.Error(w, http.StatusUnauthorized, "请先登录")
+			s.guestOr401(w, r, next, "请先登录")
 			return
 		}
 		u, err := s.UserBySession(r.Context(), c.Value)
@@ -69,11 +103,24 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		if u == nil {
-			httpx.Error(w, http.StatusUnauthorized, "登录已过期，请重新登录")
+			s.guestOr401(w, r, next, "登录已过期，请重新登录")
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), u)))
 	})
+}
+
+// guestOr401：访客模式开着、是访客能读的就放行（没有人），访客想改东西回答 403；访客模式关着回答 401（网页回到登录页）
+func (s *Service) guestOr401(w http.ResponseWriter, r *http.Request, next http.Handler, msg string) {
+	if !s.guestOn(r.Context()) {
+		httpx.Error(w, http.StatusUnauthorized, msg)
+		return
+	}
+	if !guestAllowed(r) {
+		httpx.Error(w, http.StatusForbidden, "访客只能浏览，登录后才能修改")
+		return
+	}
+	next.ServeHTTP(w, r)
 }
 
 func (s *Service) admin(h http.HandlerFunc) http.HandlerFunc {
@@ -92,13 +139,19 @@ func (s *Service) state(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, err)
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"setup_needed": need, "user": UserFrom(r.Context())})
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"setup_needed": need, "user": UserFrom(r.Context()), "guest": !need && s.guestOn(r.Context()),
+	})
 }
 
 type credentials struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
+	// Remember 是「记住登录状态」：不带或 true 时记住 90 天；false 时（别人的电脑）关了浏览器就退出
+	Remember *bool `json:"remember"`
 }
+
+func (c credentials) remember() bool { return c.Remember == nil || *c.Remember }
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(v); err != nil {
@@ -118,7 +171,7 @@ func (s *Service) setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("auth: 建好了管理员「%s」", u.Name)
-	s.startSession(w, r, c.Name, c.Password)
+	s.startSession(w, r, c.Name, c.Password, true)
 }
 
 func (s *Service) login(w http.ResponseWriter, r *http.Request) {
@@ -126,23 +179,32 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &c) {
 		return
 	}
-	s.startSession(w, r, c.Name, c.Password)
+	s.startSession(w, r, c.Name, c.Password, c.remember())
 }
 
-func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, password string) {
-	u, token, err := s.Login(r.Context(), name, password)
+// startSession 登录并发 cookie。remember 时 cookie 和会话都记 90 天；不记住时 cookie 不写过期时间
+// （浏览器关了就没了），服务器上的会话也只留 12 小时
+func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, password string, remember bool) {
+	ttl := sessionTTL
+	if !remember {
+		ttl = shortTTL
+	}
+	u, token, err := s.Login(r.Context(), name, password, ttl)
 	if s.fail(w, err) {
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
 		Path:     "/",
-		Expires:  time.Now().Add(sessionTTL),
 		HttpOnly: true, // 网页里的脚本读不到，被注入了脚本也偷不走
 		SameSite: http.SameSiteLaxMode,
 		Secure:   r.TLS != nil,
-	})
+	}
+	if remember {
+		cookie.Expires = time.Now().Add(sessionTTL)
+	}
+	http.SetCookie(w, cookie)
 	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
 }
 

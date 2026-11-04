@@ -24,6 +24,7 @@ import (
 const (
 	CookieName     = "wanmory_session"
 	sessionTTL     = 90 * 24 * time.Hour // 登录一次记住 90 天，自己的电脑、手机不用老是输密码
+	shortTTL       = 12 * time.Hour      // 没勾「记住登录状态」（别人的电脑）：关了浏览器就退出，服务器上也最多留 12 小时
 	pbkdf2Iter     = 600_000             // OWASP 2023 给 PBKDF2-SHA256 的建议值
 	minPassword    = 4                   // 家用，不强求复杂；太短就没意义了
 	maxName        = 20
@@ -51,7 +52,17 @@ type User struct {
 
 type Service struct {
 	db *sql.DB
+	// guest 是访客模式开着没有（设置里的 auth.guest）：开着时没登录的人也能只读浏览，见 Middleware
+	guest func(ctx context.Context) bool
 }
+
+// SettingGuest 是设置里的「访客浏览」（on / off，默认 on），见 SetGuest
+const SettingGuest = "auth.guest"
+
+// SetGuest 接上「访客模式开着没有」，没接时访客模式关着
+func (s *Service) SetGuest(enabled func(ctx context.Context) bool) { s.guest = enabled }
+
+func (s *Service) guestOn(ctx context.Context) bool { return s.guest != nil && s.guest(ctx) }
 
 func NewService(db *sql.DB) *Service {
 	return &Service{db: db}
@@ -103,8 +114,8 @@ func (s *Service) Setup(ctx context.Context, name, password string) (*User, erro
 	return u, tx.Commit()
 }
 
-// Login 核对名字（不分大小写）和密码，对了就开一个新会话，返回令牌
-func (s *Service) Login(ctx context.Context, name, password string) (*User, string, error) {
+// Login 核对名字（不分大小写）和密码，对了就开一个新会话（ttl 后过期），返回令牌
+func (s *Service) Login(ctx context.Context, name, password string, ttl time.Duration) (*User, string, error) {
 	var u User
 	var hash string
 	err := s.db.QueryRowContext(ctx, `
@@ -121,14 +132,14 @@ func (s *Service) Login(ctx context.Context, name, password string) (*User, stri
 	if !checkPassword(hash, password) {
 		return nil, "", ErrBadLogin
 	}
-	token, err := s.newSession(ctx, u.ID)
+	token, err := s.newSession(ctx, u.ID, ttl)
 	if err != nil {
 		return nil, "", err
 	}
 	return &u, token, nil
 }
 
-func (s *Service) newSession(ctx context.Context, user uuid.UUID) (string, error) {
+func (s *Service) newSession(ctx context.Context, user uuid.UUID, ttl time.Duration) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
@@ -136,7 +147,7 @@ func (s *Service) newSession(ctx context.Context, user uuid.UUID) (string, error
 	token := base64.RawURLEncoding.EncodeToString(raw)
 	sum := sha256.Sum256([]byte(token))
 	_, err := s.db.ExecContext(ctx, `INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)`,
-		sum[:], user, time.Now().Add(sessionTTL))
+		sum[:], user, time.Now().Add(ttl))
 	return token, err
 }
 

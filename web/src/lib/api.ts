@@ -394,9 +394,11 @@ export interface User {
   avatar: string | null // 头像用的照片 ID；没选是 null，显示名字的第一个字
   created_at: string
 }
-export const authState = () => getJSON<{ setup_needed: boolean; user: User | null }>('/api/auth/state')
-export const login = (name: string, password: string) =>
-  send<{ user: User }>('POST', '/api/auth/login', { name, password })
+// guest：访客模式开着（没登录也能只读浏览共享的照片，见 server/internal/auth 的 guestPaths）
+export const authState = () => getJSON<{ setup_needed: boolean; user: User | null; guest: boolean }>('/api/auth/state')
+// remember：「记住登录状态」，不记住时关了浏览器就退出
+export const login = (name: string, password: string, remember = true) =>
+  send<{ user: User }>('POST', '/api/auth/login', { name, password, remember })
 export const setupAdmin = (name: string, password: string) =>
   send<{ user: User }>('POST', '/api/auth/setup', { name, password })
 export const logout = () => send<void>('POST', '/api/auth/logout')
