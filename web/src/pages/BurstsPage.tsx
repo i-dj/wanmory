@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader'
 import { Check, ChevronLeft, ChevronRight, Layers, Maximize2, Sparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -100,24 +101,22 @@ export default function BurstsPage() {
 
   const label = current === 'duplicates' ? '重复' : '连拍和相似'
   return (
-    <section className="pt-6 pb-12">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-title font-semibold">连拍整理</h1>
-          <p className="mt-1 text-body text-muted">
-            {groups.length
-              ? `${groups.length.toLocaleString()} 组 · 只留最好的能腾出 ${extra.count.toLocaleString()} 张、${formatSize(extra.bytes)}`
-              : ' '}
-          </p>
-        </div>
-        {!!groups.length && (
-          <div className="shrink-0 pt-1">
+    <section className="pb-12">
+      <PageHeader
+        title="连拍整理"
+        subtitle={
+          groups.length
+            ? `${groups.length.toLocaleString()} 组 · 只留最好的能腾出 ${extra.count.toLocaleString()} 张、${formatSize(extra.bytes)}`
+            : ''
+        }
+        right={
+          !!groups.length && (
             <Button primary disabled={busy} onClick={() => setConfirmAll(true)}>
               {current === 'duplicates' ? '全部去重' : '全部按推荐整理'}
             </Button>
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       {!!bursts?.length && (
         <div className="mt-4">

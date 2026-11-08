@@ -153,11 +153,7 @@ function JobRow({ job, pausedFor }: { job: ActiveJobs; pausedFor: string }) {
   const g = GROUPS[job.key] ?? { label: job.key, detail: '' }
   const total = job.done + job.remaining
   const ratio = total ? job.done / total : 0
-  const status = pausedFor
-    ? `已暂停：${pausedFor}`
-    : job.eta !== null
-      ? `还要${eta(job.eta)}`
-      : '正在估算剩余时间…'
+  const status = pausedFor ? `已暂停：${pausedFor}` : job.eta !== null ? `还要${eta(job.eta)}` : '正在估算剩余时间…'
   return (
     <li>
       <div className="flex items-baseline gap-2 text-body">

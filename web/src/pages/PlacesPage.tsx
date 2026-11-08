@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader'
 import { MapPinned } from 'lucide-react'
 import { lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from 'react'
 import FootprintMap from '@/components/photos/FootprintMap'
@@ -76,35 +77,33 @@ export default function PlacesPage({ navigate }: { navigate: (to: string) => voi
   const onMap = mode !== 'grid'
   return (
     // 地图、卫星占满一屏（抵掉 main 底下的留白），网格照常往下排
-    <section className={cx('pt-6', onMap && '-mb-16 flex h-dvh flex-col pb-6')}>
-      <div className="flex items-end gap-4">
-        <div className="min-w-0 flex-1">
-          {/* 标题后面是筛选：只按成员筛（谁传的） */}
-          <div className="flex items-center gap-2">
-            <h1 className="text-title font-semibold">足迹</h1>
-            <FilterMenu
-              membersOnly
-              value={filter.kinds}
-              onChange={(kinds) => setFootprintFilter({ kinds })}
-              uploaders={filter.uploaders}
-              onUploaders={(uploaders) => setFootprintFilter({ uploaders })}
-            />
-          </div>
-          <p className="mt-1 truncate text-body text-muted">
-            {count ? summary(countryCount, merged.length, count - videoCount, videoCount) : '\u00a0'}
-          </p>
-        </div>
-        <Segmented
-          label="显示方式"
-          segments={MODES.map((m) =>
-            m.value === 'satellite' && mapsOn === false
-              ? { ...m, disabled: true, title: '在设置里打开「在线地图」后才能看卫星图' }
-              : m,
-          )}
-          value={mode}
-          onChange={setMode}
-        />
-      </div>
+    <section className={cx(onMap && '-mb-16 flex h-dvh flex-col pb-6')}>
+      <PageHeader
+        title="足迹"
+        // 标题后面是筛选：只按成员筛（谁传的）
+        titleAction={
+          <FilterMenu
+            membersOnly
+            value={filter.kinds}
+            onChange={(kinds) => setFootprintFilter({ kinds })}
+            uploaders={filter.uploaders}
+            onUploaders={(uploaders) => setFootprintFilter({ uploaders })}
+          />
+        }
+        subtitle={count ? summary(countryCount, merged.length, count - videoCount, videoCount) : ''}
+        right={
+          <Segmented
+            label="显示方式"
+            segments={MODES.map((m) =>
+              m.value === 'satellite' && mapsOn === false
+                ? { ...m, disabled: true, title: '在设置里打开「在线地图」后才能看卫星图' }
+                : m,
+            )}
+            value={mode}
+            onChange={setMode}
+          />
+        }
+      />
       {error && <p className="mt-6 text-body text-danger">没有读到：{error}</p>}
 
       {points && points.length === 0 && (

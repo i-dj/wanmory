@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader'
 import { useCallback, useEffect, useState } from 'react'
 import { listSettings, resetSetting, saveSetting, type SettingItem } from '@/lib/api'
 import ChoicePicker from '@/components/settings/ChoicePicker'
@@ -63,7 +64,7 @@ export default function SettingsPage() {
 
   return (
     <section>
-      <h2 className="mb-3 text-heading font-semibold">设置</h2>
+      <PageHeader title="设置" subtitle="外观、账号、AI 服务、性能、系统更新" />
       <AppearanceSettings />
       <AccountSettings />
       <AISettings />

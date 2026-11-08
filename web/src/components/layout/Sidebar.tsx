@@ -1,18 +1,19 @@
 import {
+  BookImage,
   Clock,
   EyeOff,
   Heart,
   Images,
-  type LucideIcon,
+  Layers,
+  LogIn,
+  LogOut,
+  MapPinned,
   Settings,
   Star,
   Trash2,
-  UsersRound,
-  MapPinned,
-  Layers,
+  type LucideIcon,
   Upload,
-  BookImage,
-  LogIn,
+  UsersRound,
 } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 import type { AssetStats } from '@/lib/api'
@@ -23,6 +24,7 @@ import TaskIndicator from './TaskIndicator'
 import { useUpdate, useVersion, versionLabel } from '@/lib/version'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { useCurrentUser } from '@/lib/session'
+import { askConfirm } from '@/lib/dialog'
 import { DRAWER_CLOSE_MS, DRAWER_EASE, DRAWER_OPEN_MS } from '@/lib/drawer'
 import {
   ALBUMS_PATH,
@@ -291,7 +293,7 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
 
 // ProfileCard 是菜单最下面一行：登录的人，小圆头像（名字的第一个字）、名字，右边齿轮打开设置
 function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }) {
-  const { user, guest } = useCurrentUser()
+  const { user, guest, signOut } = useCurrentUser()
   const { name } = user
   // 访客：只显示「访客」，登录用上面的大按钮
   if (guest)
@@ -301,22 +303,46 @@ function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }
         <span className="min-w-0 flex-1 truncate text-body font-medium">访客</span>
       </div>
     )
+  const quit = async () => {
+    if (await askConfirm('退出登录？', { confirmLabel: '退出' }))
+      signOut()
+  }
+  // 头像和名字点了去设置（外观、自己的账号）；右边管理员多一个系统设置的齿轮，最右是退出
   return (
-    <div className="flex items-center gap-2.5 px-2.5 py-1.5">
-      <UserAvatar user={user} className="size-7 text-caption" />
-      <span className="min-w-0 flex-1 truncate text-body font-medium">{name}</span>
-      <Tooltip label="设置">
+    <div className="flex items-center gap-1 px-1.5 py-1.5">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-current={active && !user.is_admin ? 'page' : undefined}
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-control px-1 py-1 text-left hover:bg-fg/[0.05]"
+      >
+        <UserAvatar user={user} className="size-7 text-caption" />
+        <span className="min-w-0 flex-1 truncate text-body font-medium">{name}</span>
+      </button>
+      {user.is_admin && (
+        <Tooltip label="设置">
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label="设置"
+            aria-current={active ? 'page' : undefined}
+            className={cx(
+              'flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
+              active ? 'bg-nav-active text-nav-active-fg' : 'text-fg/70',
+            )}
+          >
+            <Settings className="size-4.5" strokeWidth={1.8} />
+          </button>
+        </Tooltip>
+      )}
+      <Tooltip label="退出登录">
         <button
           type="button"
-          onClick={onOpen}
-          aria-label="设置"
-          aria-current={active ? 'page' : undefined}
-          className={cx(
-            'flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
-            active ? 'bg-nav-active text-nav-active-fg' : 'text-fg/70',
-          )}
+          onClick={quit}
+          aria-label="退出登录"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full text-fg/70 transition-colors hover:bg-fg/[0.07] hover:text-fg"
         >
-          <Settings className="size-4.5" strokeWidth={1.8} />
+          <LogOut className="size-4.5" strokeWidth={1.8} />
         </button>
       </Tooltip>
     </div>

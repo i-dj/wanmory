@@ -161,11 +161,7 @@ export default function App() {
             uploadRef={uploadRef}
           />
         </div>
-        {page === 'settings' && (
-          <div className="pt-6">
-            <SettingsPage />
-          </div>
-        )}
+        {page === 'settings' && <SettingsPage />}
         {page === 'places' && <PlacesPage navigate={navigate} />}
         {page === 'bursts' && <BurstsPage />}
         {page === 'albums' && (

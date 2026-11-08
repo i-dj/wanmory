@@ -71,12 +71,17 @@ export function mergeChanges(list: Asset[], changed: Asset[], hasMore: boolean, 
 // serverOnly：这些条件只有服务器能判断（人脸、照片内容、地点、相机……）
 const serverOnly = (f: Filter) => !!(f.person || f.with || f.near || f.city || f.q || f.tag || f.camera || f.lens)
 
+const NO_ASSETS: Asset[] = []
+
 export function useTimeline(filter: Filter) {
   const [assets, setAssetsState] = useState<Asset[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null) // 第一页没加载成功的原因，例如搜索要用的 AI 服务还没准备好
+  // 现在的照片是按哪个条件加载的。换了分类后，下面清空的 effect 要等这一帧画完才跑，这一帧里还是旧分类的照片
+  // （从图库切到「已隐藏」时先闪一下图库的照片再变空）。条件对不上时当作还没加载，一张也不给
+  const [shownKey, setShownKey] = useState<string | null>(null)
 
   // 异步回调里要读最新值，都放在 ref 里；列表以 listRef 为准，state 只用来触发重新渲染
   const listRef = useRef<Asset[]>([])
@@ -118,6 +123,7 @@ export function useTimeline(filter: Filter) {
     setLoaded(false)
     setLoadingMore(false) // 旧分类还在加载的那一页作废了，它结束时不会再来清这个状态
     setError(null)
+    setShownKey(filterKey)
     const gen = generation.current
     reload().catch((e) => {
       console.error(e)
@@ -189,12 +195,13 @@ export function useTimeline(filter: Filter) {
     [setAssets],
   )
 
+  const stale = shownKey !== filterKey
   return {
-    assets,
-    loaded,
-    error,
-    hasMore,
-    loadingMore,
+    assets: stale ? NO_ASSETS : assets,
+    loaded: loaded && !stale,
+    error: stale ? null : error,
+    hasMore: hasMore && !stale,
+    loadingMore: loadingMore && !stale,
     loadMore,
     ensureLoaded,
     refreshChanges,

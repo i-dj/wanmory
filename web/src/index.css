@@ -36,8 +36,8 @@
   --radius-panel: 10px;
   --radius-dialog: 14px;
 
-  /* 浅色主题：近白的冷灰，菜单栏比内容区更白；强调色是饱和一些的蓝，选中的菜单项浅蓝底蓝字 */
-  --color-page: #f6f7f9;
+  /* 浅色主题：近白的冷灰，菜单栏和内容区同一个颜色（中间一条细线分开）；强调色是饱和一些的蓝，选中的菜单项浅蓝底蓝字 */
+  --color-page: #fbfcfd;
   --color-sidebar: #fbfcfd; /* 左侧菜单栏 */
   --color-surface: #ffffff;
   --color-fg: #111827;
@@ -93,6 +93,17 @@
   body {
     @apply bg-page font-sans text-fg antialiased;
     overscroll-behavior: none;
+  }
+
+  /* 能点的东西鼠标移上去都是小手（Tailwind 4 默认按钮是箭头） */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  [role='menuitem'],
+  [role='option'],
+  summary,
+  label:has(input:not(:disabled)) {
+    cursor: pointer;
   }
 }
 

@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader'
 import { ImageIcon, Lock, Plus, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import AlbumMenu from '@/components/albums/AlbumMenu'
@@ -31,25 +32,21 @@ export default function AlbumsPage({
   const [privacy, setPrivacy] = useState<Album | null>(null) // 正在改哪个相册的「谁能看」
   const { user, guest } = useCurrentUser() // 访客：不能新建、改相册
   return (
-    <section className="pt-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-title font-semibold">相册</h1>
-          <p className="mt-1 text-body text-muted">
-            {albums?.length ? `${albums.length.toLocaleString()} 个相册` : ' '}
-          </p>
-        </div>
-        {!guest && (
-          <div className="shrink-0 pt-1">
+    <section>
+      <PageHeader
+        title="相册"
+        subtitle={albums?.length ? `${albums.length.toLocaleString()} 个相册` : ''}
+        right={
+          !guest && (
             <Button primary onClick={onNew}>
               <span className="flex items-center gap-1">
                 <Plus className="size-4" strokeWidth={2.2} />
                 新建相册
               </span>
             </Button>
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       {albums && albums.length === 0 && (
         <div className="mt-16 flex flex-col items-center text-center text-muted">

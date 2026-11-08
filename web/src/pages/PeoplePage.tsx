@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader'
 import { Check, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Modal, { Button } from '@/components/ui/Modal'
@@ -68,28 +69,26 @@ export default function PeoplePage({
   }
 
   return (
-    <section className="pt-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-title font-semibold">人物</h1>
-          <p className="mt-1 text-body text-muted">{status ? statusLine(status) : '\u00a0'}</p>
-        </div>
-        {!!people?.length && !guest && (
-          <div className="flex shrink-0 items-center gap-2 pt-1">
-            {selecting ? (
-              <>
-                <span className="text-body text-muted tabular-nums">已选 {selected.size} 个</span>
-                <Button primary disabled={selected.size < 2} onClick={() => setMerging(true)}>
-                  合并
-                </Button>
-                <Button onClick={stopSelecting}>完成</Button>
-              </>
-            ) : (
-              <Button onClick={() => setSelecting(true)}>选择</Button>
-            )}
-          </div>
-        )}
-      </div>
+    <section>
+      <PageHeader
+        title="人物"
+        subtitle={status ? statusLine(status) : ''}
+        right={
+          !!people?.length &&
+          !guest &&
+          (selecting ? (
+            <>
+              <span className="text-body text-muted tabular-nums">已选 {selected.size} 个</span>
+              <Button primary disabled={selected.size < 2} onClick={() => setMerging(true)}>
+                合并
+              </Button>
+              <Button onClick={stopSelecting}>完成</Button>
+            </>
+          ) : (
+            <Button onClick={() => setSelecting(true)}>选择</Button>
+          ))
+        }
+      />
       {selecting && (
         <p className="mt-3 text-caption text-muted">点照片选人。同一个人被分成了几个时，选上他们点「合并」。</p>
       )}
