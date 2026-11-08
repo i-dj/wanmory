@@ -25,8 +25,8 @@ import (
 // SettingKey 存在 settings 表里，值是 Settings
 const SettingKey = "perf"
 
-// uploadQuiet：最后一个上传请求之后多久才算上传完了
-const uploadQuiet = time.Minute
+// uploadQuiet：最后一次收到上传的数据之后多久才算上传完了
+const uploadQuiet = 30 * time.Second
 
 // Settings 是网页上能改的
 type Settings struct {
@@ -45,7 +45,8 @@ type Service struct {
 	auto        int // 同时处理几个任务的自动值
 	mu          sync.RWMutex
 	cur         Settings
-	lastUpload  atomic.Int64 // unix 纳秒
+	lastUpload  atomic.Int64 // 最后一次成功收到上传数据，unix 纳秒
+	uploading   atomic.Int32 // 正在传的上传请求
 	localActive func() int
 	now         func() time.Time
 }
@@ -93,15 +94,46 @@ func (s *Service) SetLocalActive(f func() int) {
 	s.localActive = f
 }
 
-// Track 包住整个网站：看到上传请求就记下时间
+// Track 包住整个网站：真的在传数据的上传请求（新建、传分片，而且成功了）进行中和结束时记下时间。
+// 问进度（HEAD）、取消、被拒绝或出错的请求不算，免得一个反复重试失败的上传让 AI 一直停着
 func (s *Service) Track(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/uploads/") || (r.Method == http.MethodPost && r.URL.Path == "/api/assets") {
-			s.lastUpload.Store(s.now().UnixNano())
+		upload := (strings.HasPrefix(r.URL.Path, "/api/uploads/") && (r.Method == http.MethodPost || r.Method == http.MethodPatch)) ||
+			(r.Method == http.MethodPost && r.URL.Path == "/api/assets")
+		if !upload {
+			next.ServeHTTP(w, r)
+			return
 		}
-		next.ServeHTTP(w, r)
+		s.uploading.Add(1)
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		defer func() {
+			s.uploading.Add(-1)
+			if rec.status < 300 {
+				s.lastUpload.Store(s.now().UnixNano())
+			}
+		}()
+		next.ServeHTTP(rec, r)
 	})
 }
+
+// statusRecorder 记下回答的状态码；Unwrap 让 http.ResponseController（tus 用它 Flush、设超时）还能找到原来的
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *statusRecorder) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
 
 // AllowAI 是 AI 任务现在能不能领；不能时 reason 说为什么（设置页上显示）
 func (s *Service) AllowAI() bool {
@@ -120,8 +152,11 @@ func (s *Service) aiState() (bool, string) {
 	if cur.Schedule == "night" && !inWindow(now.Hour(), cur.NightStart, cur.NightEnd) {
 		return false, fmt.Sprintf("等到 %d:00 再处理", cur.NightStart)
 	}
-	if d := now.Sub(time.Unix(0, s.lastUpload.Load())); d >= 0 && d < uploadQuiet {
+	if s.uploading.Load() > 0 {
 		return false, "有照片正在上传"
+	}
+	if d := now.Sub(time.Unix(0, s.lastUpload.Load())); d >= 0 && d < uploadQuiet {
+		return false, fmt.Sprintf("刚传完照片，%d 秒后开始", int((uploadQuiet-d).Seconds())+1)
 	}
 	if s.localActive != nil && s.localActive() > 0 {
 		return false, "正在生成缩略图"

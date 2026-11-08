@@ -15,7 +15,6 @@ import PhotoInfoCard from '@/components/photos/PhotoInfoCard'
 import PhotoInfoPanel from '@/components/photos/PhotoInfoPanel'
 import PhotoToolbar from '@/components/photos/PhotoToolbar'
 import PhotoViewer from '@/components/photos/PhotoViewer'
-import ProcessingStatus from '@/components/photos/ProcessingStatus'
 import SelectionActions, { DeleteButton } from '@/components/photos/SelectionActions'
 import SearchBox from '@/components/photos/SearchBox'
 import SelectionBar from '@/components/photos/SelectionBar'
@@ -552,7 +551,6 @@ export default function PhotosPage({
           />
         </SelectionBar>
       )}
-      {status.stats && <ProcessingStatus stats={status.stats} uploading={uploads.busy} />}
       {view.path === LIBRARY.path && !picking && !range.value && (
         <MemoriesStrip navigate={navigate} filter={{ kinds: filter.kinds, uploaders: filter.uploaders }} />
       )}

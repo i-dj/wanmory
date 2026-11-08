@@ -1,6 +1,8 @@
 package perf
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -46,10 +48,15 @@ func TestAIState(t *testing.T) {
 		t.Fatal("空闲时应该能跑")
 	}
 	s.lastUpload.Store(now.Add(-10 * time.Second).UnixNano())
-	if ok, why := s.aiState(); ok || why != "有照片正在上传" {
+	if ok, why := s.aiState(); ok || why != "刚传完照片，21 秒后开始" {
 		t.Fatalf("刚上传过应该停: %v %q", ok, why)
 	}
 	s.lastUpload.Store(now.Add(-2 * time.Minute).UnixNano())
+	s.uploading.Add(1)
+	if ok, why := s.aiState(); ok || why != "有照片正在上传" {
+		t.Fatalf("正在上传应该停: %v %q", ok, why)
+	}
+	s.uploading.Add(-1)
 	active = 1
 	if s.AllowAI() {
 		t.Fatal("生成缩略图时应该停")
@@ -66,5 +73,26 @@ func TestAIState(t *testing.T) {
 	now = time.Date(2026, 11, 8, 2, 0, 0, 0, time.Local)
 	if !s.AllowAI() {
 		t.Fatal("2 点在夜间时段")
+	}
+}
+
+func TestTrack(t *testing.T) {
+	now := time.Date(2026, 11, 8, 12, 0, 0, 0, time.Local)
+	s := &Service{cur: defaults, now: func() time.Time { return now }}
+	for _, c := range []struct {
+		method, path string
+		status       int
+		paused       bool
+	}{
+		{http.MethodHead, "/api/uploads/abc", 200, false},  // 问进度不算
+		{http.MethodPatch, "/api/uploads/abc", 423, false}, // 失败的不算
+		{http.MethodGet, "/api/assets", 200, false},        // 浏览不算
+		{http.MethodPatch, "/api/uploads/abc", 204, true},  // 传了一片
+	} {
+		h := s.Track(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(c.status) }))
+		h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(c.method, c.path, nil))
+		if s.AllowAI() == c.paused {
+			t.Errorf("%s %s %d 之后 AI 停着 = %v，应该是 %v", c.method, c.path, c.status, !s.AllowAI(), c.paused)
+		}
 	}
 }
