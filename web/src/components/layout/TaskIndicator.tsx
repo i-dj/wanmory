@@ -6,18 +6,24 @@ import { useAnchorPosition } from '@/hooks/useAnchorPosition'
 import { type ActiveJobs, type PerfStatus, activeJobs, perfStatus } from '@/lib/api'
 import { cx } from '@/lib/cx'
 
-// 每类任务叫什么，按这个顺序显示：先是本机做的（读信息、缩略图），后面是 AI 的
-const LABELS: Record<string, string> = {
-  metadata: '读取照片信息',
-  thumbnail: '生成缩略图',
-  face: '人脸识别',
-  clip: '语义搜索',
-  ocr: '文字识别',
+// 每组叫什么、下面小字写做了哪些事，按这个顺序显示：先导入（本机做），再 AI 识别
+const GROUPS: Record<string, { label: string; detail: string }> = {
+  import: { label: '导入照片', detail: '读取拍摄信息 · 生成缩略图' },
+  ai: { label: 'AI 识别照片', detail: '人脸 · 画面内容 · 文字' },
 }
-const AI_TYPES = new Set(['face', 'clip', 'ocr'])
-const order = (t: string) => {
-  const i = Object.keys(LABELS).indexOf(t)
+const order = (k: string) => {
+  const i = Object.keys(GROUPS).indexOf(k)
   return i < 0 ? 99 : i
+}
+
+// eta 把秒数说成大概多久：不到 1 分钟、约 12 分钟、约 2 小时 10 分钟、约 3 天
+function eta(sec: number) {
+  if (sec < 60) return '不到 1 分钟'
+  const min = Math.round(sec / 60)
+  if (min < 60) return `约 ${min} 分钟`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `约 ${h} 小时${min % 60 >= 5 ? ` ${min % 60} 分钟` : ''}`
+  return `约 ${Math.round(h / 24)} 天`
 }
 
 // 有任务时 3 秒问一次，没任务时 15 秒（看有没有新的），页面在后台时不问
@@ -50,7 +56,7 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
   }, [open])
 
   const busy = jobs.length > 0
-  const hasAI = jobs.some((j) => AI_TYPES.has(j.type))
+  const hasAI = jobs.some((j) => j.key === 'ai')
   useEffect(() => {
     let stop = false
     let timer = 0
@@ -59,9 +65,9 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
         try {
           const list = await activeJobs()
           if (stop) return
-          setJobs(list.sort((a, b) => order(a.type) - order(b.type)))
+          setJobs(list.sort((a, b) => order(a.key) - order(b.key)))
           // 有 AI 任务时顺便看 AI 停着没有
-          if (list.some((j) => AI_TYPES.has(j.type))) setPerf(await perfStatus())
+          if (list.some((j) => j.key === 'ai')) setPerf(await perfStatus())
         } catch {
           // 连不上就下次再试，图标保持原样
         }
@@ -77,16 +83,15 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
 
   if (!busy && !open) return null
   const paused = hasAI && perf && !perf.ai_running
-  const remaining = jobs.reduce((n, j) => n + j.pending + j.running, 0)
+  // 角上的数字是还剩几张（导入和 AI 里多的那个：同一批照片先导入再识别）
+  const remaining = Math.max(0, ...jobs.map((j) => j.remaining))
   const Icon = paused ? CirclePause : LoaderCircle
 
   return (
     <div className="ml-auto">
       <Tooltip
         side="bottom"
-        label={
-          open ? '' : paused ? `AI 暂停：${perf.ai_paused}` : `后台任务：还剩 ${remaining.toLocaleString()} 个`
-        }
+        label={open ? '' : paused ? `AI 暂停：${perf.ai_paused}` : `后台任务：还剩 ${remaining.toLocaleString()} 张`}
       >
         <button
           ref={button}
@@ -121,15 +126,9 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
             ) : (
               <ul className="mt-3 space-y-3">
                 {jobs.map((j) => (
-                  <JobRow key={j.type} job={j} />
+                  <JobRow key={j.key} job={j} pausedFor={j.key === 'ai' && paused ? perf.ai_paused : ''} />
                 ))}
               </ul>
-            )}
-            {hasAI && perf && (
-              <p className="mt-4 flex items-center gap-2 text-caption text-muted">
-                <span className={cx('size-2 shrink-0 rounded-full', perf.ai_running ? 'bg-ok' : 'bg-warn')} />
-                {perf.ai_running ? 'AI 正在处理' : `AI 暂停：${perf.ai_paused}`}
-              </p>
             )}
             <button
               type="button"
@@ -137,7 +136,7 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
                 setOpen(false)
                 onSettings()
               }}
-              className="mt-3 flex items-center gap-1.5 text-caption text-muted hover:text-fg"
+              className="mt-4 flex items-center gap-1.5 text-caption text-muted hover:text-fg"
             >
               <Settings className="size-3.5" />
               性能设置
@@ -149,25 +148,35 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
   )
 }
 
-// JobRow 是一类任务：名字、做完几个 / 这一批一共几个、进度条；有失败的标出来
-function JobRow({ job }: { job: ActiveJobs }) {
-  const total = job.done + job.failed + job.pending + job.running
-  const ratio = total ? (job.done + job.failed) / total : 0
+// JobRow 是一组任务：名字、做完几张 / 这一批一共几张、进度条；下面小字是做了哪些事和预计还要多久（暂停时写为什么）
+function JobRow({ job, pausedFor }: { job: ActiveJobs; pausedFor: string }) {
+  const g = GROUPS[job.key] ?? { label: job.key, detail: '' }
+  const total = job.done + job.remaining
+  const ratio = total ? job.done / total : 0
+  const status = pausedFor
+    ? `已暂停：${pausedFor}`
+    : job.eta !== null
+      ? `还要${eta(job.eta)}`
+      : '正在估算剩余时间…'
   return (
     <li>
       <div className="flex items-baseline gap-2 text-body">
-        <span className="min-w-0 flex-1 truncate">{LABELS[job.type] ?? job.type}</span>
+        <span className="min-w-0 flex-1 truncate">{g.label}</span>
         <span className="shrink-0 text-caption text-muted tabular-nums">
-          {(job.done + job.failed).toLocaleString()} / {total.toLocaleString()}
+          {job.done.toLocaleString()} / {total.toLocaleString()} 张
         </span>
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-500"
+          className={cx('h-full rounded-full transition-[width] duration-500', pausedFor ? 'bg-warn' : 'bg-accent')}
           style={{ width: `${Math.max(2, ratio * 100)}%` }}
         />
       </div>
-      {job.failed > 0 && <p className="mt-1 text-caption text-danger">{job.failed} 个失败</p>}
+      <div className="mt-1.5 flex items-baseline gap-2 text-caption text-muted">
+        <span className="min-w-0 flex-1 truncate">{g.detail}</span>
+        <span className={cx('shrink-0', pausedFor && 'text-warn')}>{status}</span>
+      </div>
+      {job.failed > 0 && <p className="mt-1 text-caption text-danger">{job.failed} 项没处理成功</p>}
     </li>
   )
 }

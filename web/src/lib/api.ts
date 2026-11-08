@@ -763,13 +763,13 @@ export interface PerfStatus {
 export const perfStatus = () => getJSON<PerfStatus>('/api/perf')
 export const setPerf = (patch: Partial<PerfSettings>) => send<PerfStatus>('PUT', '/api/perf', patch)
 
-// 还没做完的后台任务，每类：排着几个、在做几个、这一批做完几个、失败几个（页面顶上的任务图标）
+// 还没做完的后台任务，按组（import 导入照片：读信息、缩略图；ai AI 识别：人脸、内容、文字），按照片算（页面顶上的任务图标）
 export interface ActiveJobs {
-  type: 'metadata' | 'thumbnail' | 'face' | 'clip' | 'ocr' | string
-  pending: number
-  running: number
-  done: number
-  failed: number
+  key: 'import' | 'ai' | string
+  remaining: number // 还没做完的照片
+  done: number // 这一批做完的照片
+  failed: number // 这一批里失败的任务
+  eta: number | null // 预计还要多少秒，算不准时是 null
 }
 export const activeJobs = () => getJSON<ActiveJobs[]>('/api/jobs/active')
 

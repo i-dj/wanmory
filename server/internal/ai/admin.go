@@ -95,10 +95,14 @@ func (a *Admin) Watch(ctx context.Context) {
 			a.autoApply(ctx, cfg)
 		}
 		cancel()
+		wait := time.Minute
+		if !a.resolved.Load() { // 档位自动、还没问到硬件（AI 服务刚启动、很忙）：AI 任务等着它，10 秒后再问
+			wait = 10 * time.Second
+		}
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Minute):
+		case <-time.After(wait):
 		}
 	}
 }
