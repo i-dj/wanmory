@@ -1,14 +1,43 @@
-# 用户部署用。镜像默认从 ghcr.io 拉；国内拉不动时设 WANMORY_REGISTRY 换成国内的镜像仓库地址
+# 用户部署用：在放这个文件的目录里运行 docker compose up -d，浏览器打开 http://<这台机器的地址>:8080。
+# 照片、缩略图存在旁边的 data/，AI 模型存在 models/，数据库在 Docker 的卷 pgdata 里，重建容器都不会丢。
+# 镜像默认从 ghcr.io 拉，同时有 amd64（PC、NAS、N100）和 arm64（树莓派）的，自动选对的；
+# 国内拉不动时在 .env 里设 WANMORY_REGISTRY 换成国内的镜像仓库地址。
+# 可以在同一目录的 .env 文件里改：WANMORY_DB_PASSWORD（数据库密码）、WANMORY_PORT（端口，默认 8080）、
+# WANMORY_TZ（照片没写时区时按哪个时区，默认 Asia/Shanghai）、WANMORY_VERSION（镜像版本，默认 latest）
 services:
+  # 数据库：PostgreSQL + pgvector（语义搜索、人脸的向量），只在 Docker 内部网络里，不对外开端口
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: wanmory
+      POSTGRES_PASSWORD: ${WANMORY_DB_PASSWORD:-wanmory}
+      POSTGRES_DB: wanmory
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "wanmory", "-d", "wanmory"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # 相册程序（内嵌网页）。启动时自动建好数据库的表
   server:
     image: ${WANMORY_REGISTRY:-ghcr.io/i-dj}/wanmory-server:${WANMORY_VERSION:-latest}
     environment:
-      WANMORY_ML_URL: http://ml:3003   # 内置 AI 服务（下面的 ml）。单独启动的 AI 服务在网页「设置 → AI 服务」里选「远程」、填地址
+      DATABASE_URL: postgres://wanmory:${WANMORY_DB_PASSWORD:-wanmory}@postgres:5432/wanmory
+      WANMORY_ML_URL: http://ml:3003 # 内置 AI 服务（下面的 ml）。单独启动的 AI 服务在网页「设置 → AI 服务」里选「远程」、填地址
+      TZ: ${WANMORY_TZ:-Asia/Shanghai}
     ports:
-      - "8080:8080"
+      - "${WANMORY_PORT:-8080}:8080"
+    volumes:
+      - ./data:/data # 上传的照片（data/upload）和缩略图（data/thumbs）
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
-  # 内置 AI 服务：只在 Docker 内部网络里，不对外开端口，只有上面的后端连它。
+  # 内置 AI 服务：只在 Docker 内部网络里，不对外开端口，只有上面的相册程序连它。
   # 模型不自动下载，在网页「设置 → AI 服务」里点下载。下到挂载的 ./models 目录，重建容器不用再下；
   # 去掉 volumes 那两行就存在容器里，删掉容器要重新下载
   ml:
@@ -19,3 +48,6 @@ services:
       WANMORY_MODEL_DIR: /models
       WANMORY_AUTO_DOWNLOAD: "0"
     restart: unless-stopped
+
+volumes:
+  pgdata:
