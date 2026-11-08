@@ -99,15 +99,25 @@ export default function AISettings() {
     return () => clearInterval(t)
   }, [reprocessing, downloading, load])
 
-  const switchTier = async (tier: AITier) => {
-    const t = TIERS.find((x) => x.value === tier)!
-    const ok = await askConfirm(`换成「${t.label}」档？`, {
-      message:
-        '所有照片要按新模型重新找人脸、重新算语义搜索，照片越多越久。期间人物、搜索照常能用，新结果算好一张换一张；起好的名字会保留。',
-      confirmLabel: '换档',
-    })
+  const switchTier = async (tier: AITier | 'auto') => {
+    const reprocess =
+      '所有照片要按新模型重新找人脸、重新算语义搜索，照片越多越久。期间人物、搜索照常能用，新结果算好一张换一张；起好的名字会保留。'
+    const rec = status?.tier_recommended ? TIERS.find((x) => x.value === status.tier_recommended) : undefined
+    const ok =
+      tier === 'auto'
+        ? await askConfirm('档位改成自动？', {
+            message: rec
+              ? `按这台 AI 服务器的硬件用「${rec.label}」，换了 AI 服务器会跟着换。${rec.value !== status?.tier ? reprocess : ''}`
+              : '按 AI 服务器的硬件选一档，换了 AI 服务器会跟着换。',
+            confirmLabel: '改成自动',
+          })
+        : await askConfirm(`换成「${TIERS.find((x) => x.value === tier)!.label}」档？`, {
+            message: tier === status?.tier ? '以后不再跟着 AI 服务器的硬件自动换。' : reprocess,
+            confirmLabel: '换档',
+          })
     if (ok) await run(() => setAITier(tier), '没有换成功')
   }
+  const rec = status ? recommendation(status) : null
 
   return (
     <>
@@ -197,22 +207,28 @@ export default function AISettings() {
               <div className="min-w-0 flex-1">
                 <span className="font-medium">档位</span>
                 <p className="mt-0.5 text-body text-muted">
-                  {TIERS.find((t) => t.value === status.tier)?.hint ??
-                    '现在用的是启动时配置的模型组合，选一档后按那一档的来。'}
+                  {status.tier_auto
+                    ? rec
+                      ? `自动：这台 AI 服务器${rec.why}，用「${rec.label}」。换了 AI 服务器会跟着换。`
+                      : '自动：按 AI 服务器的硬件选一档。'
+                    : (TIERS.find((t) => t.value === status.tier)?.hint ??
+                      '现在用的是启动时配置的模型组合，选一档后按那一档的来。')}
                 </p>
-                {recommend(status) && (
+                {!status.tier_auto && rec && (
                   <p className="mt-0.5 text-body text-muted">
-                    这台 AI 服务器{recommend(status)!.why}，推荐「
-                    {TIERS.find((t) => t.value === recommend(status)!.tier)!.label}」
-                    {status.tier === recommend(status)!.tier && '（就是现在这档）'}。
+                    这台 AI 服务器{rec.why}，推荐「{rec.label}」{status.tier === rec.tier && '（就是现在这档）'}。
                   </p>
                 )}
               </div>
-              <Segmented<AITier | 'custom'>
+              <Segmented<AITier | 'auto' | 'custom'>
                 label="档位"
-                value={status.tier}
+                value={status.tier_auto ? 'auto' : status.tier}
                 onChange={(t) => t !== 'custom' && void switchTier(t)}
-                segments={TIERS.map((t) => ({ value: t.value, label: t.label, disabled: !admin || busy }))}
+                segments={[{ value: 'auto' as const, label: '自动' }, ...TIERS].map((t) => ({
+                  value: t.value,
+                  label: t.label,
+                  disabled: !admin || busy,
+                }))}
               />
             </div>
             {reprocessing && rp && (
@@ -281,16 +297,18 @@ const TIERS: { value: AITier; label: string; hint: string }[] = [
   { value: 'lite', label: '轻量', hint: '人脸、语义搜索都用小模型，适合 N100、树莓派 5。' },
 ]
 
-// recommend 按 AI 服务器的显卡和内存推荐一档：有显卡用高精度；只有 CPU 时，内存不到 6 GB 用轻量（树莓派、N100），
-// 再大用均衡（高精度的语义搜索模型在 CPU 上一张要一两秒，还要 4 GB 内存）
-function recommend(status: AIStatus): { tier: AITier; why: string } | null {
+// recommendation 是后端按 AI 服务器的硬件推荐的那档（有显卡高精度；只有 CPU 时内存不到 6 GB 轻量，再大均衡），
+// 和为什么（显示给人看）
+function recommendation(status: AIStatus): { tier: AITier; label: string; why: string } | null {
   const cfg = status.config
-  const mem = cfg?.memory?.total
-  if (!cfg) return null
-  if (cfg.gpu.available && cfg.device !== 'cpu') return { tier: 'quality', why: `有显卡（${gpuName(cfg.gpu)}）` }
-  if (!mem) return null
-  const desc = `只用 CPU、内存 ${(mem / (1 << 30)).toFixed(1)} GB`
-  return { tier: mem < 6 * (1 << 30) ? 'lite' : 'balanced', why: desc }
+  const t = TIERS.find((x) => x.value === status.tier_recommended)
+  if (!cfg || !t) return null
+  const mem = cfg.memory?.total
+  const why =
+    cfg.gpu.available && cfg.device !== 'cpu'
+      ? `有显卡（${gpuName(cfg.gpu)}）`
+      : `只用 CPU${mem ? `、内存 ${(mem / (1 << 30)).toFixed(1)} GB` : ''}`
+  return { tier: t.value, label: t.label, why }
 }
 
 // Bar 是重新处理的一行：名字、进度条、几张 / 几张

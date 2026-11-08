@@ -63,6 +63,9 @@ type Admin struct {
 	store      *settings.Store
 	localURL   string       // 本机的地址
 	localToken string       // 本机的令牌（环境变量里的，一般为空）
+	auto       bool         // 档位是自动（见 tier.go）
+	resolved   atomic.Bool  // 用哪档已经定了：手动选的一开始就定了，自动的要等问到 AI 服务器的硬件
+	switchMu   sync.Mutex   // 换档一次只换一个
 	parallel   atomic.Int32 // AI 服务同时算几张照片（它按显卡、核数、内存自动定，设置里能改），没问到时是 1
 }
 
@@ -89,6 +92,7 @@ func (a *Admin) Watch(ctx context.Context) {
 		var cfg json.RawMessage
 		if err := a.client.Call(cctx, http.MethodGet, "/config", nil, &cfg); err == nil {
 			a.noteConfig(cfg)
+			a.autoApply(ctx, cfg)
 		}
 		cancel()
 		select {
@@ -115,13 +119,18 @@ func (a *Admin) noteConfig(raw json.RawMessage) {
 	a.parallel.Store(int32(max(1, n))) // 旧版本的 AI 服务没有这两个：1
 }
 
-// Models 是现在该用的模型：设置里选了档位就是那一档的，不然是启动时的。人脸、语义搜索的服务用它启动
+// Models 是现在该用的模型：设置里选了档位就是那一档的；没选过或者选了自动时，先是启动时的，问到 AI 服务器的硬件后
+// 换到推荐的那档（换之前 AI 任务不开始，见 Ready）。人脸、语义搜索的服务用它启动
 func (a *Admin) Models(ctx context.Context) (Tier, error) {
 	tier, err := settings.GetOr(ctx, a.store, SettingTier, "")
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if t, ok := Tiers[tier]; ok && err == nil {
 		a.inUse = t
+		a.auto = false
+		a.resolved.Store(true)
+	} else {
+		a.auto = true
 	}
 	return a.inUse, err
 }
@@ -129,6 +138,12 @@ func (a *Admin) Models(ctx context.Context) (Tier, error) {
 // OnSwitch 接上换档位时要做的事（人脸、语义搜索的服务建好之后）
 func (a *Admin) OnSwitch(s Switcher, r Reprocess) {
 	a.switcher, a.reprocess = s, r
+}
+
+func (a *Admin) isAuto() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.auto
 }
 
 func (a *Admin) models() Tier {
@@ -182,7 +197,8 @@ func (a *Admin) apply(ep Endpoint) {
 //	PUT  /api/ai/threads                {"threads": 2} 用 CPU 算时每个模型几个线程，0 是自动（核数减一）（管理员）
 //	PUT  /api/ai/parallel               {"parallel": 2} 同时算几张照片，0 是自动（管理员）
 //	PUT  /api/ai/source                 {"source": "auto" | "huggingface" | "mirror"} 模型从哪下载（管理员）
-//	PUT  /api/ai/tier                   {"tier": "quality" | "balanced" | "lite"} 换档位，所有照片按新模型重新处理（管理员）
+//	PUT  /api/ai/tier                   {"tier": "auto" | "quality" | "balanced" | "lite"} 换档位，所有照片按新模型重新处理（管理员）；
+//	                                    auto 按 AI 服务器的硬件定
 //	POST /api/ai/models/{id}/download   在 AI 服务上下载模型（管理员）
 func (a *Admin) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/ai/status", a.status)
@@ -220,6 +236,7 @@ func (a *Admin) status(w http.ResponseWriter, r *http.Request) {
 		"connected": false,
 		"in_use":    a.models(),
 		"tier":      tierOf(a.models()),
+		"tier_auto": a.isAuto(),
 	}
 	if a.reprocess != nil {
 		if p, err := a.reprocess(r.Context()); err == nil {
@@ -247,6 +264,9 @@ func (a *Admin) status(w http.ResponseWriter, r *http.Request) {
 	resp["config"], resp["models"], resp["stats"] = config, models, stats
 	if config != nil {
 		a.noteConfig(config)
+		a.autoApply(r.Context(), config)
+		resp["in_use"], resp["tier"] = a.models(), tierOf(a.models())
+		resp["tier_recommended"] = recommendFrom(config)
 	}
 	httpx.JSON(w, http.StatusOK, resp)
 }
@@ -381,8 +401,8 @@ func (a *Admin) setTier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	t, ok := Tiers[req.Tier]
-	if !ok {
-		httpx.Error(w, http.StatusBadRequest, "tier 应该是 quality、balanced 或 lite")
+	if !ok && req.Tier != TierAuto {
+		httpx.Error(w, http.StatusBadRequest, "tier 应该是 auto、quality、balanced 或 lite")
 		return
 	}
 	if a.switcher == nil {
@@ -393,6 +413,16 @@ func (a *Admin) setTier(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, err)
 		return
 	}
+	a.mu.Lock()
+	a.auto = !ok
+	a.mu.Unlock()
+	if !ok { // 自动：status 里问到硬件后换到推荐的那档
+		a.status(w, r)
+		return
+	}
+	a.switchMu.Lock()
+	defer a.switchMu.Unlock()
+	a.resolved.Store(true)
 	if t != a.models() {
 		if err := a.switcher(r.Context(), t); err != nil {
 			httpx.InternalError(w, err)

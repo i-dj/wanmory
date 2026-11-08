@@ -108,7 +108,7 @@ func run(ctx context.Context) error {
 	faceService := faces.NewService(conn, aiClient, models.Face, cfg.ThumbsDir())
 	aiWorker := jobs.NewWorker(conn, aiWorkerName, ai.MaxConcurrency)
 	aiWorker.SetLimit(aiAdmin.Concurrency)
-	go aiAdmin.Watch(ctx)
+	aiWorker.SetReady(aiAdmin.Ready)       // 档位是自动时，等定下用哪档再开始
 	aiWorker.SetReady(perfService.AllowAI) // 空闲时 / 夜里才跑（见设置 → 性能）
 	faceService.RegisterJobs(aiWorker)
 
@@ -138,6 +138,7 @@ func run(ctx context.Context) error {
 		return map[string][2]int{"face": {fd, ft}, "clip": {cd, ct}}, err
 	})
 	clipService.RegisterJobs(aiWorker)
+	go aiAdmin.Watch(ctx) // 问 AI 服务同时算几张、硬件（档位自动时据此换档），要在 OnSwitch 之后
 	var categories []assets.SearchCategory
 	for _, c := range clip.Categories() {
 		categories = append(categories, assets.SearchCategory{Key: c.Key, Label: c.Label})

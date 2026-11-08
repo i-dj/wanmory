@@ -710,6 +710,8 @@ export interface AIStatus {
   connected: boolean
   in_use: { face: string; clip: string } // 后端现在用的人脸、语义搜索模型
   tier: AITier | 'custom' // 现在是哪一档（环境变量配了别的组合时是 custom）
+  tier_auto?: boolean // 档位是自动：按 AI 服务器的硬件定
+  tier_recommended?: AITier | '' // 按 AI 服务器的硬件推荐的那档（不知道硬件时是空的）
   reprocess?: { face: [number, number]; clip: [number, number] } // 现在的模型处理了多少张、一共多少张
   error?: string
   health?: { version: string; providers: string[] }
@@ -733,7 +735,7 @@ export const aiStatus = () => getJSON<AIStatus>('/api/ai/status')
 export const setAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '') =>
   send<AIStatus>('PUT', '/api/ai/endpoint', { mode, url, token })
 export const setAIDevice = (device: AIDevice) => send<AIStatus>('PUT', '/api/ai/device', { device })
-export const setAITier = (tier: AITier) => send<AIStatus>('PUT', '/api/ai/tier', { tier })
+export const setAITier = (tier: AITier | 'auto') => send<AIStatus>('PUT', '/api/ai/tier', { tier })
 export const setAISource = (source: AISource) => send<AIStatus>('PUT', '/api/ai/source', { source })
 export const setAIParallel = (parallel: number) => send<AIStatus>('PUT', '/api/ai/parallel', { parallel })
 export const setAIThreads = (threads: number) => send<AIStatus>('PUT', '/api/ai/threads', { threads })

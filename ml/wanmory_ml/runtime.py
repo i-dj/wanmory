@@ -143,6 +143,24 @@ def threads() -> int:
     return threads_pref() or auto_threads()
 
 
+def small_memory() -> bool:
+    """内存不到 8 GB（树莓派、N100 小主机）：模型闲置 5 分钟就卸掉，ONNX 不留内存池"""
+    total = memory()["total"]
+    return bool(total) and total < 8 * GB
+
+
+def unload_after() -> int:
+    """模型闲置多少秒后卸掉，释放内存；下次用到时再加载（几秒）。WANMORY_UNLOAD_AFTER 可以改，0 是不卸。
+    默认内存小的机器 5 分钟，大的 30 分钟"""
+    env = os.environ.get("WANMORY_UNLOAD_AFTER")
+    if env is not None:
+        try:
+            return max(0, int(env))
+        except ValueError:
+            pass
+    return 300 if small_memory() else 1800
+
+
 def session_options():
     """ONNX Runtime 的会话设置：一个模型最多用 threads() 个线程（默认会用满所有核，几个模型一起算时线程互相抢）"""
     import onnxruntime as ort
@@ -150,6 +168,8 @@ def session_options():
     opts = ort.SessionOptions()
     opts.intra_op_num_threads = threads()
     opts.inter_op_num_threads = 1
+    # 内存池会把算过的最大一块内存留着不还，内存小的机器上关掉（稍慢一点）
+    opts.enable_cpu_mem_arena = not small_memory()
     return opts
 
 

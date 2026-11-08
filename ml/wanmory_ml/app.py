@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+import ctypes
+import gc
 import json
 import logging
 import os
@@ -52,6 +54,12 @@ _ocr_model = None
 _ocr_lock = threading.Lock()
 _clip_loading: set[str] = set()
 _clip_lock = threading.Lock()
+# 每个模型最后一次用到的时间（"face:buffalo_l"、"clip:chinese-clip-vit-b-16"、"ocr"），闲置久了卸掉，见 unload_idle
+_last_used: dict[str, float] = {}
+
+
+def touch(key: str) -> None:
+    _last_used[key] = time.monotonic()
 
 
 class Slots:
@@ -88,6 +96,7 @@ def face_model(name: str) -> FaceModel:
         raise HTTPException(status_code=400, detail=f"不认识的人脸模型：{name}")
     if not model_files.AUTO_DOWNLOAD and not model_files.downloaded(name):
         raise missing(name)
+    touch(f"face:{name}")
     with _face_lock:
         if name not in _face_models:
             _face_models[name] = FaceModel(name)
@@ -128,6 +137,7 @@ def load_clip(name: str):
 def ocr_model():
     """文字识别模型，第一次用时加载（模型随 rapidocr 包装好了，几秒钟）"""
     global _ocr_model
+    touch("ocr")
     with _ocr_lock:
         if _ocr_model is None:
             from .ocr import OcrModel
@@ -140,6 +150,7 @@ def ready_clip(name: str):
     """请求里用的 CLIP 模型：还没加载好就在后台加载，这次先回 503，后端过一会儿再来（不算失败）"""
     if name not in model_files.CLIP_REPOS:
         raise HTTPException(status_code=400, detail=f"不认识的 CLIP 模型：{name}")
+    touch(f"clip:{name}")
     with _clip_lock:
         model = _clip_models.get(name)
         loading = name in _clip_loading
@@ -150,6 +161,59 @@ def ready_clip(name: str):
     if not loading:
         threading.Thread(target=clip_model, args=(name,), daemon=True).start()
     raise HTTPException(status_code=503, detail=f"CLIP 模型 {name} 正在下载或加载，稍后再试")
+
+
+def unload_idle(now: float | None = None) -> list[str]:
+    """卸掉闲置超过 runtime.unload_after() 秒的模型，返回卸掉了哪些。换了档位后旧档的模型没人用了，也是这样卸掉的。
+    正在算的请求手里还拿着模型，算完才真的释放"""
+    global _ocr_model
+    after = runtime.unload_after()
+    if after <= 0:
+        return []
+    now = time.monotonic() if now is None else now
+    idle = [k for k, t in list(_last_used.items()) if now - t > after]
+    gone = []
+    for key in idle:
+        kind, _, name = key.partition(":")
+        if kind == "face":
+            with _face_lock:
+                if _face_models.pop(name, None) is not None:
+                    gone.append(key)
+        elif kind == "clip":
+            with _clip_lock:
+                if _clip_models.pop(name, None) is not None:
+                    gone.append(key)
+        elif kind == "ocr":
+            with _ocr_lock:
+                if _ocr_model is not None:
+                    _ocr_model = None
+                    gone.append(key)
+        _last_used.pop(key, None)
+    if gone:
+        release_memory()
+        log.info("闲置超过 %d 秒，卸掉模型：%s", after, "、".join(gone))
+    return gone
+
+
+def release_memory() -> None:
+    """垃圾回收，再让 glibc 把空出来的内存还给系统（不然进程占的内存不会降下来）"""
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):  # macOS 没有
+        pass
+
+
+def _unload_loop() -> None:
+    while True:
+        time.sleep(30)
+        try:
+            unload_idle()
+        except Exception:  # 别让后台线程因为意外退出
+            log.exception("卸载闲置模型出错")
+
+
+threading.Thread(target=_unload_loop, daemon=True, name="unload-idle").start()
 
 
 # 每种任务最近的耗时：指数平均（新的占两成），换了 GPU / CPU 后清空重新算
@@ -253,6 +317,9 @@ def get_config() -> dict:
         "parallel": runtime.parallel_pref(),
         "parallel_auto": runtime.auto_parallel(),
         "parallel_max": runtime.MAX_PARALLEL,
+        "unload_after": runtime.unload_after(),
+        "loaded": sorted([*(f"face:{n}" for n in _face_models), *(f"clip:{n}" for n in _clip_models)])
+        + (["ocr"] if _ocr_model is not None else []),
         "threads_auto": runtime.auto_threads(),
         "cpus": runtime.cpu_count(),
         "memory": runtime.memory(),
@@ -287,6 +354,7 @@ def put_config(
         _face_models.clear()
     with _clip_lock:
         _clip_models.clear()
+    release_memory()
     with _stats_lock:
         _stats.clear()
     return get_config()
