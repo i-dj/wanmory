@@ -45,9 +45,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 版本号
+        # 标签 v0.2.2 → 0.2.2，手动运行（不是标签）时是 dev
+        run: echo "VERSION=$([[ "$GITHUB_REF" == refs/tags/v* ]] && echo "${GITHUB_REF_NAME#v}" || echo dev)" >> "$GITHUB_ENV"
       - id: build
         uses: docker/build-push-action@v6
         with:
+          build-args: VERSION=${{ env.VERSION }}
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.platform }}
@@ -100,3 +104,31 @@ jobs:
             $(printf 'ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}@sha256:%s ' *)
       - name: 看一眼
         run: docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
+
+  # 镜像都推上去了再发布 GitHub Release（设置 → 系统更新从这里看有没有新版本）：说明是 CHANGELOG.md 里这个版本的那一段
+  release:
+    needs: merge
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 摘出这个版本的说明
+        run: |
+          awk -v tag="## ${GITHUB_REF_NAME}" '
+            $0 == tag || index($0, tag " ") == 1 { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "见提交记录。" > notes.md
+          cat notes.md
+      - name: 发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+          fi

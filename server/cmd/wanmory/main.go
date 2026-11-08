@@ -25,6 +25,7 @@ import (
 	"github.com/wanmory/wanmory/server/internal/perf"
 	"github.com/wanmory/wanmory/server/internal/settings"
 	"github.com/wanmory/wanmory/server/internal/storage"
+	"github.com/wanmory/wanmory/server/internal/version"
 	"github.com/wanmory/wanmory/server/internal/webui"
 )
 
@@ -178,6 +179,12 @@ func run(ctx context.Context) error {
 	settings.NewHandler(settingsStore, registry).Routes(mux)
 	aiAdmin.Routes(mux)
 	perfService.Routes(mux)
+	// 版本号、GitHub 上有没有新版本（设置 → 系统更新）。WANMORY_UPDATE_REPO 设成空的就不检查
+	updateRepo, ok := os.LookupEnv("WANMORY_UPDATE_REPO")
+	if !ok {
+		updateRepo = "i-dj/wanmory"
+	}
+	version.NewUpdates(updateRepo).Routes(mux)
 	storage.NewHandler(roots).Routes(mux)
 	jobs.NewHandler(conn).Routes(mux)
 	assetService.Routes(mux)
@@ -211,8 +218,8 @@ func run(ctx context.Context) error {
 		srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("wanmory server listening on %s，同时处理 %d 个任务，可浏览的目录 %v，AI 服务 %s",
-		cfg.Addr, perfService.Workers(), cfg.StorageRoots, cfg.MLURL)
+	log.Printf("wanmory %s listening on %s，同时处理 %d 个任务，可浏览的目录 %v，AI 服务 %s",
+		version.Version, cfg.Addr, perfService.Workers(), cfg.StorageRoots, cfg.MLURL)
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

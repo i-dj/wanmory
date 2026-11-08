@@ -41,6 +41,7 @@ func (s *Service) Routes(mux *http.ServeMux) {
 var public = map[string]bool{
 	"/api/health":     true,
 	"/api/auth/state": true,
+	"/api/version":    true, // 菜单顶上显示版本号
 	"/api/auth/setup": true,
 	"/api/auth/login": true,
 }

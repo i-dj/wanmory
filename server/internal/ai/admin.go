@@ -61,8 +61,8 @@ type Admin struct {
 	reprocess  Reprocess
 	client     *Client
 	store      *settings.Store
-	localURL   string // 本机的地址
-	localToken string // 本机的令牌（环境变量里的，一般为空）
+	localURL   string       // 本机的地址
+	localToken string       // 本机的令牌（环境变量里的，一般为空）
 	parallel   atomic.Int32 // AI 服务同时算几张照片（它按显卡、核数、内存自动定，设置里能改），没问到时是 1
 }
 

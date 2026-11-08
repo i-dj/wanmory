@@ -770,3 +770,24 @@ export interface ActiveJobs {
   failed: number
 }
 export const activeJobs = () => getJSON<ActiveJobs[]>('/api/jobs/active')
+
+// 版本号和系统更新（设置 → 系统更新）：GitHub 上比现在新的版本，新的在前，notes 是那一版的更新说明（Markdown）
+export interface Release {
+  version: string
+  name: string
+  notes: string
+  url: string
+  published_at: string
+}
+export interface UpdateStatus {
+  current: string // 相册程序的版本，本机开发时是 dev
+  repo: string
+  latest?: Release
+  releases: Release[]
+  update_available: boolean
+  checked_at?: string
+  error?: string
+}
+export const serverVersion = () => getJSON<{ version: string }>('/api/version')
+export const updateStatus = (refresh = false) =>
+  getJSON<UpdateStatus>(`/api/system/update${refresh ? '?refresh=1' : ''}`)

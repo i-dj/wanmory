@@ -15,13 +15,15 @@ RUN npm run build
 # 也在构建机本身的架构上编译，用 GOARCH 交叉编译出目标架构（TARGETARCH）的程序
 FROM --platform=$BUILDPLATFORM golang:1.26-trixie AS build
 ARG TARGETOS TARGETARCH
+# 版本号（发布时是标签去掉 v，例如 0.2.2），写进程序里，设置 → 系统更新拿它和 GitHub 上的比
+ARG VERSION=dev
 WORKDIR /src
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ ./
 COPY --from=web /web/dist/ ./internal/webui/dist/
 # 纯 Go 程序，不需要 cgo，编出来是静态文件
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/wanmory ./cmd/wanmory
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X github.com/wanmory/wanmory/server/internal/version.Version=${VERSION}" -o /out/wanmory ./cmd/wanmory
 
 # ---- 运行 ----
 FROM debian:trixie-slim

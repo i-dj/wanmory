@@ -13,5 +13,8 @@ RUN uv sync --frozen --no-dev
 # 用户在相册的「设置 → AI 服务」里点下载
 ENV WANMORY_MODEL_DIR=/models
 ENV WANMORY_AUTO_DOWNLOAD=0
+# 版本号（发布时是标签去掉 v），和相册程序的一样，设置页上显示
+ARG VERSION=dev
+ENV WANMORY_VERSION=$VERSION
 EXPOSE 3003
 CMD ["uv", "run", "--no-sync", "python", "-m", "wanmory_ml"]

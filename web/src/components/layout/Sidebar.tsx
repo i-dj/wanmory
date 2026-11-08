@@ -20,6 +20,7 @@ import { cx } from '@/lib/cx'
 import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
 import Logo from './Logo'
 import TaskIndicator from './TaskIndicator'
+import { useUpdate, useVersion, versionLabel } from '@/lib/version'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { useCurrentUser } from '@/lib/session'
 import { DRAWER_CLOSE_MS, DRAWER_EASE, DRAWER_OPEN_MS } from '@/lib/drawer'
@@ -90,7 +91,7 @@ export default function Sidebar({
           <Logo className="size-10 shrink-0 drop-shadow-[0_6px_14px_rgba(91,124,255,0.35)]" />
           <div className="min-w-0 leading-tight">
             <div className="text-[19px] font-bold tracking-wide">万象</div>
-            <div className="text-caption text-muted">Wanmory</div>
+            <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
           </div>
           {!guest && <TaskIndicator onSettings={() => navigate(SETTINGS_PATH)} />}
         </div>
@@ -318,6 +319,26 @@ function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }
           <Settings className="size-4.5" strokeWidth={1.8} />
         </button>
       </Tooltip>
+    </div>
+  )
+}
+
+// VersionLine 是名字下面那行：版本号；有新版本时后面一个小标签「有新版本」，点了去设置里的系统更新（访客不显示）
+function VersionLine({ guest, onUpdate }: { guest: boolean; onUpdate: () => void }) {
+  const version = useVersion()
+  const update = useUpdate(!guest)
+  return (
+    <div className="flex items-center gap-1.5 text-caption text-muted">
+      <span className="tabular-nums">{version ? versionLabel(version) : 'Wanmory'}</span>
+      {update?.update_available && (
+        <button
+          type="button"
+          onClick={onUpdate}
+          className="rounded-full bg-accent/15 px-1.5 text-micro leading-4 font-medium text-accent hover:bg-accent/25"
+        >
+          有新版本
+        </button>
+      )}
     </div>
   )
 }
