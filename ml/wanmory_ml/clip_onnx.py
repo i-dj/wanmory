@@ -20,6 +20,7 @@ from tokenizers import BertWordPieceTokenizer
 
 from .face import providers
 from .models import onnx_dir
+from .runtime import session_options
 
 log = logging.getLogger(__name__)
 
@@ -28,10 +29,10 @@ def _session(path: Path) -> ort.InferenceSession:
     # CoreML 跑不了这么大的模型（加载能过，算的时候出错）；Mac 上要用显卡时走 PyTorch 的 MPS（见 app.load_clip）
     use = [p for p in providers() if p != "CoreMLExecutionProvider"]
     try:
-        return ort.InferenceSession(str(path), providers=use)
+        return ort.InferenceSession(str(path), session_options(), providers=use)
     except Exception as e:  # 大模型有些加速后端吃不下，退回 CPU
         log.warning("用 %s 加载 %s 失败（%s），改用 CPU", use, path.name, e)
-        return ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+        return ort.InferenceSession(str(path), session_options(), providers=["CPUExecutionProvider"])
 
 
 class ClipOnnx:

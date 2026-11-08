@@ -8,6 +8,7 @@ import (
 	"log"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -31,7 +32,9 @@ type Worker struct {
 	concurrency int
 	lease       time.Duration
 	handlers    map[string]HandlerFunc
-	ready       func() bool
+	ready       []func() bool
+	limit       func() int
+	active      atomic.Int32
 }
 
 // NewWorker 创建 worker。name 写进 jobs.locked_by，同一个名字只能有一个进程在用；
@@ -51,10 +54,30 @@ func (w *Worker) Register(jobType string, h HandlerFunc) {
 	w.handlers[jobType] = h
 }
 
-// SetReady 设置一个开关：返回 false 时暂停领取任务（例如 AI 服务连不上），等它恢复再接着领，
-// 不会把任务一个个领出来失败、白白用掉重试次数。必须在 Run 之前调用。
+// SetReady 加一个开关：返回 false 时暂停领取任务（例如 AI 服务连不上、有人在上传照片），等它恢复再接着领，
+// 不会把任务一个个领出来失败、白白用掉重试次数。可以加多个，全都是 true 才领。必须在 Run 之前调用。
 func (w *Worker) SetReady(ready func() bool) {
-	w.ready = ready
+	w.ready = append(w.ready, ready)
+}
+
+// SetLimit 让同时处理的任务数可以在运行中调整（设置页上改）：limit 返回 1 到 concurrency 之间的数，
+// 多出来的那几路先歇着。必须在 Run 之前调用。
+func (w *Worker) SetLimit(limit func() int) {
+	w.limit = limit
+}
+
+// Active 是现在正在处理的任务数
+func (w *Worker) Active() int {
+	return int(w.active.Load())
+}
+
+func (w *Worker) isReady() bool {
+	for _, r := range w.ready {
+		if !r() {
+			return false
+		}
+	}
+	return true
 }
 
 // Run 开始处理任务，直到 ctx 被取消；返回前会等正在处理的任务做完。
@@ -69,16 +92,16 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 
 	var wg sync.WaitGroup
-	for range w.concurrency {
-		wg.Go(func() { w.loop(ctx, types) })
+	for i := range w.concurrency {
+		wg.Go(func() { w.loop(ctx, i, types) })
 	}
 	wg.Go(func() { w.reapLoop(ctx) })
 	wg.Wait()
 }
 
-func (w *Worker) loop(ctx context.Context, types []string) {
+func (w *Worker) loop(ctx context.Context, slot int, types []string) {
 	for ctx.Err() == nil {
-		if w.ready != nil && !w.ready() {
+		if (w.limit != nil && slot >= w.limit()) || !w.isReady() {
 			select {
 			case <-ctx.Done():
 			case <-time.After(pollInterval):
@@ -96,7 +119,9 @@ func (w *Worker) loop(ctx context.Context, types []string) {
 			}
 			continue
 		}
+		w.active.Add(1)
 		w.execute(job)
+		w.active.Add(-1)
 	}
 }
 

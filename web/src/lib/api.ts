@@ -717,6 +717,13 @@ export interface AIStatus {
     device: AIDevice
     source?: AISource
     gpu: { available: boolean; onnx: string[]; torch: string | null }
+    threads?: number // 用 CPU 算时每个模型几个线程，0 是自动（threads_auto）
+    threads_auto?: number
+    parallel?: number // 同时算几张照片，0 是自动（parallel_auto，按显卡、核数、内存定）
+    parallel_auto?: number
+    parallel_max?: number
+    cpus?: number // AI 服务器能用几个核、多少内存（容器有限制时按限制）
+    memory?: { total: number; available: number | null }
   } | null
   // storage：模型存在哪，mounted 是不是挂载进容器的目录（不在容器里时是 null）；auto_download 为 false 时要手动下载
   models?: { catalog?: AIModel[]; storage?: { dir: string; mounted: boolean | null }; auto_download?: boolean } | null
@@ -728,5 +735,38 @@ export const setAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '') 
 export const setAIDevice = (device: AIDevice) => send<AIStatus>('PUT', '/api/ai/device', { device })
 export const setAITier = (tier: AITier) => send<AIStatus>('PUT', '/api/ai/tier', { tier })
 export const setAISource = (source: AISource) => send<AIStatus>('PUT', '/api/ai/source', { source })
+export const setAIParallel = (parallel: number) => send<AIStatus>('PUT', '/api/ai/parallel', { parallel })
+export const setAIThreads = (threads: number) => send<AIStatus>('PUT', '/api/ai/threads', { threads })
 export const downloadAIModel = (id: string) =>
   send<AIStatus>('POST', `/api/ai/models/${encodeURIComponent(id)}/download`)
+
+// 设置 → 性能：同时处理几个任务（读元数据、缩略图）、AI 什么时候跑（idle 空闲时、always 随时、night 只在夜间时段）
+export type PerfSchedule = 'idle' | 'always' | 'night'
+export interface PerfSettings {
+  schedule: PerfSchedule
+  night_start: number
+  night_end: number
+  workers: number // 0 是自动
+}
+export interface PerfStatus {
+  settings: PerfSettings
+  workers: number // 现在同时处理几个
+  workers_auto: number
+  workers_max: number
+  cpus: number
+  memory: number // 字节，读不到是 0
+  ai_running: boolean // AI 任务现在能不能跑
+  ai_paused: string // 不能跑时为什么
+}
+export const perfStatus = () => getJSON<PerfStatus>('/api/perf')
+export const setPerf = (patch: Partial<PerfSettings>) => send<PerfStatus>('PUT', '/api/perf', patch)
+
+// 还没做完的后台任务，每类：排着几个、在做几个、这一批做完几个、失败几个（页面顶上的任务图标）
+export interface ActiveJobs {
+  type: 'metadata' | 'thumbnail' | 'face' | 'clip' | 'ocr' | string
+  pending: number
+  running: number
+  done: number
+  failed: number
+}
+export const activeJobs = () => getJSON<ActiveJobs[]>('/api/jobs/active')

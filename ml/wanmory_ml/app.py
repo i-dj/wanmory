@@ -6,9 +6,11 @@
   GET  /health   版本和可用的硬件加速
   GET  /models   支持的任务和模型；catalog 里每个模型下载了没有、下载进度
   POST /models/{id}/download  在后台下载模型
-  GET  /config   用 GPU 还是 CPU（device：auto / gpu / cpu），这台机器有什么显卡
+  GET  /config   用 GPU 还是 CPU（device：auto / gpu / cpu），这台机器有什么显卡；CPU 线程数、核数、内存
   PUT  /config   {"device": "cpu"} 改用什么算，已经加载的模型卸掉、下次按新的设置加载；
-                 {"source": "mirror"} 改从哪下载模型（auto / huggingface / mirror）
+                 {"source": "mirror"} 改从哪下载模型（auto / huggingface / mirror）；
+                 {"threads": 2} 用 CPU 算时每个模型几个线程（0 是自动），已经加载的模型卸掉；
+                 {"parallel": 1} 同时算几张照片（0 是自动）
   GET  /stats    每种任务最近的平均耗时（毫秒）和用的是 GPU 还是 CPU
   POST /predict  image：图片文件；tasks：JSON，例如 {"face": {"model": "antelopev2", "min_score": 0.5}, "clip": {}, "ocr": {}}。
                  只算文字向量时不传图片：{"clip.text": {"texts": ["海边日落", "生日蛋糕"]}}
@@ -50,6 +52,30 @@ _ocr_model = None
 _ocr_lock = threading.Lock()
 _clip_loading: set[str] = set()
 _clip_lock = threading.Lock()
+
+
+class Slots:
+    """同时算几张照片（人脸、语义、文字）：最多 runtime.parallel() 个，多的排队。上限在设置里能改，每次进来时重新看。
+    树莓派上是 1：每个模型已经用满了设定的线程数，再一起算只会互相抢 CPU、内存翻倍。
+    只算文字向量（搜索框）不排这个队，搜索不用等后台处理"""
+
+    def __init__(self):
+        self.cond = threading.Condition()
+        self.busy = 0
+
+    def __enter__(self):
+        with self.cond:
+            while self.busy >= runtime.parallel():
+                self.cond.wait()
+            self.busy += 1
+
+    def __exit__(self, *exc):
+        with self.cond:
+            self.busy -= 1
+            self.cond.notify_all()
+
+
+_slots = Slots()
 
 
 def missing(name: str) -> HTTPException:
@@ -209,21 +235,53 @@ def gpu_info() -> dict:
     return _gpu_cache
 
 
+def _gpu_usable() -> bool:
+    info = gpu_info()
+    return bool(info["onnx"] or info["torch"])
+
+
+runtime.gpu_usable = _gpu_usable
+
+
 @app.get("/config", dependencies=[Depends(check_token)])
 def get_config() -> dict:
-    return {"device": runtime.device_pref(), "source": runtime.source_pref(), "gpu": gpu_info()}
+    return {
+        "device": runtime.device_pref(),
+        "source": runtime.source_pref(),
+        "gpu": gpu_info(),
+        "threads": runtime.threads_pref(),
+        "parallel": runtime.parallel_pref(),
+        "parallel_auto": runtime.auto_parallel(),
+        "parallel_max": runtime.MAX_PARALLEL,
+        "threads_auto": runtime.auto_threads(),
+        "cpus": runtime.cpu_count(),
+        "memory": runtime.memory(),
+    }
 
 
 @app.put("/config", dependencies=[Depends(check_token)])
-def put_config(device: str | None = Body(None, embed=True), source: str | None = Body(None, embed=True)) -> dict:
+def put_config(
+    device: str | None = Body(None, embed=True),
+    source: str | None = Body(None, embed=True),
+    threads: int | None = Body(None, embed=True),
+    parallel: int | None = Body(None, embed=True),
+) -> dict:
+    global _ocr_model
     try:
         if source is not None:
             runtime.set_source_pref(source)
-        if device is None:
+        if device is None and threads is None and parallel is None:
             return get_config()
-        runtime.set_device_pref(device)
+        if device is not None:
+            runtime.set_device_pref(device)
+        if threads is not None:
+            runtime.set_threads_pref(threads)
+        if parallel is not None:
+            runtime.set_parallel_pref(parallel)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    with _ocr_lock:
+        _ocr_model = None
     # 卸掉已经加载的模型，下次用到时按新的设置加载（正在用的请求拿着旧对象，算完就释放）
     with _face_lock:
         _face_models.clear()
@@ -277,6 +335,12 @@ def predict(image: UploadFile | None = File(None), tasks: str = Form(...)) -> di
         raise HTTPException(status_code=400, detail="图片解不开")
 
     result["image"] = {"width": img.shape[1], "height": img.shape[0]}
+    with _slots:
+        analyze(img, wanted, image.filename, result)
+    return result
+
+
+def analyze(img: np.ndarray, wanted: dict, filename: str | None, result: dict) -> None:
     if "face" in wanted:
         opts = wanted["face"] or {}
         name = opts.get("model") or DEFAULT_FACE_MODEL
@@ -287,7 +351,7 @@ def predict(image: UploadFile | None = File(None), tasks: str = Form(...)) -> di
         result["model_ids"]["face"] = name
         ms = (time.perf_counter() - start) * 1000
         record("face", ms, "cpu" if model.det.get_providers()[0] == "CPUExecutionProvider" else "gpu")
-        log.info("face %s：%d 张脸，%.0f ms", image.filename, len(faces), ms)
+        log.info("face %s：%d 张脸，%.0f ms", filename, len(faces), ms)
     if "clip" in wanted:
         opts = wanted["clip"] or {}
         name = opts.get("model") or DEFAULT_CLIP_MODEL
@@ -297,7 +361,7 @@ def predict(image: UploadFile | None = File(None), tasks: str = Form(...)) -> di
         result["model_ids"]["clip"] = name
         ms = (time.perf_counter() - start) * 1000
         record("clip", ms, "cpu" if model.device == "cpu" else "gpu")
-        log.info("clip %s：%.0f ms", image.filename, ms)
+        log.info("clip %s：%.0f ms", filename, ms)
     if "ocr" in wanted:
         from .ocr import MODEL_ID
 
@@ -306,6 +370,5 @@ def predict(image: UploadFile | None = File(None), tasks: str = Form(...)) -> di
         result["model_ids"]["ocr"] = MODEL_ID
         record("ocr", (time.perf_counter() - start) * 1000, "cpu")
         log.info(
-            "ocr %s：%d 字，%.0f ms", image.filename, len(result["ocr"]["text"]), (time.perf_counter() - start) * 1000
+            "ocr %s：%d 字，%.0f ms", filename, len(result["ocr"]["text"]), (time.perf_counter() - start) * 1000
         )
-    return result

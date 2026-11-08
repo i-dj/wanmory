@@ -22,6 +22,7 @@ import (
 	"github.com/wanmory/wanmory/server/internal/faces"
 	"github.com/wanmory/wanmory/server/internal/geo"
 	"github.com/wanmory/wanmory/server/internal/jobs"
+	"github.com/wanmory/wanmory/server/internal/perf"
 	"github.com/wanmory/wanmory/server/internal/settings"
 	"github.com/wanmory/wanmory/server/internal/storage"
 	"github.com/wanmory/wanmory/server/internal/webui"
@@ -30,12 +31,8 @@ import (
 // 本机 worker 的名字，写进 jobs.locked_by。
 const localWorkerName = "local"
 
-// aiWorkerName 是把任务交给 AI 服务的 worker；aiConcurrency 是同时给它发几个请求，
-// 多了 AI 服务也是排队算，只会让单个请求超时
-const (
-	aiWorkerName  = "ai"
-	aiConcurrency = 2
-)
+// aiWorkerName 是把任务交给 AI 服务的 worker；同时给它发几个请求跟着 AI 服务同时算几张走（见 ai.Admin.Concurrency）
+const aiWorkerName = "ai"
 
 func main() {
 	// Docker 的健康检查用：镜像里没有 curl，直接用程序自己请求 /api/health
@@ -84,10 +81,17 @@ func run(ctx context.Context) error {
 	uploadDir := func(ctx context.Context) (string, error) {
 		return settings.GetOr(ctx, settingsStore, assets.SettingUploadDir, cfg.UploadDir)
 	}
-	exif := assets.NewExifPool(cfg.Workers)
+	// 同时处理几个任务、AI 什么时候跑：按核数和内存自动定，设置页上能改
+	perfService := perf.New(settingsStore, cfg.Workers)
+	if err := perfService.Load(ctx); err != nil {
+		log.Printf("读取性能设置失败，用默认的: %v", err)
+	}
+	exif := assets.NewExifPool(perfService.MaxWorkers())
 	defer exif.Close()
 	assetService := assets.NewService(conn, exif, uploadDir, cfg.ThumbsDir())
-	worker := jobs.NewWorker(conn, localWorkerName, cfg.Workers)
+	worker := jobs.NewWorker(conn, localWorkerName, perfService.MaxWorkers())
+	worker.SetLimit(perfService.Workers)
+	perfService.SetLocalActive(worker.Active)
 	assetService.RegisterJobs(worker)
 
 	aiClient := ai.NewClient(cfg.MLURL, cfg.MLToken)
@@ -101,7 +105,10 @@ func run(ctx context.Context) error {
 		log.Printf("读取 AI 档位失败，用默认的模型: %v", err)
 	}
 	faceService := faces.NewService(conn, aiClient, models.Face, cfg.ThumbsDir())
-	aiWorker := jobs.NewWorker(conn, aiWorkerName, aiConcurrency)
+	aiWorker := jobs.NewWorker(conn, aiWorkerName, ai.MaxConcurrency)
+	aiWorker.SetLimit(aiAdmin.Concurrency)
+	go aiAdmin.Watch(ctx)
+	aiWorker.SetReady(perfService.AllowAI) // 空闲时 / 夜里才跑（见设置 → 性能）
 	faceService.RegisterJobs(aiWorker)
 
 	// 语义搜索和自动分类（CLIP）：和人脸用同一个 AI 服务、同一个 worker
@@ -170,6 +177,7 @@ func run(ctx context.Context) error {
 	authService.Routes(mux)
 	settings.NewHandler(settingsStore, registry).Routes(mux)
 	aiAdmin.Routes(mux)
+	perfService.Routes(mux)
 	storage.NewHandler(roots).Routes(mux)
 	jobs.NewHandler(conn).Routes(mux)
 	assetService.Routes(mux)
@@ -184,7 +192,7 @@ func run(ctx context.Context) error {
 	go assets.CleanStaleUploads(ctx, tusDir)
 	mux.Handle("/", webui.Handler()) // 其他路径都是前端页面
 
-	srv := &http.Server{Addr: cfg.Addr, Handler: authService.Middleware(mux), ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Addr: cfg.Addr, Handler: perfService.Track(authService.Middleware(mux)), ReadHeaderTimeout: 10 * time.Second}
 
 	workerDone := make(chan struct{})
 	go func() {
@@ -204,7 +212,7 @@ func run(ctx context.Context) error {
 	}()
 
 	log.Printf("wanmory server listening on %s，同时处理 %d 个任务，可浏览的目录 %v，AI 服务 %s",
-		cfg.Addr, cfg.Workers, cfg.StorageRoots, cfg.MLURL)
+		cfg.Addr, perfService.Workers(), cfg.StorageRoots, cfg.MLURL)
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

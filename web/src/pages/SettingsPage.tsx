@@ -9,6 +9,7 @@ import Segmented from '@/components/ui/Segmented'
 import { type Theme, useTheme } from '@/lib/theme'
 import AccountSettings from '@/components/settings/AccountSettings'
 import AISettings from '@/components/settings/AISettings'
+import PerformanceSettings from '@/components/settings/PerformanceSettings'
 import { askConfirm } from '@/lib/dialog'
 
 export default function SettingsPage() {
@@ -65,6 +66,7 @@ export default function SettingsPage() {
       <AppearanceSettings />
       <AccountSettings />
       <AISettings />
+      <PerformanceSettings />
       <h3 className="mt-6 mb-2 text-body font-semibold text-muted">服务器</h3>
       {error && <p className="mb-3 rounded-control bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>}
       {items === null && !error && <p className="text-muted">加载中…</p>}

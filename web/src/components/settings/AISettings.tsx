@@ -200,6 +200,13 @@ export default function AISettings() {
                   {TIERS.find((t) => t.value === status.tier)?.hint ??
                     '现在用的是启动时配置的模型组合，选一档后按那一档的来。'}
                 </p>
+                {recommend(status) && (
+                  <p className="mt-0.5 text-body text-muted">
+                    这台 AI 服务器{recommend(status)!.why}，推荐「
+                    {TIERS.find((t) => t.value === recommend(status)!.tier)!.label}」
+                    {status.tier === recommend(status)!.tier && '（就是现在这档）'}。
+                  </p>
+                )}
               </div>
               <Segmented<AITier | 'custom'>
                 label="档位"
@@ -273,6 +280,18 @@ const TIERS: { value: AITier; label: string; hint: string }[] = [
   { value: 'balanced', label: '均衡', hint: '语义搜索换小一号的模型，适合 Intel i5 级别的 NAS。' },
   { value: 'lite', label: '轻量', hint: '人脸、语义搜索都用小模型，适合 N100、树莓派 5。' },
 ]
+
+// recommend 按 AI 服务器的显卡和内存推荐一档：有显卡用高精度；只有 CPU 时，内存不到 6 GB 用轻量（树莓派、N100），
+// 再大用均衡（高精度的语义搜索模型在 CPU 上一张要一两秒，还要 4 GB 内存）
+function recommend(status: AIStatus): { tier: AITier; why: string } | null {
+  const cfg = status.config
+  const mem = cfg?.memory?.total
+  if (!cfg) return null
+  if (cfg.gpu.available && cfg.device !== 'cpu') return { tier: 'quality', why: `有显卡（${gpuName(cfg.gpu)}）` }
+  if (!mem) return null
+  const desc = `只用 CPU、内存 ${(mem / (1 << 30)).toFixed(1)} GB`
+  return { tier: mem < 6 * (1 << 30) ? 'lite' : 'balanced', why: desc }
+}
 
 // Bar 是重新处理的一行：名字、进度条、几张 / 几张
 function Bar({ label, done, total }: { label: string; done: number; total: number }) {

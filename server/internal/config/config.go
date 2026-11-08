@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 )
 
@@ -17,8 +16,8 @@ type Config struct {
 	DataDir     string // WANMORY_DATA_DIR：缩略图等程序生成的文件，默认 ./data
 	UploadDir   string // WANMORY_UPLOAD_DIR：上传目录的默认值，网页上可以改，默认 <DataDir>/upload
 
-	// WANMORY_WORKERS：同时处理多少个任务（读元数据、生成缩略图），默认等于 CPU 核数。
-	// NAS 上想给别的程序留点 CPU 可以调小。
+	// WANMORY_WORKERS：同时处理多少个任务（读元数据、生成缩略图）的默认值，没设是 0，按核数和内存自动算（见 internal/perf）。
+	// 网页「设置 → 性能」里还可以改
 	Workers int
 
 	// 内置 AI 服务：和相册一起用 Docker Compose 启动的那个容器，只在 Docker 内部网络里，只有后端连它。
@@ -51,7 +50,6 @@ func Load() (Config, error) {
 	if c.DatabaseURL == "" {
 		return c, errors.New("DATABASE_URL 未设置")
 	}
-	c.Workers = runtime.NumCPU()
 	if v := os.Getenv("WANMORY_WORKERS"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 {

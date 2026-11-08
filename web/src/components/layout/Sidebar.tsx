@@ -19,6 +19,7 @@ import type { AssetStats } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
 import Logo from './Logo'
+import TaskIndicator from './TaskIndicator'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { useCurrentUser } from '@/lib/session'
 import { DRAWER_CLOSE_MS, DRAWER_EASE, DRAWER_OPEN_MS } from '@/lib/drawer'
@@ -91,6 +92,7 @@ export default function Sidebar({
             <div className="text-[19px] font-bold tracking-wide">万象</div>
             <div className="text-caption text-muted">Wanmory</div>
           </div>
+          {!guest && <TaskIndicator onSettings={() => navigate(SETTINGS_PATH)} />}
         </div>
         {/* 访客只能浏览：没有上传，换成「登录」 */}
         <div className="hidden px-4 pb-7 md:block">

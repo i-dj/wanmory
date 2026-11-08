@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wanmory/wanmory/server/internal/auth"
@@ -62,12 +63,56 @@ type Admin struct {
 	store      *settings.Store
 	localURL   string // 本机的地址
 	localToken string // 本机的令牌（环境变量里的，一般为空）
+	parallel   atomic.Int32 // AI 服务同时算几张照片（它按显卡、核数、内存自动定，设置里能改），没问到时是 1
 }
 
 // NewAdmin：faceModel、clipModel 是启动时环境变量里的模型，设置里没选过档位时用
 func NewAdmin(client *Client, store *settings.Store, localURL, localToken, faceModel, clipModel string) *Admin {
-	return &Admin{client: client, store: store, localURL: localURL, localToken: localToken,
+	a := &Admin{client: client, store: store, localURL: localURL, localToken: localToken,
 		inUse: Tier{Face: faceModel, Clip: clipModel}}
+	a.parallel.Store(1)
+	return a
+}
+
+// MaxConcurrency 是给 AI 服务同时发请求数的上限（AI 任务的 worker 开这么多路）
+const MaxConcurrency = 4
+
+// Concurrency 是现在同时给 AI 服务发几个请求：它同时算几张就发几张，再多一张在路上（传图片的时候它在算上一张）
+func (a *Admin) Concurrency() int {
+	return min(MaxConcurrency, int(a.parallel.Load())+1)
+}
+
+// Watch 每分钟问一次 AI 服务同时算几张（换了 AI 服务、设置里改了都跟上），直到 ctx 结束
+func (a *Admin) Watch(ctx context.Context) {
+	for {
+		cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		var cfg json.RawMessage
+		if err := a.client.Call(cctx, http.MethodGet, "/config", nil, &cfg); err == nil {
+			a.noteConfig(cfg)
+		}
+		cancel()
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Minute):
+		}
+	}
+}
+
+// noteConfig 从 AI 服务的 /config 里记下同时算几张（parallel 是设置的，0 是自动，用 parallel_auto）
+func (a *Admin) noteConfig(raw json.RawMessage) {
+	var c struct {
+		Parallel     int `json:"parallel"`
+		ParallelAuto int `json:"parallel_auto"`
+	}
+	if json.Unmarshal(raw, &c) != nil {
+		return
+	}
+	n := c.Parallel
+	if n <= 0 {
+		n = c.ParallelAuto
+	}
+	a.parallel.Store(int32(max(1, n))) // 旧版本的 AI 服务没有这两个：1
 }
 
 // Models 是现在该用的模型：设置里选了档位就是那一档的，不然是启动时的。人脸、语义搜索的服务用它启动
@@ -134,6 +179,8 @@ func (a *Admin) apply(ep Endpoint) {
 //	GET  /api/ai/status                 地址、连上了没有、版本、用 GPU 还是 CPU、模型（下载了没有、下载进度、现在用的哪个）、最近的耗时
 //	PUT  /api/ai/endpoint               {"mode": "builtin"} 或 {"mode": "remote", "url": "http://192.168.1.20:3003", "token": "..."}（管理员）
 //	PUT  /api/ai/device                 {"device": "auto" | "gpu" | "cpu"}（管理员）
+//	PUT  /api/ai/threads                {"threads": 2} 用 CPU 算时每个模型几个线程，0 是自动（核数减一）（管理员）
+//	PUT  /api/ai/parallel               {"parallel": 2} 同时算几张照片，0 是自动（管理员）
 //	PUT  /api/ai/source                 {"source": "auto" | "huggingface" | "mirror"} 模型从哪下载（管理员）
 //	PUT  /api/ai/tier                   {"tier": "quality" | "balanced" | "lite"} 换档位，所有照片按新模型重新处理（管理员）
 //	POST /api/ai/models/{id}/download   在 AI 服务上下载模型（管理员）
@@ -143,6 +190,8 @@ func (a *Admin) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/ai/device", admin(a.setDevice))
 	mux.HandleFunc("PUT /api/ai/tier", admin(a.setTier))
 	mux.HandleFunc("PUT /api/ai/source", admin(a.setSource))
+	mux.HandleFunc("PUT /api/ai/threads", admin(a.setThreads))
+	mux.HandleFunc("PUT /api/ai/parallel", admin(a.setParallel))
 	mux.HandleFunc("POST /api/ai/models/{id}/download", admin(a.download))
 }
 
@@ -196,6 +245,9 @@ func (a *Admin) status(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	resp["config"], resp["models"], resp["stats"] = config, models, stats
+	if config != nil {
+		a.noteConfig(config)
+	}
 	httpx.JSON(w, http.StatusOK, resp)
 }
 
@@ -283,6 +335,34 @@ func (a *Admin) setSource(w http.ResponseWriter, r *http.Request) {
 		Source string `json:"source"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
+		return
+	}
+	if !a.forward(w, r, http.MethodPut, "/config", req) {
+		return
+	}
+	a.status(w, r)
+}
+
+func (a *Admin) setThreads(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Threads *int `json:"threads"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil || req.Threads == nil {
+		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
+		return
+	}
+	if !a.forward(w, r, http.MethodPut, "/config", req) {
+		return
+	}
+	a.status(w, r)
+}
+
+func (a *Admin) setParallel(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Parallel *int `json:"parallel"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil || req.Parallel == nil {
 		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
 		return
 	}

@@ -57,11 +57,13 @@ def providers() -> list[str]:
 
 
 def _session(path: Path) -> ort.InferenceSession:
+    from .runtime import session_options
+
     try:
-        return ort.InferenceSession(str(path), providers=providers())
+        return ort.InferenceSession(str(path), session_options(), providers=providers())
     except Exception as e:  # 个别加速后端不支持某些算子时，退回 CPU
         log.warning("用 %s 加载 %s 失败（%s），改用 CPU", providers(), path.name, e)
-        return ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+        return ort.InferenceSession(str(path), session_options(), providers=["CPUExecutionProvider"])
 
 
 class FaceModel:

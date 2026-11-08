@@ -21,7 +21,12 @@ class OcrModel:
     def __init__(self):
         from rapidocr import RapidOCR
 
-        self.engine = RapidOCR()
+        from .runtime import threads
+
+        n = threads()
+        self.engine = RapidOCR(
+            params={"EngineConfig.onnxruntime.intra_op_num_threads": n, "EngineConfig.onnxruntime.inter_op_num_threads": 1}
+        )
         self.lock = threading.Lock()
         log.info("文字识别模型 %s 已加载", MODEL_ID)
 
