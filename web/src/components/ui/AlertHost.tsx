@@ -21,8 +21,8 @@ const TONES: Record<AlertTone, { icon: LucideIcon; circle: string; bar: string }
   info: { icon: Info, circle: 'bg-accent/15 text-accent', bar: 'bg-accent' },
 }
 
-// 和左下角的上传窗口同一种磨砂玻璃
-const GLASS = 'border border-white/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150'
+// 左下角的提示：和上传窗口、后台任务面板一样的浅色磨砂（index.css 的 .frost）
+const GLASS = 'frost'
 
 // AlertHost 显示 lib/dialog 里的东西：左下角的提示，和居中的确认框
 export default function AlertHost() {
@@ -63,7 +63,7 @@ function NoticeCard({ notice }: { notice: Notice }) {
           <div
             role="status"
             className={cx(
-              'notice-card group overflow-hidden rounded-dialog shadow-[0_12px_40px_rgba(0,0,0,0.35)]',
+              'notice-card group relative overflow-hidden rounded-2xl',
               GLASS,
               notice.leaving && 'notice-leaving',
             )}

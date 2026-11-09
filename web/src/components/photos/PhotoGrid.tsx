@@ -11,7 +11,7 @@ import AssetTile, { type InfoTarget, type SelectModifiers } from './AssetTile'
 // 所有行和每张照片的位置都提前算好，页面上只放窗口上下几屏之内的行，滚动时换成新的那几行。
 // 图库有几万张照片，页面上也始终只有一两百个格子，图片内存也只占这些。
 
-const HEADER_HEIGHT = 40 // 分组标题那一行的高度
+const HEADER_HEIGHT = 52 // 分组标题那一行的高度
 const SECTION_GAP = 24 // 两组之间多空出的距离
 const OVERSCAN = 1200 // 像素，窗口上下多放这么多，快速滚动时不露白
 // 格子宽高比的上下限：全景图、长截图按原比例会细成一条或者宽得一行只放得下它，超出的部分裁掉
@@ -80,7 +80,7 @@ function PhotoGrid({
   onOpen: (asset: Asset) => void
   onInfo: (info: InfoTarget) => void
   onChanged: (asset: Asset) => void
-  onSelect?: (asset: Asset, modifiers: SelectModifiers) => void // 单击照片；没有时单击直接打开大图
+  onSelect?: (asset: Asset, modifiers: SelectModifiers) => void // ⌘ / ⇧ 单击照片、点选择圈；单击本身是打开大图
   onMarquee?: (ids: string[], mode: SelectMode, base: Selected) => void // 拖框选择
 }) {
   const { rows, height } = useMemo(
@@ -169,10 +169,10 @@ function PhotoGrid({
           ? [
               <h2
                 key={row.key}
-                className="absolute inset-x-0 flex items-end pb-2.5 text-heading font-semibold"
+                className="absolute inset-x-0 flex items-end pb-3"
                 style={{ top: row.top, height: row.height }}
               >
-                {row.title}
+                <SectionTitle title={row.title} />
               </h2>,
             ]
           : row.items.map(({ asset, left, width: w, top = 0, height: h = row.height }) => (
@@ -326,4 +326,17 @@ function firstRowBelow(rows: Row[], y: number, from = 0): number {
     else hi = mid
   }
   return lo
+}
+
+// SectionTitle 是分组标题：日期用宋体大字，后面的星期（或年份）灰色小字，例如「11月8日 周日」
+function SectionTitle({ title }: { title: string }) {
+  const space = title.lastIndexOf(' ')
+  const main = space > 0 ? title.slice(0, space) : title
+  const rest = space > 0 ? title.slice(space + 1) : ''
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className="font-serif text-[22px] leading-tight font-bold">{main}</span>
+      {rest && <span className="text-body text-muted">{rest}</span>}
+    </span>
+  )
 }

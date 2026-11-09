@@ -1,12 +1,12 @@
 import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { type Asset, assetDates, type Filter, listAssets, thumbnailUrl } from '@/lib/api'
+import { type Asset, assetDates, type Filter, listAssets, previewUrl, thumbnailUrl } from '@/lib/api'
 import { findMemories, type Memory } from '@/lib/memories'
 import { memoryPath } from '@/lib/views'
 
 // MemoriesStrip 是图库最上面的「那年今天」：往年今天前后拍的照片，一年一张卡片，近的在前。
 // 卡片一起撑满一行、两端对齐；多到每张窄于 w-72 时不再缩，改成左右滑。
-// 每张卡片是那几天里的几张照片拼起来的，点进去看那几天的所有照片（可以直接播放幻灯片）。没有回忆时什么都不显示
+// 每张卡片是那几天里的一张照片铺满，压着宋体的「三年前的今天」，点进去看那几天的所有照片（可以直接播放幻灯片）。没有回忆时什么都不显示
 export default function MemoriesStrip({
   navigate,
   filter,
@@ -17,13 +17,13 @@ export default function MemoriesStrip({
   const memories = useMemories(filter)
   if (!memories?.length) return null
   return (
-    <section aria-label="那年今天" className="mt-1 mb-5">
-      <h2 className="flex items-center gap-1.5 text-heading font-semibold">
-        <Sparkles className="size-4.5 text-accent" strokeWidth={1.8} />
+    <section aria-label="那年今天" className="mt-8 mb-6">
+      <h2 className="flex items-center gap-1.5 text-[15px] font-semibold text-accent">
+        <Sparkles className="size-4" strokeWidth={2} />
         那年今天
       </h2>
-      {/* 横着滚的一排会把超出的部分裁掉：四周留出 6 像素，指上去时卡片外面那圈蓝框（隔 2 像素、粗 2 像素）不被切掉 */}
-      <ul className="-mx-1.5 mt-1 flex snap-x scroll-px-1.5 gap-3 overflow-x-auto p-1.5 pb-2.5">
+      {/* 横着滚的一排会把超出的部分裁掉：四周留出 6 像素，指上去时卡片外面那圈框（隔 2 像素、粗 2 像素）不被切掉 */}
+      <ul className="-mx-1.5 mt-3 flex snap-x scroll-px-1.5 gap-4.5 overflow-x-auto p-1.5 pb-2.5">
         {memories.map(({ memory, covers }) => (
           <li key={memory.key} className="min-w-72 flex-1 shrink-0 snap-start">
             <MemoryCard
@@ -38,29 +38,21 @@ export default function MemoriesStrip({
   )
 }
 
-// MemoryCard：左边一张大的，右边两张小的叠起来（照片少时只有一张大的），下面压一层渐暗写字
+// MemoryCard：一张照片铺满大圆角卡片，下面压一层渐暗，写宋体的标题和日期、张数
 function MemoryCard({ memory, covers, onOpen }: { memory: Memory; covers: Asset[]; onOpen: () => void }) {
-  const [main, ...rest] = covers
-  const side = rest.slice(0, 2)
+  const [main] = covers
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group relative block h-44 w-full cursor-pointer overflow-hidden rounded-panel bg-line text-left ring-accent ring-offset-2 ring-offset-page outline-none focus-visible:ring-2"
+      className="group relative block h-56 w-full cursor-pointer overflow-hidden rounded-2xl bg-line text-left ring-accent ring-offset-2 ring-offset-page outline-none focus-visible:ring-2 md:h-70"
     >
-      <span className="flex size-full gap-0.5">
-        {main && <Cover asset={main} className="flex-2" />}
-        {side.length === 2 && (
-          <span className="flex flex-1 flex-col gap-0.5">
-            {side.map((a) => (
-              <Cover key={a.id} asset={a} className="flex-1" />
-            ))}
-          </span>
-        )}
-      </span>
-      <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/75 via-black/30 to-transparent px-3.5 pt-10 pb-3 text-white">
-        <span className="block text-heading font-semibold text-shadow-sm">{memory.label}</span>
-        <span className="block text-caption text-white/80 tabular-nums">
+      {main && <Cover asset={main} className="flex size-full" />}
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 via-black/25 to-transparent px-5.5 pt-16 pb-6 text-white">
+        <span className="block font-serif text-[22px] leading-tight font-bold text-shadow-sm md:text-[26px]">
+          {memory.label}
+        </span>
+        <span className="mt-1.5 block text-body text-white/85 tabular-nums">
           {memory.detail} · {memory.count.toLocaleString()} 张
         </span>
       </span>
@@ -73,6 +65,8 @@ function Cover({ asset, className }: { asset: Asset; className: string }) {
     <span className={`${className} min-w-0 overflow-hidden`}>
       <img
         src={thumbnailUrl(asset)}
+        srcSet={`${thumbnailUrl(asset)} 480w, ${previewUrl(asset)} 1440w`}
+        sizes="(min-width: 48rem) 50vw, 100vw"
         alt=""
         loading="lazy"
         draggable={false}

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { usePersisted } from './usePersisted'
 
 // 照片之间的缝：照片按原比例排满一行，像 Windows「照片」一样留一道窄缝、每张小圆角，一张张分得清又不散
-const GAP = 10
+const GAP = 8
 const MIN_TILE = 60 // 像素，照片再小就看不清了，决定窄屏上最多几列
 const MAX_COLUMNS = 10 // 缩到最小时大约每行 10 张（窗口窄时按 MIN_TILE 再少一些）
 const MIN_COLUMNS = 2 // 放到最大时大约每行 2 张

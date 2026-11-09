@@ -9,6 +9,7 @@ import { cx } from '@/lib/cx'
 import { formatSize } from '@/lib/format'
 import { dayTitle } from '@/lib/groups'
 import { showError } from '@/lib/dialog'
+import { lockScroll } from '@/lib/scrollLock'
 
 // BurstsPage 是连拍整理：几秒内连着拍的一组照片、同一个场景接着拍的几张（看起来几乎一样）、同一张存了几份的，
 // 放在一起，自动挑出最好的一张
@@ -365,11 +366,10 @@ function CompareViewer({
       } else return
     }
     window.addEventListener('keydown', onKey)
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = overflow
+      unlock()
     }
   }, [burst, count, index, onClose, onPick])
 

@@ -117,7 +117,7 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
             ref={panel}
             role="dialog"
             aria-label="后台任务"
-            className="popover-card glass-menu fixed z-50 w-[300px] overflow-y-auto rounded-panel p-4"
+            className="popover-card frost fixed z-50 w-[300px] overflow-y-auto rounded-2xl p-4"
             style={position}
           >
             <div className="text-body font-semibold">后台任务</div>

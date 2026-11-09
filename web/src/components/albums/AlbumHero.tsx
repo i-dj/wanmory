@@ -1,4 +1,4 @@
-import { Images, Lock, Play, Sparkles } from 'lucide-react'
+import { Images, Lock, Sparkles } from 'lucide-react'
 import { type Album, type Asset, previewUrl } from '@/lib/api'
 
 const LANDSCAPE = 1.3 // 宽比高大这么多才算横图，放进又宽又矮的横幅不会裁得太狠
@@ -13,23 +13,21 @@ export function pickHero(assets: Asset[]): Asset | null {
   return best(wide) ?? best(photos)
 }
 
-// AlbumHero 是相册顶上的横幅：最好看的一张横图铺满，左下角写「智能相册 / 相册」、相册名和照片数量，
-// 右下角「播放」幻灯片。鼠标移上去照片轻轻放大，和「那年今天」的卡片一样
+// AlbumHero 是相册顶上的横幅：最好看的一张横图铺满，左下角写「智能相册 / 相册」、相册名和照片数量
+// （播放在顶上工具组的「幻灯片」）。鼠标移上去照片轻轻放大，和「那年今天」的卡片一样
 export default function AlbumHero({
   album,
   asset,
   summary,
-  onPlay,
 }: {
   album: Album
   asset: Asset
   summary: string // 「1079 张照片、41 个视频 · 12.1 GB」
-  onPlay?: () => void
 }) {
   const smart = album.kind === 'smart'
   const Icon = smart ? Sparkles : Images
   return (
-    <section className="group relative mt-1 mb-2 h-56 overflow-hidden rounded-panel bg-line md:h-72">
+    <section className="group relative mt-7 mb-3 h-56 overflow-hidden rounded-2xl bg-line shadow-[0_8px_24px_rgba(30,24,20,0.12)] md:h-72">
       <img
         src={previewUrl(asset)}
         alt=""
@@ -52,19 +50,9 @@ export default function AlbumHero({
               </>
             )}
           </p>
-          <h2 className="mt-1 truncate text-[28px] leading-tight font-bold md:text-[36px]">{album.name}</h2>
+          <h2 className="mt-1 truncate font-serif text-[28px] leading-tight font-bold md:text-[36px]">{album.name}</h2>
           <p className="mt-1 truncate text-body text-white/85 tabular-nums">{summary || ' '}</p>
         </div>
-        {onPlay && (
-          <button
-            type="button"
-            onClick={onPlay}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-body font-medium text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
-          >
-            <Play className="size-4 fill-current" strokeWidth={0} />
-            播放
-          </button>
-        )}
       </div>
     </section>
   )

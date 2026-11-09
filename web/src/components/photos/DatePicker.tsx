@@ -101,11 +101,11 @@ export default function DatePicker({
           aria-label="按日期查看"
           aria-expanded={open}
           className={cx(
-            '-ml-1 flex items-center rounded-control p-1 text-fg/85 hover:bg-fg/[0.07] hover:text-fg',
-            open && 'bg-fg/[0.08] text-fg',
+            'flex size-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-fg/[0.06] hover:text-fg',
+            open && 'bg-fg/[0.07] text-fg',
           )}
         >
-          <CalendarDays className="size-5.5" strokeWidth={1.75} aria-hidden="true" />
+          <CalendarDays className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
         </button>
       </Tooltip>
 

@@ -3,6 +3,7 @@ import { memo, useRef, useState } from 'react'
 import { type Asset, originalUrl, previewUrl, thumbnailUrl } from '@/lib/api'
 import TileActions from './TileActions'
 import { cx } from '@/lib/cx'
+import { sincePageEnter } from '@/lib/pageEnter'
 import VideoBadge from './VideoBadge'
 
 export type InfoTarget = { asset: Asset; anchor: DOMRect } | null // 要显示信息卡的照片和它在窗口里的位置
@@ -12,7 +13,9 @@ const FADE_MS = 700 // 照片加载后淡入的时长
 // 鼠标移上去照片在格子里轻轻放大，和「那年今天」的卡片一样（Tailwind 的 duration-500 + 默认缓动）。
 // Tailwind v4 的 scale-105 改的是 CSS 的 scale 属性，不是 transform，过渡里要写 scale，不然会一下跳过去
 const ZOOM = 'scale 500ms cubic-bezier(0.4, 0, 0.2, 1)'
-const CACHED_MS = 80 // 放进页面后这么快就加载好的，是浏览器缓存里的，直接显示不淡入
+const CACHED_MS = 80 // 放进页面后这么快就加载好的，是浏览器缓存里的，直接显示不淡入（刚切换过来的除外）
+const QUICK_FADE_MS = 350 // 刚切换页面时缓存里的照片也淡入，快一点
+const ENTER_WINDOW_MS = 1500 // 切换页面后这么久之内放进来的格子算「刚切换过来」
 const ACTIONS_MIN_WIDTH = 136 // 照片宽度小于这个时，悬停只显示选择圈和收藏，不写城市
 
 // 能悬停的设备（有鼠标）才显示悬停操作、悬停播放视频；手机上点一下直接打开大图
@@ -41,7 +44,7 @@ function AssetTile({
   onSelect?: (asset: Asset, modifiers: SelectModifiers) => void
 }) {
   // 滚回看过的地方时格子会重新放进页面，缩略图从缓存里马上就有，再淡入一次反而一闪一闪的
-  const [loaded, setLoaded] = useState<'no' | 'fade' | 'instant'>('no')
+  const [loaded, setLoaded] = useState<'no' | 'fade' | 'quick' | 'instant'>('no')
   const mountedAt = useRef(performance.now())
   const [broken, setBroken] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -52,7 +55,7 @@ function AssetTile({
   return (
     <div
       ref={root}
-      className="group relative size-full overflow-hidden rounded-[5px] bg-line"
+      className="group relative size-full overflow-hidden rounded-xl bg-line"
       onMouseEnter={() => {
         setHovered(true)
         hoverPlay.handlers.onMouseEnter?.()
@@ -72,12 +75,23 @@ function AssetTile({
           loading="lazy"
           decoding="async"
           draggable={false}
-          onLoad={() => setLoaded(performance.now() - mountedAt.current < CACHED_MS ? 'instant' : 'fade')}
+          onLoad={() =>
+            setLoaded(
+              performance.now() - mountedAt.current >= CACHED_MS
+                ? 'fade'
+                : sincePageEnter() < ENTER_WINDOW_MS
+                  ? 'quick'
+                  : 'instant',
+            )
+          }
           onError={() => setBroken(true)}
           className="absolute inset-0 size-full object-cover group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           style={{
             opacity: loaded === 'no' ? 0 : 1,
-            transition: loaded === 'instant' ? ZOOM : `opacity ${FADE_MS}ms ease-out, ${ZOOM}`,
+            transition:
+              loaded === 'instant'
+                ? ZOOM
+                : `opacity ${loaded === 'quick' ? QUICK_FADE_MS : FADE_MS}ms ease-out, ${ZOOM}`,
           }}
         />
       )}
@@ -103,21 +117,16 @@ function AssetTile({
         </span>
       )}
 
-      {/* 单击选中、双击打开大图，和 macOS「照片」一样；手机上没法多选，点一下直接打开。放在照片上面、按钮下面 */}
+      {/* 单击打开大图；⌘ / Ctrl 单击、⇧ 单击是多选（也可以点左上角的选择圈）。放在照片上面、按钮下面 */}
       <button
         type="button"
         aria-label={asset.file_name}
         aria-pressed={selected}
-        className="absolute inset-0 cursor-default focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-select"
-        onClick={(e) =>
-          onSelect && canHover ? onSelect(asset, { toggle: e.metaKey || e.ctrlKey, range: e.shiftKey }) : open()
-        }
-        onDoubleClick={open}
-        onKeyDown={(e) => {
-          // 键盘上回车打开大图，空格选中（按钮默认的单击）
-          if (e.key !== 'Enter') return
-          e.preventDefault()
-          open()
+        className="absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-select"
+        onClick={(e) => {
+          const toggle = e.metaKey || e.ctrlKey
+          if (onSelect && canHover && (toggle || e.shiftKey)) onSelect(asset, { toggle, range: e.shiftKey })
+          else open()
         }}
       />
 

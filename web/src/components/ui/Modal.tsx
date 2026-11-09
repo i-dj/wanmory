@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react'
 import { cx } from '@/lib/cx'
+import { lockScroll } from '@/lib/scrollLock'
 
 // Modal 是弹出层：手机上从底部弹出，桌面上居中。按 Esc 或点遮罩关闭。
 export default function Modal({
@@ -18,11 +19,10 @@ export default function Modal({
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden' // 弹出时背后的页面不滚动
+    const unlock = lockScroll() // 弹出时背后的页面不滚动
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = overflow
+      unlock()
     }
   }, [onClose])
 

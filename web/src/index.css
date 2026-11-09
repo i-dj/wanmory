@@ -36,25 +36,29 @@
   --radius-panel: 10px;
   --radius-dialog: 14px;
 
-  /* 浅色主题：近白的冷灰，菜单栏和内容区同一个颜色（中间一条细线分开）；强调色是饱和一些的蓝，选中的菜单项浅蓝底蓝字 */
-  --color-page: #fbfcfd;
-  --color-sidebar: #fbfcfd; /* 左侧菜单栏 */
+  /* 浅色主题：暖色调。内容区米白，左侧菜单近白（中间一条细线分开）；强调色是砖橙，选中的菜单项浅橙底橙字。
+     正文是带一点暖的近黑，说明文字是中性灰 */
+  --color-page: #faf6f1;
+  --color-sidebar: #fefcfb; /* 左侧菜单栏 */
   --color-surface: #ffffff;
-  --color-fg: #111827;
+  --color-well: #f6f8fa; /* 菜单底部「存储空间」这种嵌在里面的小卡片 */
+  --color-fg: #1e1814;
   --color-muted: #6b7280;
-  --color-line: #e6e8ec;
-  --color-line-strong: #d1d5db;
-  --color-accent: #2563eb;
-  --color-accent-soft: #eaf1fe;
-  --color-select: #2563eb; /* 选中照片的边框和拖选框，和强调色一样 */
-  --color-on-accent: #ffffff; /* 强调色底上的字和图标：浅色模式白字，深色模式强调色亮，用黑字（和 Windows 一样） */
-  --color-nav-active: #eaf1fe; /* 左边菜单选中的那一行：浅色主题浅蓝底蓝字，深色主题中性灰底白字 */
-  --color-nav-active-fg: #2563eb;
+  --color-line: #ece6df;
+  --color-line-strong: #dcd3c9;
+  --color-accent: #cc632e;
+  --color-accent-soft: #fdeadf;
+  --color-select: #cc632e; /* 选中照片的边框和拖选框，和强调色一样 */
+  --color-on-accent: #ffffff; /* 强调色底上的字和图标：浅色模式白字，深色模式强调色亮，用黑字 */
+  --color-nav-active: #ffe5d5; /* 左边菜单选中的那一行：浅色主题浅橙底橙字，深色主题中性灰底白字 */
+  --color-nav-active-fg: #cc632e;
   --color-danger: #dc2626;
   --color-ok: #16a34a;
   --color-warn: #d97706;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  /* 标题用的宋体：页面大标题、人名、回忆卡片、分组日期、菜单顶上的「万象」。用系统自带的（macOS、iPad 是宋体-简），不另外下载字体 */
+  --font-serif: 'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', 'Noto Serif CJK SC', STSong, serif;
 }
 
 @layer base {
@@ -70,9 +74,10 @@
     --color-muted: #a0a0a0;
     --color-line: #383838;
     --color-line-strong: #4d4d4d;
-    --color-accent: #60cdff;
-    --color-accent-soft: #1f3a48;
-    --color-select: #60cdff;
+    --color-well: #2c2c2c;
+    --color-accent: #f08a54;
+    --color-accent-soft: #4a2e20;
+    --color-select: #f08a54;
     --color-on-accent: #000000;
     --color-nav-active: rgb(255 255 255 / 0.08);
     --color-nav-active-fg: #ffffff;
@@ -83,9 +88,11 @@
 
   :root {
     color-scheme: light;
-    /* 一直给滚动条留位置。不留的话，照片刚好差不多一屏高时会来回抖：
-       出现滚动条 → 网格变窄 → 格子变矮 → 不用滚动了，滚动条消失 → 网格变宽 → 又需要滚动…… */
-    scrollbar-gutter: stable;
+    /* 一直给滚动条留位置（用鼠标时 macOS、Windows 的滚动条占 15px 宽；触控板、手机、iPad 上滚动条浮在内容上，不占位置）。
+       不留的话，切换页面时页面从一屏高变长，滚动条出来，右上角的按钮往左挪一下；照片刚好差不多一屏高时还会来回抖。
+       scrollbar-gutter: stable 在 Chrome 里对整个页面不起作用，所以直接 overflow-y: scroll。
+       弹窗锁滚动用 lib/scrollLock.ts（不能再给 body 加 overflow: hidden，那样锁不住） */
+    overflow-y: scroll;
     /* 滚到顶或到底就停住，不像弹簧一样还能再拉出一截（macOS、iOS 的回弹效果），和 iCloud 照片一样 */
     overscroll-behavior: none;
   }
@@ -180,36 +187,17 @@
   }
 }
 
-/* 所有浮在页面上的面板——菜单、下拉列表、提示气泡、删除确认、对话框——都用同一种毛玻璃，透明度只在这里改。
-   底部浮动的选择栏（.selection-bar）也用它。--glass-opacity 是底色留多少：越大越实，越小背后透出来的越多 */
-:root {
-  --glass-opacity: 88%;
-  --glass-blur: blur(24px) saturate(1.8);
-}
+/* 浮在页面上的面板——菜单、下拉列表、提示气泡、对话框、确认框——都是不透明的底色（浅色主题纯白），
+   背后的照片不透出来，字看得清。类名还叫 glass-* 是以前做毛玻璃时起的，用的地方多，没改。
+   底部浮动的选择栏（.selection-bar）是浅色磨砂，样式在文件后面 */
 @layer components {
   .glass-menu,
   .glass-dialog {
-    background: color-mix(in srgb, var(--color-surface) var(--glass-opacity), transparent);
+    background: var(--color-surface);
     border: 1px solid var(--color-line); /* 和输入框、按钮同一种边框，四边一样粗 */
   }
-  .glass-menu {
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-  }
-  /* 对话框的模糊放在垫在后面的 ::before 上，不放在对话框本身：带 backdrop-filter 的元素里面的东西（对话框里的
-     下拉框、搜索提示）再模糊时只看得到这个元素里面，模糊不到后面的页面，看着比别的菜单透明得多 */
   .glass-dialog {
     position: relative;
-    isolation: isolate;
-  }
-  .glass-dialog::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
   }
   /* 菜单、下拉列表、提示气泡：再加柔和的投影；长到要滚动时滚动条细一点、颜色淡一点。对话框的投影各自写 */
   .glass-menu {
@@ -234,6 +222,30 @@
     background: color-mix(in srgb, var(--color-page) 72%, transparent);
     backdrop-filter: blur(30px) saturate(1.8);
     -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  }
+}
+
+/* 切换页面时，标题下面的内容（照片、相册、人物……）渐显出来，不是一下子冒出来；固定栏和标题不动。
+   App 每次切页在 <main> 上换 data-enter 的值（a、b 轮换，动画名不同才会重新播放），过一会儿再去掉 */
+@keyframes page-in-a {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-in-b {
+  from {
+    opacity: 0;
+  }
+}
+main[data-enter='a'] header.glass-bar ~ :not(.page-title) {
+  animation: page-in-a 320ms ease-out;
+}
+main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
+  animation: page-in-b 320ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  main[data-enter] header.glass-bar ~ * {
+    animation: none;
   }
 }
 
@@ -607,32 +619,53 @@
   }
 }
 
-/* 选中照片后底部浮动的深色操作栏（SelectionBar）。不放进 @layer：要压过按钮上 text-accent、hover:bg-accent-soft 这些工具类，
-   栏上的按钮在深色底上是白色图标；按钮弹出的菜单、删除确认改成往上弹，文字颜色照常 */
-.selection-bar {
-  animation: selection-bar-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+/* .frost 是浮在照片上的面板用的浅色磨砂（深色主题是深色磨砂）：半透明的底色，背后的照片模糊着透出来，
+   边上一圈亮边、顶上一道高光、柔和的小投影。选中照片后底部的操作栏、后台任务面板、左下角的上传窗口和提示都用它。
+   不放进 @layer：要压过元素上的 border、shadow 这些工具类 */
+.frost {
+  isolation: isolate;
+  border: 1px solid rgb(255 255 255 / 0.65);
+  box-shadow:
+    0 8px 28px rgba(30, 24, 20, 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.6);
 }
-/* 深色毛玻璃，透明度和菜单、弹出层用同一个 --glass-opacity。底色和模糊放在垫在后面的 ::before 上，不放在栏本身：
-   带 backdrop-filter 的元素里面的东西（栏上按钮弹出的菜单）再模糊时只看得到这个元素里面，菜单伸出栏外的部分
-   就模糊不了，背后的照片清清楚楚透出来，看着比栏透明得多 */
-.selection-bar::before {
+.theme-dark .frost {
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+/* 底色和模糊放在垫在后面的 ::before 上，不放在面板本身：带 backdrop-filter 的元素里面的东西（栏上按钮弹出的菜单）
+   再模糊时只看得到这个元素里面，菜单伸出栏外的部分就模糊不了 */
+.frost::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: color-mix(in srgb, #171717 var(--glass-opacity), transparent);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-surface) 78%, transparent),
+    color-mix(in srgb, var(--color-surface) 55%, transparent)
+  );
+  backdrop-filter: blur(28px) saturate(1.9);
+  -webkit-backdrop-filter: blur(28px) saturate(1.9);
+}
+
+/* 选中照片后底部浮动的操作栏（SelectionBar），磨砂是上面的 .frost。栏上的按钮都是深色图标、圆形的浅色高亮
+   （压过按钮上 text-accent、hover:bg-accent-soft 这些工具类）；按钮弹出的菜单、删除确认改成往上弹，文字颜色照常 */
+.selection-bar {
+  animation: selection-bar-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
 .selection-bar button:not([role='menu'] *, [role='dialog'] *) {
-  color: white;
+  color: var(--color-fg);
+  border-radius: 9999px;
 }
 .selection-bar button:not([role='menu'] *, [role='dialog'] *):is(:hover, .bg-accent-soft) {
-  background-color: rgb(255 255 255 / 0.15);
+  background-color: color-mix(in srgb, var(--color-fg) 8%, transparent);
 }
 .selection-bar button[aria-label^='删除']:not([role='menu'] *, [role='dialog'] *) {
-  color: #f87171;
+  color: var(--color-danger);
 }
 .selection-bar [role='menu'],
 .selection-bar [role='dialog'] {

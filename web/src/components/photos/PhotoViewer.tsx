@@ -11,6 +11,7 @@ import { viewerDate } from '@/lib/format'
 import Filmstrip from './Filmstrip'
 import PhotoInfoPanel from './PhotoInfoPanel'
 import Slideshow from './Slideshow'
+import { lockScroll } from '@/lib/scrollLock'
 
 const MAX_ZOOM = 4
 const SWIPE = 60 // 没放大时左右拖这么远就换上一张、下一张（手机上滑动）
@@ -181,14 +182,7 @@ export default function PhotoViewer({
   }, [index, assets, onLoadMore])
 
   // 打开时页面不滚动；全屏状态跟着浏览器
-  useEffect(() => {
-    const html = document.documentElement
-    const before = html.style.overflow
-    html.style.overflow = 'hidden'
-    return () => {
-      html.style.overflow = before
-    }
-  }, [])
+  useEffect(() => lockScroll(), [])
   const [fullscreen, setFullscreen] = useState(false)
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement === root.current)

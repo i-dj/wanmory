@@ -81,7 +81,7 @@ export default function LoginDialog({
         <div className="relative">
           {/* 图标在左，标题和说明在右边两行，和图标上下居中对齐 */}
           <div className="flex items-center gap-4">
-            <Logo className="size-12 shrink-0 drop-shadow-[0_8px_18px_rgba(91,124,255,0.35)]" />
+            <Logo className="size-12 shrink-0 drop-shadow-[0_8px_18px_rgba(204,99,46,0.35)]" />
             <div className="min-w-0">
               <h2 id="login-dialog-title" className="text-[22px] leading-tight font-bold">
                 欢迎回到万象
@@ -148,7 +148,7 @@ export default function LoginDialog({
           <button
             type="button"
             onClick={() => {
-              setError('') // 错误提示换成「请与管理员联系」
+              setError('') // 错误提示换成怎么重置密码
               setForgot(true)
             }}
             className="cursor-pointer text-caption text-fg/70 hover:text-fg hover:underline"
@@ -171,7 +171,13 @@ export default function LoginDialog({
             ) : (
               <Info className="mt-px size-4 shrink-0" strokeWidth={2} />
             )}
-            {error || '请与管理员联系'}
+            {error || (
+              <span>
+                请管理员在「设置 → 账号」里给你重置密码。管理员自己忘了（或者忘了名字），在运行相册的机器上运行{' '}
+                <code className="font-mono break-all">docker compose exec server wanmory reset-password</code>
+                ，按提示选账号、设新密码
+              </span>
+            )}
           </p>
         )}
 

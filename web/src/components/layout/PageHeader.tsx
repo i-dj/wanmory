@@ -1,13 +1,15 @@
+import { Play } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 import { cx } from '@/lib/cx'
+import GlobalSearch from '@/components/photos/GlobalSearch'
 
-// PageHeader 是每一页顶上固定的那一栏（图库、相册、人物、足迹、连拍整理、设置都用它），高度、位置在各页一样，
-// 切换页面时标题、按钮不跳：
-//   第一行（固定 40px 高）：左边返回按钮（leading）、大标题和标题后面的小东西（titleAction），中间（center，例如搜索框），
-//   右边按钮（right）；
-//   第二行（固定 20px 高）：说明（subtitle，例如照片数量，没有时也占着），右边是 aside（例如「已选 3 项」）。
-// 半透明磨砂（glass-bar），往下滚时内容从下面模糊着透出来。hideTitle 时标题和说明只留给读屏（写在页面别处，例如相册顶上的大图），
-// 有 aside 时第二行还在
+// PageHeader 是每一页顶上那一块（图库、相册、人物、足迹、连拍整理、设置都用它），各页高度、位置一样，切换页面时不跳：
+//   固定栏（68px 高，滚动时停在顶上，半透明磨砂，底下一条细线）：左边搜索框（center，不给时是全局搜索，给 false 时没有），
+//     右边按钮（right，例如日历、排序那一组和「幻灯片」）；
+//   下面是标题块（跟着页面滚走）：宋体大标题，后面可以跟 titleAction（例如「显示全部」），下一行是说明（subtitle，
+//     例如照片数量，没有时也占着），右边是 aside（例如「已选 3 项」）。
+// hero 代替标题块，例如人物页的头像和名字；hideTitle 时标题只留给读屏（写在页面别处，例如相册顶上的大图），有 aside 时那一行还在。
+// ref 指向固定栏：照片网格据此算被挡住的高度
 export default function PageHeader({
   ref,
   title,
@@ -17,6 +19,7 @@ export default function PageHeader({
   center,
   right,
   aside,
+  hero,
   hideTitle,
 }: {
   ref?: RefObject<HTMLDivElement | null>
@@ -27,34 +30,64 @@ export default function PageHeader({
   center?: ReactNode
   right?: ReactNode
   aside?: ReactNode
+  hero?: ReactNode
   hideTitle?: boolean
 }) {
   return (
-    <header ref={ref} className="glass-bar sticky top-13 z-35 -mx-4 px-4 pt-3 pb-3 md:top-0 md:-mx-6 md:px-6 md:pt-4">
-      <div className="flex h-10 items-center gap-4">
-        {leading}
-        {hideTitle ? (
-          <h1 className="sr-only">{title}</h1>
-        ) : (
-          // 标题太长（搜索的条件）时截断，不把中间挤没
-          <div className="flex max-w-[45%] min-w-0 shrink-0 items-center gap-3">
-            <h1 className="truncate text-[24px] leading-tight font-bold md:text-title">{title}</h1>
-            {titleAction}
-          </div>
-        )}
-        {/* 中间没有东西时也占着，右边的按钮在各个页面上都待在同一个地方 */}
-        <div className="flex min-w-0 flex-1 justify-center px-2">{center}</div>
-        <div className="flex shrink-0 items-center gap-3">
-          {hideTitle && titleAction}
-          {right}
+    <>
+      <header
+        ref={ref}
+        className="glass-bar sticky top-13 z-35 -mx-4 border-b border-line/70 px-4 md:top-0 md:-mx-8 md:px-8"
+      >
+        <div className="flex h-17 items-center gap-4">
+          {leading}
+          {/* 中间没有东西时也占着，右边的按钮在各个页面上都待在同一个地方 */}
+          <div className="flex min-w-0 flex-1 items-center">{center === undefined ? <GlobalSearch /> : center}</div>
+          <div className="flex shrink-0 items-center gap-3">{right}</div>
         </div>
-      </div>
-      <div className={cx('mt-1 flex h-5 items-center gap-4', hideTitle && !aside && 'hidden')}>
-        <p className={cx('min-w-0 flex-1 truncate text-body text-fg/80', hideTitle && 'invisible')}>
-          {subtitle || ' '}
-        </p>
-        {aside}
-      </div>
-    </header>
+      </header>
+      {hero ? (
+        <div className="page-title">
+          <h1 className="sr-only">{title}</h1>
+          {hero}
+        </div>
+      ) : (
+        <div className={cx('page-title mt-7 flex items-end gap-4', hideTitle && !aside && 'sr-only')}>
+          <div className={cx('min-w-0 flex-1', hideTitle && 'sr-only')}>
+            {/* 标题太长（搜索的条件）时截断 */}
+            <div className="flex h-11 min-w-0 items-center gap-3">
+              <h1 className="truncate font-serif text-[30px] leading-tight font-bold md:text-[36px]">{title}</h1>
+              {titleAction}
+            </div>
+            <p className="mt-1.5 h-5 truncate text-body text-muted">{subtitle || ' '}</p>
+          </div>
+          {aside}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ToolGroup 是固定栏右边那一组图标按钮（日历、排序、筛选、显示大小……）外面的白色胶囊，最后可以放「幻灯片」
+export function ToolGroup({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-9.5 items-center gap-0.5 rounded-full border border-line bg-surface px-1 shadow-[0_1px_2px_rgba(30,24,20,0.04)]">
+      {children}
+    </div>
+  )
+}
+
+// PlayButton 是工具组最右边橙色的「▶ 幻灯片」。所有页面的播放都是它（人物的成长标签是「成长延时」），位置、样子都一样
+export function PlayButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="ml-1 flex h-7.5 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-caption font-medium text-on-accent shadow-[0_3px_8px_rgba(204,99,46,0.25)] transition hover:brightness-105 active:scale-[0.97] disabled:opacity-45"
+    >
+      <Play className="size-3 fill-current" strokeWidth={2} />
+      {label}
+    </button>
   )
 }

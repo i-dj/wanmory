@@ -33,8 +33,8 @@ const sentBytes = (u: UploadItem) => u.file.size * (u.state === 'done' || u.stat
 type Phase = 'running' | 'paused' | 'failed' | 'done'
 
 const MINIMIZE_DELAY = 1500 // 毫秒，传完后先让人看一眼「上传完成」再缩小
-// 毛玻璃：半透明底色加背景模糊
-const GLASS = 'border border-white/10 bg-surface/70 backdrop-blur-xl backdrop-saturate-150'
+// 浅色磨砂，和选中照片后底部的操作栏、后台任务面板一样（index.css 的 .frost）
+const GLASS = 'frost'
 
 export default function UploadPanel({ items, queue }: { items: UploadItem[]; queue: UploadQueue }) {
   // 宽屏默认展开文件列表，手机上默认收起，免得挡住照片
@@ -111,7 +111,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
       <div
         data-keep-selection
         className={cx(
-          'fixed bottom-3 left-3 z-40 flex items-center gap-1 rounded-full py-1 pr-1 pl-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:left-4',
+          'fixed bottom-3 left-3 z-40 flex items-center gap-1 rounded-full py-1 pr-1 pl-1.5 sm:left-4',
           GLASS,
         )}
       >
@@ -138,7 +138,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
     <div
       data-keep-selection
       className={cx(
-        'fixed inset-x-3 bottom-3 z-40 overflow-hidden rounded-dialog shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:right-auto sm:left-4 sm:w-95',
+        'fixed inset-x-3 bottom-3 z-40 overflow-hidden rounded-2xl sm:right-auto sm:left-4 sm:w-95',
         GLASS,
       )}
     >

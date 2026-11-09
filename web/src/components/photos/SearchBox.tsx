@@ -70,11 +70,11 @@ export default function SearchBox({
   const categories = (options?.categories ?? []).filter((o) => has(o.label ?? o.value))
 
   return (
-    <div ref={root} className="relative w-full max-w-lg">
+    <div ref={root} className="relative w-full max-w-[532px]">
       <div
         className={cx(
-          'flex h-9 items-center gap-1.5 rounded-full border px-3 transition-colors',
-          open ? 'border-accent bg-surface' : 'border-transparent bg-line/60 hover:bg-line',
+          'flex h-9.5 items-center gap-2 rounded-full border bg-surface px-4 shadow-[0_1px_2px_rgba(30,24,20,0.04)] transition-colors',
+          open ? 'border-accent' : 'border-line hover:border-line-strong',
         )}
         onClick={() => input.current?.focus()}
       >
@@ -117,7 +117,7 @@ export default function SearchBox({
           }}
           placeholder={chips.length ? '再加点描述…' : '搜索照片内容、人物、相机…'}
           aria-label="搜索照片"
-          className="h-full min-w-16 flex-1 bg-transparent text-body outline-none placeholder:text-muted"
+          className="h-full min-w-16 flex-1 bg-transparent text-body outline-none placeholder:text-muted/80"
         />
         {(text || chips.length > 0) && (
           <button

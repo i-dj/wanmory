@@ -1,14 +1,15 @@
-import { Cake, ChevronLeft, MapPin, Play, UsersRound } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Cake, MapPin, UsersRound } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
 import BirthdayDialog from '@/components/people/BirthdayDialog'
 import GrowthTimelapse from '@/components/people/GrowthTimelapse'
-import PersonTabs from '@/components/people/PersonTabs'
+import PersonHero from '@/components/people/PersonHero'
+import { PlayButton } from '@/components/layout/PageHeader'
 import PlacesMap from '@/components/people/PlacesMap'
 import PhotoToolbar from '@/components/photos/PhotoToolbar'
-import { ToolbarButton } from '@/components/ui/Popover'
 import { useElementSize } from '@/hooks/useElementSize'
+import { usePersonProfile } from '@/hooks/usePersonProfile'
 import { useGridLayout } from '@/hooks/useGridLayout'
-import { assetThumbUrl, type Companion, faceThumbUrl, type Person, type PersonProfile, personProfile } from '@/lib/api'
+import { assetThumbUrl, type Companion, faceThumbUrl, type Person, type PersonProfile } from '@/lib/api'
 import { ageAt, type AgeGroup, groupByAge, parseDate } from '@/lib/age'
 import { cx } from '@/lib/cx'
 import { unlockAudio } from '@/lib/musicLibrary'
@@ -16,7 +17,7 @@ import { pickFrames } from '@/lib/timelapse'
 import { formatCoords, formatMonthSpan } from '@/lib/format'
 import { placeName, useMapsEnabled } from '@/lib/geo'
 import { groupByPlace, type PlaceGroup } from '@/lib/places'
-import { agePath, PEOPLE_PATH, personName, type PersonTab, placePath, withPath } from '@/lib/views'
+import { agePath, personName, type PersonTab, placePath, withPath } from '@/lib/views'
 import CoverCard from '@/components/ui/CoverCard'
 import { useLookups } from '@/hooks/useLookups'
 
@@ -37,7 +38,7 @@ export default function PersonPage({
   navigate: (to: string) => void
   onChanged: () => Promise<void> // 改了生日，刷新人物列表
 }) {
-  const { profile, error } = useProfile(person.id)
+  const { profile, error } = usePersonProfile(person.id)
   const moments = profile?.moments
   const content = useRef<HTMLDivElement>(null)
   const { width } = useElementSize(content)
@@ -59,14 +60,20 @@ export default function PersonPage({
             ? `${moments.length.toLocaleString()} 张照片 · ${formatMonthSpan(moments[0].taken, moments[moments.length - 1].taken)}`
             : ''
         }
-        leading={<ToolbarButton icon={ChevronLeft} label="返回人物" onClick={() => navigate(PEOPLE_PATH)} />}
-        titleAction={<PersonTabs personId={person.id} tab={tab} navigate={navigate} />}
+        hero={
+          <PersonHero
+            person={person}
+            tab={tab}
+            navigate={navigate}
+            extra={tab === 'growth' && <BirthdayChip person={person} onEdit={() => setEditingBirthday(true)} />}
+          />
+        }
+        // 播放和别的页一样在工具组最右边：成长标签播放成长延时，足迹、合影没有可播的
         tools={
-          tab === 'growth' &&
-          frames.length > 1 && (
-            <ToolbarButton
-              icon={Play}
-              label="播放成长延时"
+          tab === 'growth' && (
+            <PlayButton
+              label="成长延时"
+              disabled={frames.length < 2}
               onClick={() => {
                 unlockAudio() // 必须在这次点击里同步解锁声音，见 PhotoViewer
                 setPlaying(true)
@@ -74,7 +81,6 @@ export default function PersonPage({
             />
           )
         }
-        aside={tab === 'growth' && <BirthdayChip person={person} onEdit={() => setEditingBirthday(true)} />}
       />
 
       <div ref={content} className="mt-6">
@@ -127,24 +133,6 @@ function BirthdayChip({ person, onEdit }: { person: Person; onEdit: () => void }
       )}
     </button>
   )
-}
-
-function useProfile(id: string) {
-  const [state, setState] = useState<{ id: string; profile: PersonProfile | null; error: string | null }>({
-    id,
-    profile: null,
-    error: null,
-  })
-  useEffect(() => {
-    let alive = true
-    personProfile(id)
-      .then((profile) => alive && setState({ id, profile, error: null }))
-      .catch((e) => alive && setState({ id, profile: null, error: e instanceof Error ? e.message : String(e) }))
-    return () => {
-      alive = false
-    }
-  }, [id])
-  return state.id === id ? state : { profile: null, error: null }
 }
 
 // ---- 成长 ----

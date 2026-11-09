@@ -1,4 +1,4 @@
-import { ChevronLeft, CircleUserRound, Info, Play } from 'lucide-react'
+import { CircleUserRound, Info, Play } from 'lucide-react'
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import AddPhotosButton from '@/components/albums/AddPhotosButton'
@@ -22,7 +22,8 @@ import SelectionCount from '@/components/photos/SelectionCount'
 import Slideshow from '@/components/photos/Slideshow'
 import TimelineScrubber from '@/components/photos/TimelineScrubber'
 import UploadButton from '@/components/photos/UploadButton'
-import PersonTabs from '@/components/people/PersonTabs'
+import PersonHero from '@/components/people/PersonHero'
+import { PlayButton } from '@/components/layout/PageHeader'
 import UploadPanel from '@/components/upload/UploadPanel'
 import { MenuItem, ToolbarButton } from '@/components/ui/Popover'
 import { useElementSize } from '@/hooks/useElementSize'
@@ -59,14 +60,12 @@ import {
 import { cx } from '@/lib/cx'
 import { unlockAudio } from '@/lib/musicLibrary'
 import { formatCounts } from '@/lib/format'
-import { groupByDay, type Section } from '@/lib/groups'
+import { groupByDay, groupByMonth, type Section } from '@/lib/groups'
 import { showError } from '@/lib/dialog'
 import {
   albumAddPath,
   albumPath,
-  ALBUMS_PATH,
   LIBRARY,
-  PEOPLE_PATH,
   personPath,
   type Route,
   type View,
@@ -106,7 +105,7 @@ export default function PhotosPage({
   onAutoAdded: () => void
   uploadRef: RefObject<((files: FileList) => void) | null> // 把「加进上传队列」交给左边菜单的上传按钮
 }) {
-  const { view, album, person, picking, tab, back } = route
+  const { view, album, person, picking, tab } = route
   const range = useDateRange(view.path + (picking ? ':pick' : ''))
   const grouped = view.layout === 'days'
   // 排序菜单选的（记在浏览器里，各分类通用）。只用在按时间排成一整片的分类上；按日子分组的（最近添加、
@@ -375,9 +374,17 @@ export default function PhotosPage({
     })
   const selecting = selection.selectedAssets.length > 0
 
+  // 按日子分组的分类（最近添加、已隐藏、最近删除、回忆）按日子分；按拍摄时间排成一片的（图库、收藏、相册、人物……）按月分，
+  // 每个月上面一行「十一月 2026」；按添加时间、收藏时间排时不分
+  const byMonth = !grouped && sort.by === 'taken'
   const sections: Section[] = useMemo(
-    () => (grouped && view.dayOf ? groupByDay(timeline.assets, view.dayOf) : [{ key: 'all', assets: timeline.assets }]),
-    [grouped, view.dayOf, timeline.assets],
+    () =>
+      grouped && view.dayOf
+        ? groupByDay(timeline.assets, view.dayOf)
+        : byMonth
+          ? groupByMonth(timeline.assets)
+          : [{ key: 'all', assets: timeline.assets }],
+    [grouped, byMonth, view.dayOf, timeline.assets],
   )
   const empty = timeline.loaded && timeline.assets.length === 0
   const total = status.summary ? status.summary.photos + status.summary.videos : timeline.assets.length
@@ -417,7 +424,9 @@ export default function PhotosPage({
   }, [selecting])
   const infoAsset = selection.selectedAssets.length === 1 ? selection.selectedAssets[0] : null
   const infoShown = infoOpen && !!infoAsset && !viewing
-  const canPlay = !picking && filter.view !== 'deleted' && ordered.length > 0
+  // 播放按钮一进页面就在（照片还没加载出来时点不了），不等照片出来才冒出来把旁边的按钮挤走
+  const showPlay = !picking && filter.view !== 'deleted'
+  const canPlay = showPlay && ordered.length > 0
 
   // 相册顶上的横幅：第一页照片读到后挑一次，记住是哪个相册的；往下滚加载更多时不换，免得横幅突然变样
   const [hero, setHero] = useState<{ album: string; asset: Asset } | null>(null)
@@ -448,16 +457,16 @@ export default function PhotosPage({
               ? pageSubtitle(view, status.summary)
               : ''
         }
-        leading={
-          <>
-            {back && (
-              <ToolbarButton
-                icon={ChevronLeft}
-                label={back === PEOPLE_PATH ? '返回人物' : back === ALBUMS_PATH ? '返回相册' : '返回'}
-                onClick={() => navigate(back)}
-              />
-            )}
-          </>
+        // 人物的照片：标题的位置换成头像、名字、统计和四个标签
+        hero={
+          person &&
+          tab === 'photos' && (
+            <PersonHero
+              person={person}
+              tab="photos"
+              navigate={navigate}
+            />
+          )
         }
         menus={
           <>
@@ -468,7 +477,6 @@ export default function PhotosPage({
         search={!picking && <SearchBox query={route.search} people={people} navigate={navigate} />}
         titleAction={
           <>
-            {person && tab === 'photos' && <PersonTabs personId={person.id} tab="photos" navigate={navigate} />}
             {range.value && (
               <button
                 type="button"
@@ -480,7 +488,10 @@ export default function PhotosPage({
             )}
           </>
         }
-        tools={canPlay && !selecting && <ToolbarButton icon={Play} label="播放幻灯片" onClick={playSlideshow} />}
+        tools={
+          showPlay &&
+          !selecting && <PlayButton label="幻灯片" disabled={!canPlay} onClick={playSlideshow} />
+        }
         actions={
           !guest && picking ? (
             <PickActions
@@ -559,7 +570,6 @@ export default function PhotosPage({
           album={album}
           asset={heroAsset}
           summary={status.summary ? pageSubtitle(view, status.summary) : ''}
-          onPlay={canPlay ? playSlideshow : undefined}
         />
       )}
       {view.filter.near && view.path.startsWith('/places/') && (
@@ -587,7 +597,8 @@ export default function PhotosPage({
         markHidden={view.filter.view !== 'hidden'}
         selected={selection.selected}
         onVisibleChange={setVisible}
-        onOpen={openViewer}
+        // 给相册挑照片时单击是选上 / 取消，不打开大图
+        onOpen={picking ? (asset) => selection.click(asset, { toggle: true, range: false }) : openViewer}
         onInfo={setInfo}
         onChanged={onChanged}
         onSelect={guest ? undefined : selection.click}

@@ -132,10 +132,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // 左上角标志，左下角一句话。没登录拿不到照片，所以用渐变画，不用照片
 function ArtPanel() {
   return (
-    <aside className="relative m-3 hidden w-[42%] max-w-[640px] shrink-0 overflow-hidden rounded-[28px] bg-[#1b1440] lg:block">
-      <div className="art-blob absolute -top-24 -left-20 size-[420px] rounded-full bg-[#4d8dff] opacity-80 blur-[90px]" />
-      <div className="art-blob absolute top-1/3 -right-24 size-[380px] rounded-full bg-[#ff7a59] opacity-70 blur-[90px] [animation-delay:-6s]" />
-      <div className="art-blob absolute -bottom-28 left-1/4 size-[460px] rounded-full bg-[#8b5cf6] opacity-80 blur-[100px] [animation-delay:-12s]" />
+    <aside className="relative m-3 hidden w-[42%] max-w-[640px] shrink-0 overflow-hidden rounded-[28px] bg-[#2a1810] lg:block">
+      <div className="art-blob absolute -top-24 -left-20 size-[420px] rounded-full bg-[#e8834f] opacity-80 blur-[90px]" />
+      <div className="art-blob absolute top-1/3 -right-24 size-[380px] rounded-full bg-[#f2b263] opacity-60 blur-[90px] [animation-delay:-6s]" />
+      <div className="art-blob absolute -bottom-28 left-1/4 size-[460px] rounded-full bg-[#b8462a] opacity-80 blur-[100px] [animation-delay:-12s]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12),transparent_60%)]" />
       <div className="relative flex h-full flex-col justify-between p-10 text-white">
         <div className="flex items-center gap-2.5">

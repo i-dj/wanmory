@@ -48,6 +48,15 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// wanmory reset-password [名字]：忘了密码时在这台机器上重置（不带名字先列出所有账号）
+	if len(os.Args) > 1 && os.Args[1] == "reset-password" {
+		if err := resetPassword(ctx, os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// wanmory purge：删除所有照片和相关数据
 	if len(os.Args) > 1 && os.Args[1] == "purge" {
 		if err := purge(ctx, os.Args[2:]); err != nil {

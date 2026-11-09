@@ -148,13 +148,29 @@ func (s *Service) changes(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": list, "server_time": now.Add(-changeOverlap), "more": more})
 }
 
+// DiskUsage 是存照片的那块磁盘：总容量和还能用的空间（字节）
+type DiskUsage struct {
+	Total uint64 `json:"total"`
+	Free  uint64 `json:"free"`
+}
+
 func (s *Service) stats(w http.ResponseWriter, r *http.Request) {
 	st, err := s.store.Stats(r.Context(), auth.UserID(r.Context()))
 	if err != nil {
 		httpx.InternalError(w, err)
 		return
 	}
-	httpx.JSON(w, http.StatusOK, st)
+	resp := struct {
+		Stats
+		Disk *DiskUsage `json:"disk,omitempty"` // 访客、读不到时没有
+	}{Stats: st}
+	// 存储空间只给登录的人看（访客看不到服务器的磁盘）
+	if auth.UserID(r.Context()) != uuid.Nil {
+		if dir, err := s.uploadDir(r.Context()); err == nil {
+			resp.Disk, _ = diskUsage(dir)
+		}
+	}
+	httpx.JSON(w, http.StatusOK, resp)
 }
 
 // update 修改照片：PATCH /api/assets/{id}，只改带了的字段，返回修改后的照片。

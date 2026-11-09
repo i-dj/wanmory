@@ -25,7 +25,6 @@ import { useUpdate, useVersion, versionLabel } from '@/lib/version'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { useCurrentUser } from '@/lib/session'
 import { askConfirm } from '@/lib/dialog'
-import { DRAWER_CLOSE_MS, DRAWER_EASE, DRAWER_OPEN_MS } from '@/lib/drawer'
 import {
   ALBUMS_PATH,
   DELETED,
@@ -48,14 +47,12 @@ export const SETTINGS_PATH = '/settings'
 export default function Sidebar({
   path,
   stats,
-  collapsed,
   navigate,
   onUpload,
 }: {
   path: string
   stats: AssetStats | null
-  onUpload: (files: FileList) => void // 「上传文件」选好了文件
-  collapsed?: boolean // 宽屏上收起（点进某个人、某个地方、某个相册时），照片铺满；回到列表再展开。窄屏顶上那排标签不收
+  onUpload: (files: FileList) => void // 「上传照片 / 视频」选好了文件
   navigate: (to: string) => void
 }) {
   const { guest, signIn } = useCurrentUser()
@@ -76,32 +73,24 @@ export default function Sidebar({
 
   return (
     <aside
-      className={cx(
-        'sticky top-0 z-30 border-b border-line bg-page/95 md:h-screen md:w-66 md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar',
-        // 收起：不再占位置（fixed），整块往左移出屏幕，移完再隐藏（不能用 Tab 移进去）。见 lib/drawer.ts
-        'motion-reduce:transition-none md:transition-[translate,visibility]',
-        collapsed && 'md:invisible md:fixed md:left-0 md:-translate-x-full',
-      )}
-      style={{
-        transitionDuration: `${collapsed ? DRAWER_OPEN_MS : DRAWER_CLOSE_MS}ms`,
-        transitionTimingFunction: DRAWER_EASE,
-      }}
+      // 宽屏上一直在左边（点进某个人、某个相册时也不收起，那一项保持亮着），切页面时照片区的宽度不变，照片不用重新排
+      className="sticky top-0 z-30 border-b border-line bg-page/95 md:h-screen md:w-60 md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar"
     >
       <div className="flex h-full flex-col">
-        {/* 宽屏上顶部：标志和名字，下面一个大的「上传文件」。窄屏上菜单是顶上一排标签，上传在工具栏里 */}
-        <div className="hidden items-center gap-3 px-6 pt-7 pb-8 md:flex">
-          <Logo className="size-10 shrink-0 drop-shadow-[0_6px_14px_rgba(91,124,255,0.35)]" />
+        {/* 宽屏上顶部：标志和名字，下面一个大的「上传照片 / 视频」。窄屏上菜单是顶上一排标签，上传在工具栏里 */}
+        <div className="hidden items-center gap-3 px-5 pt-5 pb-6 md:flex">
+          <Logo className="size-9 shrink-0 drop-shadow-[0_6px_14px_rgba(204,99,46,0.35)]" />
           <div className="min-w-0 leading-tight">
-            <div className="text-[19px] font-bold tracking-wide">万象</div>
+            <div className="font-serif text-[20px] font-bold tracking-wide">万象</div>
             <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
           </div>
           {!guest && <TaskIndicator onSettings={() => navigate(SETTINGS_PATH)} />}
         </div>
         {/* 访客只能浏览：没有上传，换成「登录」 */}
-        <div className="hidden px-4 pb-7 md:block">
+        <div className="hidden px-3.5 pb-6 md:block">
           {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 py-2 md:flex-1 md:flex-col md:overflow-y-auto md:px-4 md:py-0">
+        <nav className="flex gap-1 overflow-x-auto px-3 py-2 md:flex-1 md:flex-col md:gap-0.5 md:overflow-y-auto md:px-3.5 md:py-0">
           {/* 常用的一组：图库、相册、人物、足迹、收藏、星级；一道横线下面是整理用的：最近添加、连拍、隐藏、删除 */}
           {viewItem(LIBRARY, Images)}
           <NavItem href={ALBUMS_PATH} label="相册" icon={BookImage} active={path === ALBUMS_PATH} navigate={navigate} />
@@ -115,7 +104,7 @@ export default function Sidebar({
           <NavItem href={PLACES_PATH} label="足迹" icon={MapPinned} active={path === PLACES_PATH} navigate={navigate} />
           {viewItem(FAVORITES, Heart, stats?.favorites)}
           <RatingRow path={path} stats={stats} navigate={navigate} />
-          <div className="mx-1 my-3 hidden h-px shrink-0 bg-line md:block" />
+          <div className="hidden h-5 shrink-0 md:block" />
           <SectionLabel>其他</SectionLabel>
           {viewItem(RECENT, Clock)}
           {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
@@ -135,7 +124,8 @@ export default function Sidebar({
             </>
           )}
         </nav>
-        <div className="hidden border-t border-line px-3 py-2.5 md:block">
+        {!guest && stats?.disk && <StorageCard disk={stats.disk} />}
+        <div className="hidden px-2.5 pt-1 pb-3 md:block">
           <ProfileCard active={path === SETTINGS_PATH} onOpen={() => navigate(SETTINGS_PATH)} />
         </div>
       </div>
@@ -145,7 +135,7 @@ export default function Sidebar({
 
 function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="hidden items-center justify-between px-3 pt-1 pb-1.5 text-micro font-semibold tracking-wider text-muted md:flex">
+    <div className="hidden items-center justify-between px-3 pb-2 text-micro font-medium tracking-wider text-muted md:flex">
       {children}
       {action}
     </div>
@@ -179,13 +169,13 @@ function NavItem({
       aria-current={active ? 'page' : undefined}
       className={cx(
         // 宽屏上每一行高一些、圆角大一些；选中的一行：浅色主题浅蓝底蓝字，深色主题中性灰底白字（颜色变量 nav-active）
-        'flex shrink-0 items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:px-3 md:py-2.5',
-        active ? 'bg-nav-active font-semibold text-nav-active-fg' : 'text-fg/80 hover:bg-fg/[0.04] hover:text-fg',
+        'flex shrink-0 items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:px-3 md:py-2',
+        active ? 'bg-nav-active font-medium text-nav-active-fg' : 'text-fg/80 hover:bg-fg/[0.04] hover:text-fg',
       )}
     >
       {leading ??
         (Icon && (
-          <Icon className={cx('size-5 shrink-0', active ? 'text-nav-active-fg' : 'text-fg/65')} strokeWidth={1.7} />
+          <Icon className={cx('size-4.5 shrink-0', active ? 'text-nav-active-fg' : 'text-fg/75')} strokeWidth={1.8} />
         ))}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {!!count && (
@@ -212,12 +202,12 @@ function RatingRow({
   return (
     <div
       className={cx(
-        'flex shrink-0 items-center gap-2.5 rounded-control py-1 pr-1.5 pl-2.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:py-2 md:pl-3',
+        'flex shrink-0 items-center gap-2.5 rounded-control py-1 pr-1.5 pl-2.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:py-1.5 md:pl-3',
         current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-fg/80',
       )}
     >
-      <Star className={cx('size-5 shrink-0', current ? 'text-nav-active-fg' : 'text-fg/65')} strokeWidth={1.7} />
-      <span className={cx('hidden flex-1 md:block', current > 0 && 'font-semibold')}>星级</span>
+      <Star className={cx('size-4.5 shrink-0', current ? 'text-nav-active-fg' : 'text-fg/75')} strokeWidth={1.8} />
+      <span className={cx('hidden flex-1 md:block', current > 0 && 'font-medium')}>星级</span>
       <span className="flex" onMouseLeave={() => setHover(0)}>
         {[...RATINGS].reverse().map((view) => {
           const n = view.filter.rating ?? 0
@@ -238,7 +228,7 @@ function RatingRow({
                 <Star
                   className={cx(
                     'size-3.5 transition-colors',
-                    n <= lit ? 'fill-current text-accent' : 'text-muted/70',
+                    n <= lit ? 'fill-current text-accent' : 'text-muted/60',
                     hover > 0 && n <= hover && current !== hover && 'opacity-70',
                   )}
                   strokeWidth={1.8}
@@ -252,29 +242,29 @@ function RatingRow({
   )
 }
 
-// BIG_BUTTON 是菜单顶上那个大按钮的样子（上传文件，访客看到的是登录）
+// BIG_BUTTON 是菜单顶上那个大按钮的样子（上传照片 / 视频，访客看到的是登录）
 const BIG_BUTTON =
-  'flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-fg text-body font-semibold text-page transition hover:bg-fg/85 active:scale-[0.98]'
+  'flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-fg text-body font-semibold text-page shadow-[0_6px_16px_rgba(30,24,20,0.18)] transition hover:bg-fg/85 active:scale-[0.98]'
 
-// SidebarSignIn 是访客看到的大按钮「登录」，在「上传文件」的位置
+// SidebarSignIn 是访客看到的大按钮「登录」，在「上传照片 / 视频」的位置
 function SidebarSignIn({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className={BIG_BUTTON}>
-      <LogIn className="size-4.5" strokeWidth={2.2} />
+      <LogIn className="size-4" strokeWidth={2.2} />
       登录
     </button>
   )
 }
 
-// SidebarUpload 是菜单顶上的大按钮「上传文件」：点了打开选择文件的窗口（照片、视频、HEIC、DNG 都能选，可以多选）。
-// 深色底白字（深色模式反过来），是整个菜单里最显眼的一个；不加阴影，鼠标放上去是小手、颜色稍微变浅一点，按下去稍微缩一下
+// SidebarUpload 是菜单顶上的大按钮「上传照片 / 视频」：点了打开选择文件的窗口（照片、视频、HEIC、DNG 都能选，可以多选）。
+// 深色底白字（深色模式反过来），带一层柔和的投影，是整个菜单里最显眼的一个；鼠标放上去颜色稍微变浅一点，按下去稍微缩一下
 function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
   const input = useRef<HTMLInputElement>(null)
   return (
     <>
       <button type="button" onClick={() => openFilePicker(input.current)} className={BIG_BUTTON}>
-        <Upload className="size-4.5" strokeWidth={2.2} />
-        上传文件
+        <Upload className="size-4" strokeWidth={2.2} />
+        上传照片 / 视频
       </button>
       <input
         ref={input}
@@ -316,7 +306,7 @@ function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }
         aria-current={active && !user.is_admin ? 'page' : undefined}
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-control px-1 py-1 text-left hover:bg-fg/[0.05]"
       >
-        <UserAvatar user={user} className="size-7 text-caption" />
+        <UserAvatar user={user} className="size-8 text-caption" />
         <span className="min-w-0 flex-1 truncate text-body font-medium">{name}</span>
       </button>
       {user.is_admin && (
@@ -347,6 +337,37 @@ function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }
       </Tooltip>
     </div>
   )
+}
+
+// StorageCard 是菜单底部的「存储空间」：存照片的那块磁盘用了多少、一共多大，下面一条进度条；快满时进度条变红
+function StorageCard({ disk }: { disk: { total: number; free: number } }) {
+  const used = Math.max(0, disk.total - disk.free)
+  const ratio = disk.total > 0 ? used / disk.total : 0
+  return (
+    <div className="mx-3.5 mb-2 hidden rounded-xl bg-well px-3.5 py-3 md:block">
+      <div className="flex items-center justify-between text-caption text-muted">
+        <span>存储空间</span>
+        <span className="tabular-nums">{diskLabel(used, disk.total)}</span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-fg/[0.08]">
+        <div
+          className={cx('h-full rounded-full', ratio > 0.9 ? 'bg-danger' : 'bg-accent')}
+          style={{ width: `${Math.max(2, ratio * 100)}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// diskLabel：「23.3 / 100 GB」，大的磁盘用 TB
+function diskLabel(used: number, total: number) {
+  const tb = total >= 1e12
+  const unit = tb ? 1e12 : 1e9
+  const fmt = (n: number) => {
+    const v = n / unit
+    return v >= 100 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, '')
+  }
+  return `${fmt(used)} / ${fmt(total)} ${tb ? 'TB' : 'GB'}`
 }
 
 // VersionLine 是名字下面那行：版本号；有新版本时后面一个小标签「有新版本」，点了去设置里的系统更新（访客不显示）

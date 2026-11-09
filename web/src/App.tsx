@@ -1,10 +1,10 @@
-import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import AlbumDialog from '@/components/albums/AlbumDialog'
 import Sidebar, { SETTINGS_PATH } from '@/components/layout/Sidebar'
 import { useAlbums } from '@/hooks/useAlbums'
 import { usePeople } from '@/hooks/usePeople'
 import { usePath } from '@/hooks/usePath'
-import { DRAWER_CLOSE_MS, DRAWER_EASE, DRAWER_OPEN_MS, SIDEBAR_WIDTH } from '@/lib/drawer'
+import { markPageEnter } from '@/lib/pageEnter'
 import {
   type Album,
   type AssetStats,
@@ -34,6 +34,7 @@ import PlacesPage from '@/pages/PlacesPage'
 import BurstsPage from '@/pages/BurstsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import { showError } from '@/lib/dialog'
+import { SearchScope } from '@/components/photos/GlobalSearch'
 
 // 相册对话框：新建（可以带上选中的照片）或编辑（重命名、改智能相册的条件）
 type AlbumDialogState = { mode: 'create'; assetIds: string[] } | { mode: 'edit'; album: Album }
@@ -45,11 +46,6 @@ export default function App() {
   const uploadRef = useRef<((files: FileList) => void) | null>(null)
   const { albums, refresh: refreshAlbums } = useAlbums()
   const { people, refresh: refreshPeople } = usePeople()
-  // 点进去看照片的页面（左上角有返回的：某个人、足迹里的地方、相册、回忆、搜索结果）收起左边菜单，返回时再展开
-  const isDetail = (p: string) => {
-    const r = findRoute(p, albums ?? [], people ?? [])
-    return !!(r && (r.back || r.person || r.picking))
-  }
   const [path, navigate] = usePath()
   const [dialog, setDialog] = useState<AlbumDialogState | null>(null)
   const [justCreated, setJustCreated] = useState<string | null>(null) // 刚建好的相册，打开后自动弹出「添加照片」
@@ -79,8 +75,7 @@ export default function App() {
     if (guestBlocked) navigate(LIBRARY.path)
   }, [guestBlocked, navigate])
   const onSettings = page !== 'photos'
-  const detail = isDetail(path)
-  useDrawerPush(mainRef, detail)
+  usePageEnter(mainRef, path)
 
   // 统计每次刷新时（上传、改了照片之后）顺便刷新相册的数量和封面
   const onStats = useCallback(
@@ -120,11 +115,14 @@ export default function App() {
     [navigate, refreshAlbums],
   )
 
+  // 各页顶上的全局搜索框要用的人物列表和跳转（见 GlobalSearch）
+  const searchScope = useMemo(() => ({ people: people ?? [], navigate }), [people, navigate])
+
   // 直接打开相册地址时，等相册列表加载出来再显示，免得先闪一下图库
   const waiting = (albums === null && path.startsWith('/album/')) || (people === null && path.startsWith('/person/'))
 
   return (
-    // overflow-x-clip：抽屉动画时页面暂时伸出右边，不出横向滚动条（clip 不是滚动容器，不影响 sticky）
+    <SearchScope.Provider value={searchScope}>
     <div className="min-h-screen overflow-x-clip md:flex">
       <Sidebar
         path={
@@ -135,14 +133,13 @@ export default function App() {
               : (route.sidebar ?? route.view.path)
         }
         stats={stats}
-        collapsed={detail}
         navigate={navigate}
         onUpload={(files) => {
           uploadRef.current?.(files)
           if (page !== 'photos') navigate(LIBRARY.path) // 在人物、相册列表这些页上传：回到图库，看得到上传进度
         }}
       />
-      <main ref={mainRef} className="min-w-0 flex-1 px-4 pb-16 md:px-6">
+      <main ref={mainRef} className="min-w-0 flex-1 px-4 pb-16 md:px-8">
         {/* 照片页一直挂着，只是在设置页、人物页时隐藏：上传队列在里面，切过去也不会中断上传 */}
         <div hidden={onSettings || waiting}>
           <PhotosPage
@@ -196,24 +193,26 @@ export default function App() {
         />
       )}
     </div>
+    </SearchScope.Provider>
   )
 }
 
-// useDrawerPush：左边菜单收起、展开时，页面跟着平移，像被照片挤走、再推回来（菜单自己的滑动在 Sidebar 里）。
-// 布局在这一帧已经换成新的（菜单不占位置了 / 又占回来），页面从原来的位置平移到新位置（FLIP），只动 transform
-function useDrawerPush(main: RefObject<HTMLElement | null>, collapsed: boolean) {
-  const previous = useRef(collapsed)
+const ENTER_MS = 600 // 渐显 320ms，留够时间再去掉标记
+
+// usePageEnter：每次切换页面，标题栏下面的内容渐显出来（index.css 的 page-in）。
+// data-enter 在 a、b 之间轮换：动画名变了，留在页面上的元素（例如图库的网格）也会重新播放
+function usePageEnter(main: RefObject<HTMLElement | null>, path: string) {
+  const first = useRef(true)
   useLayoutEffect(() => {
-    if (previous.current === collapsed) return
-    previous.current = collapsed
     const el = main.current
-    const wide = window.matchMedia('(min-width: 48rem)').matches // 窄屏菜单是顶上一排标签，不收
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!el || !wide || reduce) return
-    const sidebar = SIDEBAR_WIDTH
-    el.animate([{ transform: `translateX(${collapsed ? sidebar : -sidebar}px)` }, { transform: 'none' }], {
-      duration: collapsed ? DRAWER_OPEN_MS : DRAWER_CLOSE_MS,
-      easing: DRAWER_EASE,
-    })
-  }, [main, collapsed])
+    if (!el) return
+    markPageEnter()
+    if (first.current) {
+      first.current = false // 刚打开网页时不用，照片本来就会一张张淡入
+      return
+    }
+    el.dataset.enter = el.dataset.enter === 'a' ? 'b' : 'a'
+    const timer = window.setTimeout(() => delete el.dataset.enter, ENTER_MS)
+    return () => clearTimeout(timer)
+  }, [main, path])
 }

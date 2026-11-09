@@ -107,11 +107,11 @@ export function ToolbarButton({
         onClick={onClick}
         className={cx(
           // 工具栏的按钮不用彩色，和 Windows「照片」一样是中性的图标，鼠标移上去浅浅一层底色
-          'flex size-8 items-center justify-center rounded-control text-fg/85 transition-transform hover:bg-fg/[0.07] hover:text-fg active:scale-90 disabled:opacity-40',
-          pressed && 'bg-fg/[0.08] text-fg',
+          'flex size-8 items-center justify-center rounded-full text-muted transition hover:bg-fg/[0.06] hover:text-fg active:scale-90 disabled:opacity-40',
+          pressed && 'bg-fg/[0.07] text-fg',
         )}
       >
-        <Icon className={cx('size-4.75', filled && 'fill-current')} strokeWidth={1.7} />
+        <Icon className={cx('size-4.5', filled && 'fill-current')} strokeWidth={1.8} />
       </button>
     </Tooltip>
   )

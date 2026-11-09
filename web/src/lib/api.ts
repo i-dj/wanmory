@@ -240,6 +240,7 @@ export interface AssetStats {
   hidden: number // 隐藏了多少张（不算在 total 里）
   deleted: number // 「最近删除」里有多少张
   ratings: number[] // 各星级各有多少张，下标是星级（0 是没评）
+  disk?: { total: number; free: number } // 存照片的磁盘：总容量、还能用的（字节）。访客没有
 }
 
 export const assetStats = () => getJSON<AssetStats>('/api/assets/stats')

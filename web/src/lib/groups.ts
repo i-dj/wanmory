@@ -24,6 +24,22 @@ export function groupByDay(assets: Asset[], dayOf: (a: Asset) => string, now = n
   return sections
 }
 
+const MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+
+// groupByMonth 把按拍摄时间排好的照片（新到旧、旧到新都行）按月分组，标题是「十一月 2026」
+// （网格里月份用宋体大字、年份灰色小字，见 PhotoGrid 的 SectionTitle）。用拍摄地的钟表时间，没有就用时间线上的时间
+export function groupByMonth(assets: Asset[]): Section[] {
+  const sections: Section[] = []
+  for (const asset of assets) {
+    const t = new Date(asset.taken_at_local ?? asset.sort_time)
+    const key = `${t.getFullYear()}-${t.getMonth()}`
+    const last = sections[sections.length - 1]
+    if (last?.key === key) last.assets.push(asset)
+    else sections.push({ key, title: `${MONTHS[t.getMonth()]} ${t.getFullYear()}`, assets: [asset] })
+  }
+  return sections
+}
+
 export function dayTitle(day: Date, now = new Date()): string {
   const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
   const daysAgo = Math.round((startOf(now) - startOf(day)) / 86_400_000)

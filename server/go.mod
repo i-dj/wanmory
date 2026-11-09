@@ -8,6 +8,7 @@ require (
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/tus/tusd/v2 v2.10.1
 	golang.org/x/exp v0.0.0-20261011100332-faecfb24eb49
+	golang.org/x/term v0.47.0
 )
 
 require (
@@ -18,5 +19,6 @@ require (
 	github.com/sethvargo/go-retry v0.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )

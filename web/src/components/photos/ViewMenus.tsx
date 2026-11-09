@@ -1,4 +1,4 @@
-import { ArrowDownUp, Check, ChevronDown, Funnel, LayoutGrid, type LucideIcon } from 'lucide-react'
+import { ArrowDownUp, Check, Funnel, LayoutGrid, type LucideIcon } from 'lucide-react'
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
 import Popover, { MenuDivider, menuItemClass } from '@/components/ui/Popover'
 import Tooltip from '@/components/ui/Tooltip'
@@ -179,7 +179,7 @@ export function SizeMenu({ layout }: { layout: GridLayout }) {
   )
 }
 
-// MenuButton 是图标加小箭头的按钮，点开下拉菜单。active 时（选的不是默认）图标底色亮一点，看得出筛过、排过
+// MenuButton 是工具组里的圆形图标按钮，点开下拉菜单。active 时（选的不是默认）底色亮一点、右上角一个小点，看得出筛过、排过
 function MenuButton({
   icon: Icon,
   label,
@@ -209,12 +209,13 @@ function MenuButton({
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
             className={cx(
-              'flex h-8 items-center gap-1 rounded-control px-1.5 text-fg/85 transition-colors hover:bg-fg/[0.07] hover:text-fg',
-              (open || active) && 'bg-fg/[0.08] text-fg',
+              'relative flex size-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-fg/[0.06] hover:text-fg',
+              (open || active) && 'bg-fg/[0.07] text-fg',
             )}
           >
-            <Icon className="size-4.75" strokeWidth={1.7} />
-            <ChevronDown className="size-3.5 text-muted" strokeWidth={2} />
+            <Icon className="size-4.5" strokeWidth={1.8} />
+            {/* 排过、筛过（不是默认的）：右上角一个橙色小点 */}
+            {active && <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-accent" />}
           </button>
         </Tooltip>
       }
