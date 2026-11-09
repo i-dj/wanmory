@@ -1,6 +1,5 @@
-import { Cake, MapPin, UsersRound } from 'lucide-react'
+import { MapPin, UsersRound } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import BirthdayDialog from '@/components/people/BirthdayDialog'
 import GrowthTimelapse from '@/components/people/GrowthTimelapse'
 import PersonHero from '@/components/people/PersonHero'
 import { PlayButton } from '@/components/layout/PageHeader'
@@ -10,8 +9,7 @@ import { useElementSize } from '@/hooks/useElementSize'
 import { usePersonProfile } from '@/hooks/usePersonProfile'
 import { useGridLayout } from '@/hooks/useGridLayout'
 import { assetThumbUrl, type Companion, faceThumbUrl, type Person, type PersonProfile } from '@/lib/api'
-import { ageAt, type AgeGroup, groupByAge, parseDate } from '@/lib/age'
-import { cx } from '@/lib/cx'
+import { type AgeGroup, groupByAge } from '@/lib/age'
 import { unlockAudio } from '@/lib/musicLibrary'
 import { pickFrames } from '@/lib/timelapse'
 import { formatCoords, formatMonthSpan } from '@/lib/format'
@@ -45,7 +43,6 @@ export default function PersonPage({
   const layout = useGridLayout(width)
   // 成长、合影的卡片和照片网格里的照片差不多大；足迹的卡片宽，每行少一张
   const columns = Math.max(1, tab === 'places' ? layout.columns - 1 : layout.columns)
-  const [editingBirthday, setEditingBirthday] = useState(false)
   // 成长延时：每个月一张对齐好的脸
   const frames = useMemo(() => (moments ? pickFrames(moments, person.birthday) : []), [moments, person.birthday])
   const [playing, setPlaying] = useState(false)
@@ -65,14 +62,14 @@ export default function PersonPage({
             person={person}
             tab={tab}
             navigate={navigate}
-            extra={tab === 'growth' && <BirthdayChip person={person} onEdit={() => setEditingBirthday(true)} />}
+            onChanged={onChanged}
           />
         }
         // 播放和别的页一样在工具组最右边：成长标签播放成长延时，足迹、合影没有可播的
         tools={
           tab === 'growth' && (
             <PlayButton
-              label="成长延时"
+              label="播放成长延时"
               disabled={frames.length < 2}
               onClick={() => {
                 unlockAudio() // 必须在这次点击里同步解锁声音，见 PhotoViewer
@@ -97,41 +94,7 @@ export default function PersonPage({
       </div>
 
       {playing && <GrowthTimelapse frames={frames} title={personName(person)} onClose={() => setPlaying(false)} />}
-      {editingBirthday && (
-        <BirthdayDialog
-          person={person}
-          suggest={moments?.length ? new Date(moments[0].taken) : null}
-          onClose={() => setEditingBirthday(false)}
-          onSaved={onChanged}
-        />
-      )}
     </div>
-  )
-}
-
-// BirthdayChip 是「成长」标题右边的生日：设置了显示几月几日出生、现在多大，没设置是「设置生日」，点一下弹出对话框
-function BirthdayChip({ person, onEdit }: { person: Person; onEdit: () => void }) {
-  const birth = person.birthday ? parseDate(person.birthday) : null
-  const age = person.birthday ? ageAt(person.birthday, new Date()) : ''
-  return (
-    <button
-      type="button"
-      onClick={onEdit}
-      className={cx(
-        'flex shrink-0 items-center gap-2 rounded-full py-1.5 pr-4 pl-3 text-body transition-colors',
-        birth ? 'bg-line/60 hover:bg-line' : 'bg-accent-soft font-medium text-accent hover:bg-accent/20',
-      )}
-    >
-      <Cake className="size-4.5 text-accent" strokeWidth={1.8} />
-      {birth ? (
-        <span className="tabular-nums">
-          {birth.getFullYear()}年{birth.getMonth() + 1}月{birth.getDate()}日出生
-          {age && <span className="text-muted"> · 现在 {age}</span>}
-        </span>
-      ) : (
-        '设置生日，按年龄看'
-      )}
-    </button>
   )
 }
 

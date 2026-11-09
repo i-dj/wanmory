@@ -344,7 +344,7 @@ function StorageCard({ disk }: { disk: { total: number; free: number } }) {
   const used = Math.max(0, disk.total - disk.free)
   const ratio = disk.total > 0 ? used / disk.total : 0
   return (
-    <div className="mx-3.5 mb-2 hidden rounded-xl bg-well px-3.5 py-3 md:block">
+    <div className="mx-3.5 mb-2 hidden rounded-xl border border-line/70 bg-well px-3.5 py-3 md:block">
       <div className="flex items-center justify-between text-caption text-muted">
         <span>存储空间</span>
         <span className="tabular-nums">{diskLabel(used, disk.total)}</span>

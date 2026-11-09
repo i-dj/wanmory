@@ -2,6 +2,7 @@ import { Play } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 import { cx } from '@/lib/cx'
 import GlobalSearch from '@/components/photos/GlobalSearch'
+import Tooltip from '@/components/ui/Tooltip'
 
 // PageHeader 是每一页顶上那一块（图库、相册、人物、足迹、连拍整理、设置都用它），各页高度、位置一样，切换页面时不跳：
 //   固定栏（68px 高，滚动时停在顶上，半透明磨砂，底下一条细线）：左边搜索框（center，不给时是全局搜索，给 false 时没有），
@@ -68,7 +69,7 @@ export default function PageHeader({
   )
 }
 
-// ToolGroup 是固定栏右边那一组图标按钮（日历、排序、筛选、显示大小……）外面的白色胶囊，最后可以放「幻灯片」
+// ToolGroup 是固定栏右边那一组图标按钮（日历、排序、筛选、显示大小……）外面的白色胶囊，最后可以放播放按钮
 export function ToolGroup({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-9.5 items-center gap-0.5 rounded-full border border-line bg-surface px-1 shadow-[0_1px_2px_rgba(30,24,20,0.04)]">
@@ -77,17 +78,20 @@ export function ToolGroup({ children }: { children: ReactNode }) {
   )
 }
 
-// PlayButton 是工具组最右边橙色的「▶ 幻灯片」。所有页面的播放都是它（人物的成长标签是「成长延时」），位置、样子都一样
+// PlayButton 是工具组最右边的橙色圆形播放按钮，只有图标，鼠标停上去显示 label（「幻灯片播放」「播放成长延时」）。
+// 所有页面的播放都是它，位置、样子都一样
 export function PlayButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="ml-1 flex h-7.5 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-caption font-medium text-on-accent shadow-[0_3px_8px_rgba(204,99,46,0.25)] transition hover:brightness-105 active:scale-[0.97] disabled:opacity-45"
-    >
-      <Play className="size-3 fill-current" strokeWidth={2} />
-      {label}
-    </button>
+    <Tooltip label={label}>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={label}
+        className="ml-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent shadow-[0_2px_6px_rgba(204,99,46,0.3)] transition hover:brightness-105 active:scale-90 disabled:opacity-45"
+      >
+        <Play className="ml-0.5 size-3.5 fill-current" strokeWidth={2} />
+      </button>
+    </Tooltip>
   )
 }

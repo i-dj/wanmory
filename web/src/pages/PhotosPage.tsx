@@ -465,6 +465,7 @@ export default function PhotosPage({
               person={person}
               tab="photos"
               navigate={navigate}
+              onChanged={onPeopleChanged}
             />
           )
         }
@@ -490,7 +491,7 @@ export default function PhotosPage({
         }
         tools={
           showPlay &&
-          !selecting && <PlayButton label="幻灯片" disabled={!canPlay} onClick={playSlideshow} />
+          !selecting && <PlayButton label="幻灯片播放" disabled={!canPlay} onClick={playSlideshow} />
         }
         actions={
           !guest && picking ? (

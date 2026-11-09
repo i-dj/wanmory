@@ -36,12 +36,12 @@
   --radius-panel: 10px;
   --radius-dialog: 14px;
 
-  /* 浅色主题：暖色调。内容区米白，左侧菜单近白（中间一条细线分开）；强调色是砖橙，选中的菜单项浅橙底橙字。
-     正文是带一点暖的近黑，说明文字是中性灰 */
-  --color-page: #faf6f1;
-  --color-sidebar: #fefcfb; /* 左侧菜单栏 */
+  /* 浅色主题：暖色调。内容区近白（照片在白底上颜色最准），左侧菜单米白（中间一条细线分开）；强调色是砖橙，
+     选中的菜单项浅橙底橙字。正文是带一点暖的近黑，说明文字是中性灰 */
+  --color-page: #fefcfb;
+  --color-sidebar: #faf6f1; /* 左侧菜单栏 */
   --color-surface: #ffffff;
-  --color-well: #f6f8fa; /* 菜单底部「存储空间」这种嵌在里面的小卡片 */
+  --color-well: #ffffff; /* 菜单底部「存储空间」这种嵌在米色菜单里的小白卡片 */
   --color-fg: #1e1814;
   --color-muted: #6b7280;
   --color-line: #ece6df;
