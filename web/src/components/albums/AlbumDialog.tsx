@@ -14,8 +14,8 @@ import DialogClose from '@/components/ui/DialogClose'
 // AlbumDialog 是新建、编辑相册的对话框：窗口正中一张卡片，背后变暗。
 // 新建时先选「普通相册」还是「智能相册」。智能相册要填条件（见 SmartRulesEditor），
 // 下面实时显示有多少项符合；勾上「自动同步」，以后新增的照片只要符合条件就自动出现在相册里。
-// 名字（智能相册还有条件）下面是共享设置：私有还是共享、共享给哪些成员（见 SharingPicker），默认共享给所有人，私有时可以同时隐藏我传的照片；
-// 建好后在相册的「共享设置」里改。智能相册的「自动同步」在共享设置下面。
+// 名字（智能相册还有条件）下面是权限设置：所有人、指定成员还是仅自己（见 SharingPicker），默认共享给所有人，私有时可以同时隐藏我传的照片；
+// 建好后在相册的「权限设置」里改。智能相册的「自动同步」在权限设置下面。
 // 回车确定，Esc 或点外面取消；保存失败时把错误写在下面，不关闭。
 export default function AlbumDialog({
   album,
@@ -91,7 +91,7 @@ export default function AlbumDialog({
         aria-labelledby="album-dialog-title"
         onSubmit={submit}
         className={cx(
-          'dialog-card glass-dialog max-h-[90vh] w-full overflow-y-auto rounded-dialog p-6 shadow-2xl transition-[max-width] duration-200',
+          'dialog-card glass-dialog max-h-[90vh] w-full overflow-y-auto rounded-dialog p-6 transition-[max-width] duration-200',
           smart ? 'max-w-180' : 'max-w-105',
         )}
       >
@@ -165,7 +165,7 @@ export default function AlbumDialog({
 
         {!editing && (
           <div className="mt-5">
-            <p className="mb-2 text-caption font-medium text-muted">共享设置</p>
+            <p className="mb-2 text-caption font-medium text-muted">权限设置</p>
             <SharingPicker
               value={sharing}
               onChange={setSharing}
@@ -178,7 +178,7 @@ export default function AlbumDialog({
           </div>
         )}
 
-        {/* 自动同步放在共享设置下面，紧挨着按钮 */}
+        {/* 自动同步放在权限设置下面，紧挨着按钮 */}
         {smart && (
           <>
             <label className="mt-5 flex cursor-pointer items-start gap-2.5">

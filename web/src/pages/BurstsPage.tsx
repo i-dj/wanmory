@@ -2,13 +2,14 @@ import PageHeader from '@/components/layout/PageHeader'
 import { Check, ChevronLeft, ChevronRight, Layers, Maximize2, Sparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Modal, { Button } from '@/components/ui/Modal'
+import DialogButton from '@/components/ui/DialogButton'
+import Modal, { Button, DialogActions } from '@/components/ui/Modal'
 import Segmented from '@/components/ui/Segmented'
 import { assetPreviewUrl, assetThumbUrl, type Burst, listBursts, reviewBursts } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { formatSize } from '@/lib/format'
 import { dayTitle } from '@/lib/groups'
-import { showError } from '@/lib/dialog'
+import { showAlert, showError } from '@/lib/dialog'
 import { lockScroll } from '@/lib/scrollLock'
 
 // BurstsPage 是连拍整理：几秒内连着拍的一组照片、同一个场景接着拍的几张（看起来几乎一样）、同一张存了几份的，
@@ -27,7 +28,6 @@ export default function BurstsPage() {
   const [busy, setBusy] = useState(false)
   const [confirmAll, setConfirmAll] = useState(false)
   const [comparing, setComparing] = useState<{ burst: Burst; index: number } | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -38,11 +38,6 @@ export default function BurstsPage() {
       alive = false
     }
   }, [])
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 2500)
-    return () => clearTimeout(t)
-  }, [toast])
 
   const keyOf = (b: Burst) => b.photos[0].id
   const keeperOf = (b: Burst) => keep[keyOf(b)] ?? b.best
@@ -92,7 +87,7 @@ export default function BurstsPage() {
       await reviewBursts(ids, trash)
       const done = new Set(targets.map(keyOf))
       setBursts((prev) => prev?.filter((b) => !done.has(keyOf(b))) ?? null)
-      setToast(keepAll ? '都保留了，这一组不会再出现' : `已把 ${trash.length.toLocaleString()} 张放进「最近删除」`)
+      showAlert(keepAll ? '都保留了，这一组不会再出现' : `已把 ${trash.length.toLocaleString()} 张放进「最近删除」`)
     } catch (e) {
       showError('没有整理成功', e)
     } finally {
@@ -105,11 +100,6 @@ export default function BurstsPage() {
     <section className="pb-12">
       <PageHeader
         title="连拍整理"
-        subtitle={
-          groups.length
-            ? `${groups.length.toLocaleString()} 组 · 只留最好的能腾出 ${extra.count.toLocaleString()} 张、${formatSize(extra.bytes)}`
-            : ''
-        }
         right={
           !!groups.length && (
             <Button primary disabled={busy} onClick={() => setConfirmAll(true)}>
@@ -130,11 +120,6 @@ export default function BurstsPage() {
               { value: 'duplicates', label: `重复 ${lists.duplicates.length.toLocaleString()}` },
             ]}
           />
-          <p className="mt-2 text-caption text-muted">
-            {current === 'duplicates'
-              ? '同一张照片存了几份，内容一样，默认留下文件最大的那份。'
-              : '点照片换成保留它，点右上角的放大按钮可以并排看清楚。'}
-          </p>
         </div>
       )}
       {error && <p className="mt-6 text-body text-danger">没有读到：{error}</p>}
@@ -181,38 +166,25 @@ export default function BurstsPage() {
       )}
 
       {confirmAll && (
-        <Modal
-          title={current === 'duplicates' ? '全部去重' : '全部按推荐整理'}
-          onClose={() => setConfirmAll(false)}
-          footer={
-            <div className="flex justify-end gap-2">
-              <Button onClick={() => setConfirmAll(false)}>取消</Button>
-              <Button
-                primary
-                disabled={busy}
-                onClick={() => {
-                  setConfirmAll(false)
-                  void review(groups, false)
-                }}
-              >
-                整理 {groups.length.toLocaleString()} 组
-              </Button>
-            </div>
-          }
-        >
-          <p className="px-4 py-4 text-body">
+        <Modal title={current === 'duplicates' ? '全部去重' : '全部按推荐整理'} onClose={() => setConfirmAll(false)}>
+          <p className="text-body text-muted">
             {label}的每组只保留选中的那张（没换过的是推荐的），其余 {extra.count.toLocaleString()}{' '}
             张放进「最近删除」，随时可以恢复。
           </p>
+          <DialogActions>
+            <DialogButton onClick={() => setConfirmAll(false)}>取消</DialogButton>
+            <DialogButton
+              variant="primary"
+              disabled={busy}
+              onClick={() => {
+                setConfirmAll(false)
+                void review(groups, false)
+              }}
+            >
+              整理 {groups.length.toLocaleString()} 组
+            </DialogButton>
+          </DialogActions>
         </Modal>
-      )}
-      {toast && (
-        <div
-          role="status"
-          className="popover-card fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-fg px-4 py-2 text-body font-medium text-page shadow-lg"
-        >
-          {toast}
-        </div>
       )}
     </section>
   )
@@ -306,7 +278,7 @@ function BurstGroup({
   )
 }
 
-// CardButton 是卡片下面的小按钮，比通用的 Button 小一号，卡片不被按钮撑宽
+// CardButton 是卡片下面的按钮：通用 Button 的小号（和设置里表格每行的按钮一样大）
 function CardButton({
   children,
   onClick,
@@ -321,18 +293,9 @@ function CardButton({
   title: string
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={cx(
-        'rounded-control px-3 py-1 text-caption font-medium disabled:cursor-not-allowed disabled:opacity-50',
-        primary ? 'bg-accent text-on-accent hover:opacity-90' : 'text-muted hover:bg-line/60 hover:text-fg',
-      )}
-    >
+    <Button small primary={primary} disabled={disabled} onClick={onClick} title={title}>
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -388,7 +351,12 @@ function CompareViewer({
   )
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="放大对比" className="fixed inset-0 z-50 flex flex-col bg-black/95">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="放大对比"
+      className="theme-dark fixed inset-0 z-50 flex flex-col bg-black/95"
+    >
       <div className="flex items-center gap-3 px-4 py-3 text-white">
         <span className="text-body tabular-nums">
           {index + 1} / {count}
@@ -401,18 +369,10 @@ function CompareViewer({
         )}
         <span className="text-caption text-white/60 tabular-nums">{formatSize(photo.size)}</span>
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => onPick(photo.id)}
-          disabled={kept}
-          className={cx(
-            'flex items-center gap-1.5 rounded-control px-3 py-1.5 text-body',
-            kept ? 'bg-select text-on-accent' : 'bg-white/15 text-white hover:bg-white/25',
-          )}
-        >
+        <Button primary disabled={kept} onClick={() => onPick(photo.id)}>
           <Check className="size-4" strokeWidth={kept ? 3 : 2} />
-          {kept ? '保留这张' : '换成保留这张'}
-        </button>
+          {kept ? '已保留这张' : '换成保留这张'}
+        </Button>
         <button
           type="button"
           onClick={onClose}

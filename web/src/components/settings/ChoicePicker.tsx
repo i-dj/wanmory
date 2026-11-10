@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Choice } from '@/lib/api'
-import Modal, { Button } from '@/components/ui/Modal'
+import DialogButton from '@/components/ui/DialogButton'
+import Modal, { DialogActions } from '@/components/ui/Modal'
 import { cx } from '@/lib/cx'
 
 // ChoicePicker 从几个选项里选一个。
@@ -33,25 +34,14 @@ export default function ChoicePicker({
   }
 
   return (
-    <Modal
-      title={title}
-      onClose={onCancel}
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button onClick={onCancel}>取消</Button>
-          <Button primary onClick={confirm} disabled={busy}>
-            确认
-          </Button>
-        </div>
-      }
-    >
-      {error && <p className="mx-4 mt-3 rounded-control bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>}
-      <div className="flex flex-col gap-2 p-4">
+    <Modal title={title} onClose={onCancel}>
+      {error && <p className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>}
+      <div className="flex flex-col gap-2">
         {choices.map((c) => (
           <label
             key={c.value}
             className={cx(
-              'flex cursor-pointer items-start gap-3 rounded-control border px-3 py-2',
+              'flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5',
               selected === c.value ? 'border-accent bg-accent-soft' : 'border-line hover:bg-accent-soft',
             )}
           >
@@ -70,6 +60,12 @@ export default function ChoicePicker({
           </label>
         ))}
       </div>
+      <DialogActions>
+        <DialogButton onClick={onCancel}>取消</DialogButton>
+        <DialogButton variant="primary" onClick={confirm} disabled={busy}>
+          确认
+        </DialogButton>
+      </DialogActions>
     </Modal>
   )
 }

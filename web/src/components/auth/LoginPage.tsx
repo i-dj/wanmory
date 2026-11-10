@@ -38,7 +38,7 @@ export default function LoginPage({ setup, onSignedIn }: { setup: boolean; onSig
         <form onSubmit={submit} className="w-full max-w-[380px]">
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
             <Logo className="size-9" />
-            <span className="text-[18px] font-bold">万象</span>
+            <span className="text-[18px] font-bold tracking-[0.3em]">万象</span>
           </div>
           <h1 className="text-[28px] leading-tight font-bold tracking-tight">{setup ? '欢迎使用万象' : '登录万象'}</h1>
           <p className="mt-2 text-body text-muted">
@@ -108,7 +108,7 @@ export default function LoginPage({ setup, onSignedIn }: { setup: boolean; onSig
           <p className="mt-6 text-center text-caption text-muted">
             {setup
               ? '密码至少 4 位。照片都存在你自己的服务器上。'
-              : '忘了密码？请管理员在「设置 → 家庭成员」里帮你重置。'}
+              : '忘了密码？请管理员在「系统设置 → 成员」里帮你重置。'}
           </p>
         </form>
       </main>
@@ -140,7 +140,7 @@ function ArtPanel() {
       <div className="relative flex h-full flex-col justify-between p-10 text-white">
         <div className="flex items-center gap-2.5">
           <Logo className="size-9" />
-          <span className="text-[18px] font-bold">万象</span>
+          <span className="text-[18px] font-bold tracking-[0.3em]">万象</span>
         </div>
         <div>
           <p className="text-[30px] leading-snug font-bold">

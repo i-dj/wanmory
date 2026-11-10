@@ -134,8 +134,8 @@ export default function AlbumMenu({
                 {manage && onPrivacy && (
                   <MenuItem
                     icon={album.private ? Lock : Users}
-                    label="共享设置"
-                    hint={album.private ? '私有' : album.members.length ? `${album.members.length} 人` : '所有人'}
+                    label="权限设置"
+                    hint={album.private ? '仅自己' : album.members.length ? `${album.members.length} 位成员` : '所有人'}
                     onClick={() => {
                       close()
                       onPrivacy()

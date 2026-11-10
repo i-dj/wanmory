@@ -5,10 +5,6 @@ device：用 GPU 还是 CPU 算
   gpu：同 auto，只是网页上显示用户明确选了 GPU（没有显卡时还是 CPU）；
   cpu：只用 CPU，显卡留给别的程序，或者显卡出问题时用。
   改了之后已经加载的模型会卸掉，下次用到时按新的设置重新加载。
-source：模型从哪下载（语义搜索的模型在 Hugging Face 上，见 models.py）
-  auto：连得上 huggingface.co 就从那下，连不上（国内常见）用镜像 hf-mirror.com；
-  huggingface：只从 huggingface.co 下；
-  mirror：只从 hf-mirror.com 下。
 parallel：同时算几张照片（人脸、语义、文字各算各的），0 是自动：有显卡 3；只有 CPU 时按核数和内存，
   12 核 16 GB 以上 3、8 核 8 GB 以上 2，再小（树莓派、N100）1，一张一张算，不互相抢 CPU 和内存。
 threads：用 CPU 算时每个模型用几个线程，0 是自动：核数减一（给相册程序留一个核），再按同时算几个平分。
@@ -30,7 +26,6 @@ from .models import MODEL_DIR
 log = logging.getLogger(__name__)
 
 DEVICES = ("auto", "gpu", "cpu")
-SOURCES = ("auto", "huggingface", "mirror")
 _path = MODEL_DIR / "runtime.json"
 _lock = threading.Lock()
 _settings: dict | None = None
@@ -45,8 +40,7 @@ def _load() -> dict:
             _settings = {}
         if _settings.get("device") not in DEVICES:
             _settings["device"] = "auto"
-        if _settings.get("source") not in SOURCES:
-            _settings["source"] = "auto"
+        _settings.pop("source", None)  # 以前能选从哪下载模型，现在自动选
         for key in ("threads", "parallel"):
             t = _settings.get(key)
             if not isinstance(t, int) or isinstance(t, bool) or t < 0:
@@ -72,15 +66,6 @@ def device_pref() -> str:
 
 def set_device_pref(device: str) -> None:
     _set("device", device, DEVICES)
-
-
-def source_pref() -> str:
-    with _lock:
-        return _load()["source"]
-
-
-def set_source_pref(source: str) -> None:
-    _set("source", source, SOURCES)
 
 
 def cpu_only() -> bool:

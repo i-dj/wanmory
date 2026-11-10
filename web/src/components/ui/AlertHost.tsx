@@ -126,17 +126,19 @@ function ConfirmDialog() {
   const { icon: Icon, circle } = TONES[alert.tone]
   return (
     <div
-      className="alert-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4 backdrop-blur-md"
+      className="alert-backdrop fixed inset-0 z-[100] flex items-center justify-center p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) closeAlert(false)
       }}
     >
+      {/* 压暗、模糊的那层单独垫着，不加在外层上：外层带 backdrop-filter 时卡片自己的磨砂会失灵 */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/25 backdrop-blur-[6px]" />
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="alert-title"
         aria-describedby={alert.message ? 'alert-message' : undefined}
-        className="alert-card glass-dialog w-full max-w-[20rem] rounded-dialog px-6 pt-6 pb-5 text-center shadow-2xl"
+        className="alert-card glass-dialog w-full max-w-[26rem] rounded-dialog px-6 pt-6 pb-5 text-center"
       >
         <div className={cx('mx-auto flex size-11 items-center justify-center rounded-full', circle)}>
           <Icon className="size-5.5" strokeWidth={2} />

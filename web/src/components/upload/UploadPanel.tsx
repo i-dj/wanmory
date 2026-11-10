@@ -12,6 +12,7 @@ import {
   RotateCw,
   X,
 } from 'lucide-react'
+import { Button } from '@/components/ui/Modal'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { formatSize } from '@/lib/format'
 import { FINISHED, type UploadItem, type UploadQueue } from '@/lib/uploadQueue'
@@ -137,10 +138,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
   return (
     <div
       data-keep-selection
-      className={cx(
-        'fixed inset-x-3 bottom-3 z-40 overflow-hidden rounded-2xl sm:right-auto sm:left-4 sm:w-95',
-        GLASS,
-      )}
+      className={cx('fixed inset-x-3 bottom-3 z-40 overflow-hidden rounded-2xl sm:right-auto sm:left-4 sm:w-95', GLASS)}
     >
       {/* 顶部：状态图标、标题、展开 / 收起、关闭或暂停 */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
@@ -207,14 +205,10 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
                 <span />
               )}
               {retryable && phase !== 'running' && (
-                <button
-                  type="button"
-                  onClick={() => queue.resumeAll()}
-                  className="flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-1 text-caption font-medium text-on-accent hover:opacity-90"
-                >
+                <Button small primary onClick={() => queue.resumeAll()}>
                   <RotateCw className="size-3.5" />
                   重试失败的
-                </button>
+                </Button>
               )}
             </div>
           )}

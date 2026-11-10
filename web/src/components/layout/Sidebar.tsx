@@ -1,21 +1,31 @@
 import {
   BookImage,
+  ChevronDown,
   Clock,
   EyeOff,
+  FileText,
+  Flower2,
   Heart,
+  IdCard,
   Images,
   Layers,
   LogIn,
   LogOut,
   MapPinned,
+  Mountain,
+  PanelLeft,
+  PawPrint,
   Settings,
+  Smartphone,
   Star,
   Trash2,
   type LucideIcon,
   Upload,
   UsersRound,
+  UtensilsCrossed,
+  Video,
 } from 'lucide-react'
-import { type ReactNode, useRef, useState } from 'react'
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import type { AssetStats } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
@@ -36,13 +46,40 @@ import {
   RECENT,
   PLACES_PATH,
   BURSTS_PATH,
+  CATEGORY_VIEWS,
+  CATEGORIES,
+  VIDEOS,
   type View,
 } from '@/lib/views'
 import Tooltip from '@/components/ui/Tooltip'
 
 export const SETTINGS_PATH = '/settings'
+export const ACCOUNT_PATH = '/account'
 
 // Sidebar 是左侧分类菜单，像 macOS 的「照片」。窄屏上变成顶部一排可以横向滑动的标签。
+// 宽屏上可以收起成一条只有图标的窄栏（Rail，64px 宽），鼠标停在图标上右边出提示；收没收起记在这个浏览器里
+
+const COLLAPSED_KEY = 'wanmory.sidebar.collapsed'
+const Rail = createContext(false) // 收起了：菜单项只画图标
+
+function useCollapsed(): [boolean, (v: boolean) => void] {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSED_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const set = (v: boolean) => {
+    setCollapsed(v)
+    try {
+      localStorage.setItem(COLLAPSED_KEY, v ? '1' : '0')
+    } catch {
+      // 存不了就只在这次有效
+    }
+  }
+  return [collapsed, set]
+}
 
 export default function Sidebar({
   path,
@@ -56,6 +93,7 @@ export default function Sidebar({
   navigate: (to: string) => void
 }) {
   const { guest, signIn } = useCurrentUser()
+  const [collapsed, setCollapsed] = useCollapsed()
   const viewItem = (view: View, icon: LucideIcon, count?: number) => (
     <NavItem
       key={view.path}
@@ -71,69 +109,138 @@ export default function Sidebar({
     <NavItem href={SETTINGS_PATH} label="设置" icon={Settings} active={path === SETTINGS_PATH} navigate={navigate} />
   )
 
+  // 收起按钮（方框里一道竖线）。收起后不显示它，点标志就展开
+  const collapse = (
+    <Tooltip label="收起菜单" side="bottom">
+      <button
+        type="button"
+        onClick={() => setCollapsed(true)}
+        aria-label="收起菜单"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full text-fg/50 transition-colors hover:bg-fg/[0.07] hover:text-fg"
+      >
+        <PanelLeft className="size-4.5" strokeWidth={1.6} />
+      </button>
+    </Tooltip>
+  )
+
   return (
     <aside
-      // 宽屏上一直在左边（点进某个人、某个相册时也不收起，那一项保持亮着），切页面时照片区的宽度不变，照片不用重新排
-      className="sticky top-0 z-30 border-b border-line bg-page/95 md:h-screen md:w-60 md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar"
+      // 宽屏上一直在左边（点进某个人、某个相册时也不收起，那一项保持亮着），切页面时照片区的宽度不变，照片不用重新排。
+      // 收起时变成 64px 宽的图标栏（只改宽度，不用 transform，不影响里面 fixed 的东西）
+      className={cx(
+        'sticky top-0 z-30 border-b border-line bg-page/95 md:h-screen md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar md:transition-[width] md:duration-200',
+        collapsed ? 'md:w-16' : 'md:w-60',
+      )}
     >
-      <div className="flex h-full flex-col">
-        {/* 宽屏上顶部：标志和名字，下面一个大的「上传照片 / 视频」。窄屏上菜单是顶上一排标签，上传在工具栏里 */}
-        <div className="hidden items-center gap-3 px-5 pt-5 pb-6 md:flex">
-          <Logo className="size-9 shrink-0 drop-shadow-[0_6px_14px_rgba(204,99,46,0.35)]" />
-          <div className="min-w-0 leading-tight">
-            <div className="font-serif text-[20px] font-bold tracking-wide">万象</div>
-            <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
-          </div>
-          {!guest && <TaskIndicator onSettings={() => navigate(SETTINGS_PATH)} />}
-        </div>
-        {/* 访客只能浏览：没有上传，换成「登录」 */}
-        <div className="hidden px-3.5 pb-6 md:block">
-          {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
-        </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 py-2 md:flex-1 md:flex-col md:gap-0.5 md:overflow-y-auto md:px-3.5 md:py-0">
-          {/* 常用的一组：图库、相册、人物、足迹、收藏、星级；一道横线下面是整理用的：最近添加、连拍、隐藏、删除 */}
-          {viewItem(LIBRARY, Images)}
-          <NavItem href={ALBUMS_PATH} label="相册" icon={BookImage} active={path === ALBUMS_PATH} navigate={navigate} />
-          <NavItem
-            href={PEOPLE_PATH}
-            label="人物"
-            icon={UsersRound}
-            active={path === PEOPLE_PATH}
-            navigate={navigate}
-          />
-          <NavItem href={PLACES_PATH} label="足迹" icon={MapPinned} active={path === PLACES_PATH} navigate={navigate} />
-          {viewItem(FAVORITES, Heart, stats?.favorites)}
-          <RatingRow path={path} stats={stats} navigate={navigate} />
-          <div className="hidden h-5 shrink-0 md:block" />
-          <SectionLabel>其他</SectionLabel>
-          {viewItem(RECENT, Clock)}
-          {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
-          {!guest && (
-            <>
-              <NavItem
-                href={BURSTS_PATH}
-                label="连拍整理"
-                icon={Layers}
-                active={path === BURSTS_PATH}
-                navigate={navigate}
-              />
-              {viewItem(HIDDEN, EyeOff)}
-              {viewItem(DELETED, Trash2)}
-              {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
-              <div className="md:hidden">{settings}</div>
-            </>
+      <Rail.Provider value={collapsed}>
+        <div className="flex h-full flex-col">
+          {/* 宽屏上顶部：标志和名字，旁边收起按钮，下面一个大的「上传照片 / 视频」。窄屏上菜单是顶上一排标签，上传在工具栏里。
+            收起时一列：标志（点了展开）、后台任务 */}
+          {collapsed ? (
+            <div className="hidden flex-col items-center gap-2 pt-5 pb-4 md:flex">
+              <Tooltip label="展开菜单" side="right">
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(false)}
+                  aria-label="展开菜单"
+                  className="rounded-full transition-opacity hover:opacity-75"
+                >
+                  <Logo className="size-9 text-fg" />
+                </button>
+              </Tooltip>
+              {!guest && <TaskIndicator />}
+            </div>
+          ) : (
+            <div className="hidden items-center gap-3 pt-5 pr-3 pb-6 pl-5 md:flex">
+              <Logo className="size-9 shrink-0 text-fg" />
+              <div className="min-w-0 leading-tight">
+                <div className="text-[19px] font-bold tracking-[0.3em]">万象</div>
+                <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
+              </div>
+              <div className="ml-auto flex items-center">
+                {!guest && <TaskIndicator />}
+                {collapse}
+              </div>
+            </div>
           )}
-        </nav>
-        {!guest && stats?.disk && <StorageCard disk={stats.disk} />}
-        <div className="hidden px-2.5 pt-1 pb-3 md:block">
-          <ProfileCard active={path === SETTINGS_PATH} onOpen={() => navigate(SETTINGS_PATH)} />
+          {/* 访客只能浏览：没有上传，换成「登录」 */}
+          <div className={cx('hidden pb-6 md:block', collapsed ? 'px-3' : 'px-3.5')}>
+            {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
+          </div>
+          <nav
+            className={cx(
+              'flex gap-1 overflow-x-auto px-3 py-2 md:flex-1 md:flex-col md:gap-0.5 md:overflow-y-auto md:py-0',
+              collapsed ? 'md:[scrollbar-width:none] md:px-3' : 'md:px-3.5',
+            )}
+          >
+            {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频和 AI 自动分的类（截图、文档、证件收在「更多」里）；
+              「整理」：最近添加、连拍、隐藏、删除 */}
+            {viewItem(LIBRARY, Images)}
+            <NavItem
+              href={ALBUMS_PATH}
+              label="相册"
+              icon={BookImage}
+              active={path === ALBUMS_PATH}
+              navigate={navigate}
+            />
+            <NavItem
+              href={PEOPLE_PATH}
+              label="人物"
+              icon={UsersRound}
+              active={path === PEOPLE_PATH}
+              navigate={navigate}
+            />
+            <NavItem
+              href={PLACES_PATH}
+              label="足迹"
+              icon={MapPinned}
+              active={path === PLACES_PATH}
+              navigate={navigate}
+            />
+            <div className="hidden h-5 shrink-0 md:block" />
+            <SectionLabel>分类</SectionLabel>
+            {viewItem(FAVORITES, Heart, stats?.favorites)}
+            <RatingRow path={path} stats={stats} navigate={navigate} />
+            {viewItem(VIDEOS, Video)}
+            {CATEGORY_VIEWS.filter((_, i) => !CATEGORIES[i].more).map((v) => viewItem(v, categoryIcon(v)))}
+            <MoreCategories path={path} viewItem={viewItem} />
+            <div className="hidden h-5 shrink-0 md:block" />
+            <SectionLabel>整理</SectionLabel>
+            {viewItem(RECENT, Clock)}
+            {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
+            {!guest && (
+              <>
+                <NavItem
+                  href={BURSTS_PATH}
+                  label="连拍整理"
+                  icon={Layers}
+                  active={path === BURSTS_PATH}
+                  navigate={navigate}
+                />
+                {viewItem(HIDDEN, EyeOff)}
+                {viewItem(DELETED, Trash2)}
+                {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
+                <div className="md:hidden">{settings}</div>
+              </>
+            )}
+          </nav>
+          {!guest && stats?.disk && !collapsed && <StorageCard disk={stats.disk} />}
+          <div className={cx('hidden pt-1 pb-3 md:block', collapsed ? 'px-3' : 'px-2.5')}>
+            <ProfileCard
+              path={path}
+              onAccount={() => navigate(ACCOUNT_PATH)}
+              onSettings={() => navigate(SETTINGS_PATH)}
+            />
+          </div>
         </div>
-      </div>
+      </Rail.Provider>
     </aside>
   )
 }
 
 function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  // 收起时不写字，一道细线隔开
+  if (useContext(Rail)) return <div className="mx-2 mb-2 hidden h-px bg-line md:block" />
   return (
     <div className="hidden items-center justify-between px-3 pb-2 text-micro font-medium tracking-wider text-muted md:flex">
       {children}
@@ -159,7 +266,8 @@ function NavItem({
   active: boolean
   navigate: (to: string) => void
 }) {
-  return (
+  const rail = useContext(Rail)
+  const link = (
     <a
       href={href}
       onClick={(e) => {
@@ -170,6 +278,7 @@ function NavItem({
       className={cx(
         // 宽屏上每一行高一些、圆角大一些；选中的一行：浅色主题浅蓝底蓝字，深色主题中性灰底白字（颜色变量 nav-active）
         'flex shrink-0 items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:px-3 md:py-2',
+        rail && 'md:justify-center md:px-0',
         active ? 'bg-nav-active font-medium text-nav-active-fg' : 'text-fg/80 hover:bg-fg/[0.04] hover:text-fg',
       )}
     >
@@ -177,11 +286,95 @@ function NavItem({
         (Icon && (
           <Icon className={cx('size-4.5 shrink-0', active ? 'text-nav-active-fg' : 'text-fg/75')} strokeWidth={1.8} />
         ))}
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      {!!count && (
+      <span className={cx('min-w-0 flex-1 truncate', rail && 'md:hidden')}>{label}</span>
+      {!!count && !rail && (
         <span className="hidden text-caption text-muted tabular-nums md:inline">{count.toLocaleString()}</span>
       )}
     </a>
+  )
+  return rail ? (
+    <Tooltip label={count ? `${label} · ${count.toLocaleString()}` : label} side="right">
+      {link}
+    </Tooltip>
+  ) : (
+    link
+  )
+}
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  scenery: Mountain,
+  food: UtensilsCrossed,
+  pet: PawPrint,
+  plant: Flower2,
+  screenshot: Smartphone,
+  document: FileText,
+  id: IdCard,
+}
+
+// categoryIcon 是分类（/category/food）菜单项的图标
+const categoryIcon = (v: View) => CATEGORY_ICONS[v.path.slice('/category/'.length)] ?? Images
+
+const MORE_KEY = 'wanmory.sidebar.more' // 「更多」展开没有，记在这个浏览器里
+
+// MoreCategories 是「分类」最后的「更多」：点开显示截图、文档、证件（不常看，平时收着）。
+// 进到其中一类时自动展开一次，之后可以收起；窄屏上（顶部一排标签）一直展开
+function MoreCategories({
+  path,
+  viewItem,
+}: {
+  path: string
+  viewItem: (view: View, icon: LucideIcon, count?: number) => ReactNode
+}) {
+  const rail = useContext(Rail)
+  const views = CATEGORY_VIEWS.filter((_, i) => CATEGORIES[i].more)
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(MORE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  // 进到截图、文档、证件时展开一次（不然看不到亮着的是哪项）；之后点「收起」照样收得起来
+  const inside = views.some((v) => v.path === path)
+  useEffect(() => {
+    if (inside) setOpen(true)
+  }, [inside, path])
+  const showing = open
+  const toggle = () => {
+    setOpen(!open)
+    try {
+      localStorage.setItem(MORE_KEY, open ? '0' : '1')
+    } catch {
+      // 存不了就只在这次有效
+    }
+  }
+  return (
+    <>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={showing}
+        aria-label={showing ? '收起' : '更多分类'}
+        title={rail ? (showing ? '收起' : '更多分类') : undefined}
+        className={cx(
+          'hidden shrink-0 items-center gap-3 rounded-[10px] px-3 py-2 text-body text-fg/60 hover:bg-fg/[0.04] hover:text-fg md:flex',
+          rail && 'justify-center px-0',
+        )}
+      >
+        <ChevronDown
+          className={cx('size-4.5 shrink-0 transition-transform', !showing && '-rotate-90')}
+          strokeWidth={1.8}
+        />
+        {!rail && <span>{showing ? '收起' : '更多'}</span>}
+      </button>
+      {views.map((v) => {
+        return (
+          <div key={v.path} className={cx(!showing && 'md:hidden')}>
+            {viewItem(v, categoryIcon(v))}
+          </div>
+        )
+      })}
+    </>
   )
 }
 
@@ -199,6 +392,26 @@ function RatingRow({
   const [hover, setHover] = useState(0)
   const current = RATINGS.find((v) => v.path === path)?.filter.rating ?? 0
   const lit = hover || current
+  // 收起时只有一颗星，点了看 5 星的（正在看哪个星级时它亮着）
+  if (useContext(Rail))
+    return (
+      <Tooltip label="星级" side="right">
+        <a
+          href={RATINGS[0].path}
+          onClick={(e) => {
+            e.preventDefault()
+            navigate(RATINGS[0].path)
+          }}
+          aria-label="星级"
+          className={cx(
+            'hidden shrink-0 items-center justify-center rounded-[10px] py-2 md:flex',
+            current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-fg/75 hover:bg-fg/[0.04] hover:text-fg',
+          )}
+        >
+          <Star className="size-4.5" strokeWidth={1.8} />
+        </a>
+      </Tooltip>
+    )
   return (
     <div
       className={cx(
@@ -248,11 +461,14 @@ const BIG_BUTTON =
 
 // SidebarSignIn 是访客看到的大按钮「登录」，在「上传照片 / 视频」的位置
 function SidebarSignIn({ onClick }: { onClick: () => void }) {
+  const rail = useContext(Rail)
   return (
-    <button type="button" onClick={onClick} className={BIG_BUTTON}>
-      <LogIn className="size-4" strokeWidth={2.2} />
-      登录
-    </button>
+    <Tooltip label={rail ? '登录' : ''} side="right">
+      <button type="button" onClick={onClick} aria-label="登录" className={BIG_BUTTON}>
+        <LogIn className="size-4" strokeWidth={2.2} />
+        {!rail && '登录'}
+      </button>
+    </Tooltip>
   )
 }
 
@@ -260,12 +476,20 @@ function SidebarSignIn({ onClick }: { onClick: () => void }) {
 // 深色底白字（深色模式反过来），带一层柔和的投影，是整个菜单里最显眼的一个；鼠标放上去颜色稍微变浅一点，按下去稍微缩一下
 function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
   const input = useRef<HTMLInputElement>(null)
+  const rail = useContext(Rail) // 收起时只有图标
   return (
     <>
-      <button type="button" onClick={() => openFilePicker(input.current)} className={BIG_BUTTON}>
-        <Upload className="size-4" strokeWidth={2.2} />
-        上传照片 / 视频
-      </button>
+      <Tooltip label={rail ? '上传照片 / 视频' : ''} side="right">
+        <button
+          type="button"
+          onClick={() => openFilePicker(input.current)}
+          aria-label="上传照片 / 视频"
+          className={BIG_BUTTON}
+        >
+          <Upload className="size-4" strokeWidth={2.2} />
+          {!rail && '上传照片 / 视频'}
+        </button>
+      </Tooltip>
       <input
         ref={input}
         type="file"
@@ -281,50 +505,72 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
   )
 }
 
-// ProfileCard 是菜单最下面一行：登录的人，小圆头像（名字的第一个字）、名字，右边齿轮打开设置
-function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }) {
+// ProfileCard 是菜单最下面一行：登录的人，小圆头像、名字（点了去「我的账号」），右边退出登录，
+// 管理员最右多一个齿轮去「系统设置」
+function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount: () => void; onSettings: () => void }) {
   const { user, guest, signOut } = useCurrentUser()
+  const rail = useContext(Rail)
   const { name } = user
   // 访客：只显示「访客」，登录用上面的大按钮
   if (guest)
     return (
-      <div className="flex items-center gap-2.5 px-2.5 py-1.5">
+      <div className={cx('flex items-center gap-2.5 py-1.5', rail ? 'justify-center' : 'px-2.5')}>
         <UserAvatar user={user} className="size-7 text-caption" />
-        <span className="min-w-0 flex-1 truncate text-body font-medium">访客</span>
+        {!rail && <span className="min-w-0 flex-1 truncate text-body font-medium">访客</span>}
       </div>
     )
   const quit = async () => {
-    if (await askConfirm('退出登录？', { confirmLabel: '退出' }))
-      signOut()
+    if (await askConfirm('退出登录？', { confirmLabel: '退出' })) signOut()
   }
-  // 头像和名字点了去设置（外观、自己的账号）；右边管理员多一个系统设置的齿轮，最右是退出
+  const onAccountPage = path === ACCOUNT_PATH
+  const onSettingsPage = path === SETTINGS_PATH
+  // 收起时一列：头像（去我的账号），管理员下面多一个齿轮；退出登录在「我的账号」里
+  if (rail)
+    return (
+      <div className="flex flex-col items-center gap-1.5 py-1.5">
+        {user.is_admin && (
+          <Tooltip label="系统设置" side="right">
+            <button
+              type="button"
+              onClick={onSettings}
+              aria-label="系统设置"
+              aria-current={onSettingsPage ? 'page' : undefined}
+              className={cx(
+                'flex size-9 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
+                onSettingsPage ? 'bg-nav-active text-nav-active-fg' : 'text-fg/70',
+              )}
+            >
+              <Settings className="size-4.5" strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+        )}
+        <Tooltip label={name} side="right">
+          <button
+            type="button"
+            onClick={onAccount}
+            aria-label="我的账号"
+            aria-current={onAccountPage ? 'page' : undefined}
+            className={cx('rounded-full p-0.5', onAccountPage && 'ring-2 ring-nav-active-fg/40')}
+          >
+            <UserAvatar user={user} className="size-8 text-caption" />
+          </button>
+        </Tooltip>
+      </div>
+    )
   return (
     <div className="flex items-center gap-1 px-1.5 py-1.5">
       <button
         type="button"
-        onClick={onOpen}
-        aria-current={active && !user.is_admin ? 'page' : undefined}
-        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-control px-1 py-1 text-left hover:bg-fg/[0.05]"
+        onClick={onAccount}
+        aria-current={onAccountPage ? 'page' : undefined}
+        className={cx(
+          'flex min-w-0 flex-1 items-center gap-2.5 rounded-control px-1 py-1 text-left hover:bg-fg/[0.05]',
+          onAccountPage && 'bg-nav-active text-nav-active-fg',
+        )}
       >
         <UserAvatar user={user} className="size-8 text-caption" />
         <span className="min-w-0 flex-1 truncate text-body font-medium">{name}</span>
       </button>
-      {user.is_admin && (
-        <Tooltip label="设置">
-          <button
-            type="button"
-            onClick={onOpen}
-            aria-label="设置"
-            aria-current={active ? 'page' : undefined}
-            className={cx(
-              'flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
-              active ? 'bg-nav-active text-nav-active-fg' : 'text-fg/70',
-            )}
-          >
-            <Settings className="size-4.5" strokeWidth={1.8} />
-          </button>
-        </Tooltip>
-      )}
       <Tooltip label="退出登录">
         <button
           type="button"
@@ -335,6 +581,22 @@ function ProfileCard({ active, onOpen }: { active: boolean; onOpen: () => void }
           <LogOut className="size-4.5" strokeWidth={1.8} />
         </button>
       </Tooltip>
+      {user.is_admin && (
+        <Tooltip label="系统设置">
+          <button
+            type="button"
+            onClick={onSettings}
+            aria-label="系统设置"
+            aria-current={onSettingsPage ? 'page' : undefined}
+            className={cx(
+              'flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
+              onSettingsPage ? 'bg-nav-active text-nav-active-fg' : 'text-fg/70',
+            )}
+          >
+            <Settings className="size-4.5" strokeWidth={1.8} />
+          </button>
+        </Tooltip>
+      )}
     </div>
   )
 }

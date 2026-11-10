@@ -5,13 +5,12 @@
 
   GET  /health   版本和可用的硬件加速
   GET  /models   支持的任务和模型；catalog 里每个模型下载了没有、下载进度
-  POST /models/{id}/download  在后台下载模型
+  POST /models/{id}/download  在后台下载模型（huggingface.co 和 hf-mirror.com 自动选通的、快的）
+  DELETE /models/{id}  删掉下载过的模型，腾出磁盘（用到时再下载）
   GET  /config   用 GPU 还是 CPU（device：auto / gpu / cpu），这台机器有什么显卡；CPU 线程数、核数、内存
   PUT  /config   {"device": "cpu"} 改用什么算，已经加载的模型卸掉、下次按新的设置加载；
-                 {"source": "mirror"} 改从哪下载模型（auto / huggingface / mirror）；
                  {"threads": 2} 用 CPU 算时每个模型几个线程（0 是自动），已经加载的模型卸掉；
                  {"parallel": 1} 同时算几张照片（0 是自动）
-  GET  /stats    每种任务最近的平均耗时（毫秒）和用的是 GPU 还是 CPU
   POST /predict  image：图片文件；tasks：JSON，例如 {"face": {"model": "antelopev2", "min_score": 0.5}, "clip": {}, "ocr": {}}。
                  只算文字向量时不传图片：{"clip.text": {"texts": ["海边日落", "生日蛋糕"]}}
 
@@ -216,21 +215,6 @@ def _unload_loop() -> None:
 threading.Thread(target=_unload_loop, daemon=True, name="unload-idle").start()
 
 
-# 每种任务最近的耗时：指数平均（新的占两成），换了 GPU / CPU 后清空重新算
-_stats: dict[str, dict] = {}
-_stats_lock = threading.Lock()
-
-
-def record(task: str, ms: float, device: str) -> None:
-    with _stats_lock:
-        s = _stats.get(task)
-        if s is None or s["device"] != device:
-            _stats[task] = {"ms": ms, "count": 1, "device": device}
-        else:
-            s["ms"] = s["ms"] * 0.8 + ms * 0.2
-            s["count"] += 1
-
-
 def check_token(authorization: str = Header(default="")) -> None:
     if TOKEN and authorization != f"Bearer {TOKEN}":
         raise HTTPException(status_code=401, detail="令牌不对")
@@ -282,6 +266,23 @@ def download_model(name: str) -> dict:
     return {"downloaded": model_files.downloaded(name), "progress": model_files.progress(name)}
 
 
+@app.delete("/models/{name}", dependencies=[Depends(check_token)])
+def delete_model(name: str) -> dict:
+    # 已经加载的先卸掉（正在算的请求拿着旧对象，算完就释放）
+    with _face_lock:
+        _face_models.pop(name, None)
+    with _clip_lock:
+        _clip_models.pop(name, None)
+    release_memory()
+    try:
+        model_files.delete(name)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=f"没有这个模型：{name}") from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    return {"downloaded": model_files.downloaded(name)}
+
+
 _gpu_cache: dict | None = None
 
 
@@ -311,7 +312,6 @@ runtime.gpu_usable = _gpu_usable
 def get_config() -> dict:
     return {
         "device": runtime.device_pref(),
-        "source": runtime.source_pref(),
         "gpu": gpu_info(),
         "threads": runtime.threads_pref(),
         "parallel": runtime.parallel_pref(),
@@ -329,14 +329,11 @@ def get_config() -> dict:
 @app.put("/config", dependencies=[Depends(check_token)])
 def put_config(
     device: str | None = Body(None, embed=True),
-    source: str | None = Body(None, embed=True),
     threads: int | None = Body(None, embed=True),
     parallel: int | None = Body(None, embed=True),
 ) -> dict:
     global _ocr_model
     try:
-        if source is not None:
-            runtime.set_source_pref(source)
         if device is None and threads is None and parallel is None:
             return get_config()
         if device is not None:
@@ -355,15 +352,7 @@ def put_config(
     with _clip_lock:
         _clip_models.clear()
     release_memory()
-    with _stats_lock:
-        _stats.clear()
     return get_config()
-
-
-@app.get("/stats", dependencies=[Depends(check_token)])
-def stats() -> dict:
-    with _stats_lock:
-        return {k: dict(v) for k, v in _stats.items()}
 
 
 @app.post("/predict", dependencies=[Depends(check_token)])
@@ -417,9 +406,7 @@ def analyze(img: np.ndarray, wanted: dict, filename: str | None, result: dict) -
         faces = model.analyze(img, float(opts.get("min_score", 0.5)))
         result["face"] = [f.__dict__ for f in faces]
         result["model_ids"]["face"] = name
-        ms = (time.perf_counter() - start) * 1000
-        record("face", ms, "cpu" if model.det.get_providers()[0] == "CPUExecutionProvider" else "gpu")
-        log.info("face %s：%d 张脸，%.0f ms", filename, len(faces), ms)
+        log.info("face %s：%d 张脸，%.0f ms", filename, len(faces), (time.perf_counter() - start) * 1000)
     if "clip" in wanted:
         opts = wanted["clip"] or {}
         name = opts.get("model") or DEFAULT_CLIP_MODEL
@@ -427,16 +414,13 @@ def analyze(img: np.ndarray, wanted: dict, filename: str | None, result: dict) -
         model = ready_clip(name)
         result["clip"] = {"embedding": model.image(img)}
         result["model_ids"]["clip"] = name
-        ms = (time.perf_counter() - start) * 1000
-        record("clip", ms, "cpu" if model.device == "cpu" else "gpu")
-        log.info("clip %s：%.0f ms", filename, ms)
+        log.info("clip %s：%.0f ms", filename, (time.perf_counter() - start) * 1000)
     if "ocr" in wanted:
         from .ocr import MODEL_ID
 
         start = time.perf_counter()
         result["ocr"] = ocr_model().read(img)
         result["model_ids"]["ocr"] = MODEL_ID
-        record("ocr", (time.perf_counter() - start) * 1000, "cpu")
         log.info(
             "ocr %s：%d 字，%.0f ms", filename, len(result["ocr"]["text"]), (time.perf_counter() - start) * 1000
         )

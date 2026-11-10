@@ -1,43 +1,46 @@
 import { Download, LoaderCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import Field from '@/components/ui/Field'
 import { Button } from '@/components/ui/Modal'
 import Segmented from '@/components/ui/Segmented'
-import TextField from '@/components/ui/TextField'
+import Tooltip from '@/components/ui/Tooltip'
 import {
   type AIDevice,
   type AIModel,
   type AIStatus,
-  type AISource,
   type AITier,
   aiStatus,
+  deleteAIModel,
   downloadAIModel,
   setAIDevice,
   setAIEndpoint,
-  setAISource,
   setAITier,
+  testAIEndpoint,
 } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { askConfirm, showError } from '@/lib/dialog'
+import { askConfirm, showAlert, showError } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
+import { versionLabel } from '@/lib/version'
+import SettingsCard from './SettingsCard'
 
-// 速度参考：Apple M 系列芯片上处理一张照片（1440 像素的预览图）大概要多久，毫秒。显卡越好、CPU 核越多越快，
-// 实际的看「最近实测」。文字识别只在 CPU 上算
-const REFERENCE: { task: string; label: string; gpu: number | null; cpu: number }[] = [
-  { task: 'face', label: '人脸识别', gpu: 40, cpu: 150 },
-  { task: 'clip', label: '语义搜索', gpu: 90, cpu: 1200 },
-  { task: 'ocr', label: '文字识别', gpu: null, cpu: 350 },
-]
+type Mode = 'builtin' | 'remote'
+type TestResult = { ok: boolean; version?: string; latency_ms?: number; error?: string }
 
-// AISettings 是设置页的「AI 服务」：AI 服务在本机还是远程（地址、令牌）、用 GPU 还是 CPU 算（附速度参考和实测）、
-// 模型下载了没有（没有可以点下载，看进度）。只有管理员能改，别人只能看
+// AISettings 是设置页的 AI 服务，三张卡片：
+//   服务运行方式：内置还是远程（地址、令牌），底栏是连接状态，「测试连接」「保存」；
+//   计算设备：这台 AI 服务器用 GPU 还是 CPU 算；
+//   模型档位：自动 / 高精度 / 均衡 / 轻量，下面的表列出各个模型下载了没有，可以下载、删除。
+// 模型从哪下载（huggingface.co 还是国内镜像）AI 服务自己试哪个通、哪个快。只有管理员能改，别人只能看
 export default function AISettings() {
   const { user } = useCurrentUser()
   const admin = user.is_admin
   const [status, setStatus] = useState<AIStatus | null>(null)
-  const [mode, setMode] = useState<'builtin' | 'remote'>('builtin')
+  const [mode, setMode] = useState<Mode>('builtin')
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
   const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [tested, setTested] = useState<TestResult | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -65,6 +68,18 @@ export default function AISettings() {
     return () => clearInterval(t)
   }, [downloading, load])
 
+  // 换了档位后重新处理到哪了；没处理完时每 3 秒刷新一次
+  const rp = status?.reprocess
+  const reprocessing = !!rp && (rp.face[0] < rp.face[1] || rp.clip[0] < rp.clip[1])
+  useEffect(() => {
+    if (!reprocessing || downloading) return
+    const t = setInterval(() => void load(), 3000)
+    return () => clearInterval(t)
+  }, [reprocessing, downloading, load])
+
+  // 改了地址、令牌或者运行方式，上次测试的结果就不算了
+  useEffect(() => setTested(null), [mode, url, token])
+
   const run = async (action: () => Promise<AIStatus>, failed: string) => {
     setBusy(true)
     try {
@@ -76,28 +91,46 @@ export default function AISettings() {
     }
   }
 
-  const saveEndpoint = () =>
-    run(async () => {
+  // 保存前看要换到的服务通不通：已知连不上的先问一句（连上之前 AI 处理都会暂停）；新填的地址保存后连不上也提示
+  const saveEndpoint = async () => {
+    if (!status) return
+    const known = mode === 'builtin' || (url === status.endpoint.remote_url && token === '')
+    const name = mode === 'builtin' ? '内置' : '远程'
+    const down = tested ? !tested.ok : known && !status.services[mode].up
+    if (down) {
+      const ok = await askConfirm('服务不可用', {
+        message: `${name}的 AI 服务现在连不上。仍然切换的话，连上之前人脸识别、语义搜索、文字识别都会暂停。`,
+        confirmLabel: '仍然切换',
+      })
+      if (!ok) return
+    }
+    await run(async () => {
       const s = await setAIEndpoint(mode, url, token)
       setToken('')
+      if (!s.connected && !down) {
+        showAlert('服务不可用', '已保存，但连不上这个地址的 AI 服务。连上之前 AI 处理会暂停。', 'warn')
+      }
       return s
     }, '地址没有保存成功')
+  }
+  const test = async () => {
+    setTesting(true)
+    try {
+      setTested(await testAIEndpoint(mode, url, token))
+    } catch (e) {
+      showError('没有测试成功', e)
+    } finally {
+      setTesting(false)
+    }
+  }
   const endpointChanged =
-    status &&
+    !!status &&
     (mode !== status.endpoint.mode || (mode === 'remote' && (url !== status.endpoint.remote_url || token !== '')))
 
   const gpu = status?.config?.gpu
   const device = status?.config?.device ?? 'auto'
   const models = status?.models?.catalog ?? []
   const inUse = new Set(status ? [status.in_use.face, status.in_use.clip] : [])
-  // 换了档位后重新处理到哪了；没处理完时每 3 秒刷新一次
-  const rp = status?.reprocess
-  const reprocessing = !!rp && (rp.face[0] < rp.face[1] || rp.clip[0] < rp.clip[1])
-  useEffect(() => {
-    if (!reprocessing || downloading) return
-    const t = setInterval(() => void load(), 3000)
-    return () => clearInterval(t)
-  }, [reprocessing, downloading, load])
 
   const switchTier = async (tier: AITier | 'auto') => {
     const reprocess =
@@ -117,176 +150,317 @@ export default function AISettings() {
           })
     if (ok) await run(() => setAITier(tier), '没有换成功')
   }
+  // 换计算设备：已经加载的模型要卸掉、按新设备重新加载，先问一句
+  const switchDevice = async (d: AIDevice) => {
+    if (d === device) return
+    const label = d === 'auto' ? '自动' : d === 'gpu' ? 'GPU' : '仅 CPU'
+    // 档位是自动时，换设备可能连带换档（GPU 用高精度，CPU 按内存用均衡或轻量），那样所有照片都要重新处理
+    const next = status?.tier_auto ? recommendFor(status, d) : null
+    const retier = next && next !== status?.tier ? TIERS.find((t) => t.value === next) : undefined
+    const ok = await askConfirm(`切换到「${label}」？`, {
+      message: retier
+        ? `档位是自动，会换成「${retier.label}」，所有照片要按新模型重新识别人脸、重新计算语义搜索，照片越多越久。期间人物、搜索照常能用。`
+        : '切换后将重新加载模型，正在进行的 AI 处理会稍等片刻再继续。',
+      confirmLabel: retier ? '切换并重新计算' : '切换',
+    })
+    if (ok) await run(() => setAIDevice(d), '没有切换成功')
+  }
+  const removeModel = async (m: AIModel) => {
+    const ok = await askConfirm(`删除「${m.label}」？`, {
+      message: `腾出大约 ${size(m.size_mb)} 的磁盘空间。以后要用到时会重新下载。`,
+      confirmLabel: '删除',
+      danger: true,
+    })
+    if (ok) await run(() => deleteAIModel(m.id), '没有删除成功')
+  }
   const rec = status ? recommendation(status) : null
 
   return (
     <>
-      <h3 className="mt-6 mb-2 text-body font-semibold text-muted">AI 服务</h3>
-      <ul className="divide-y divide-line rounded-panel border border-line bg-surface">
-        <li className="px-4 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="min-w-0 flex-1">
-              <span className="font-medium">运行方式</span>
-              <p className="mt-0.5 text-body text-muted">
-                内置：和相册一起用 Docker 启动，只在内部网络里，只有相册程序连得上，只能用 CPU。 远程：单独启动的 AI
-                服务，这台电脑上直接跑的（能用显卡）或者家里另一台电脑上的。两个可以都开着，在这里选用哪个。
-              </p>
-            </div>
-            <Segmented<'builtin' | 'remote'>
-              label="运行方式"
-              value={mode}
-              onChange={setMode}
-              segments={[
-                { value: 'builtin', label: '内置', disabled: !admin },
-                { value: 'remote', label: '远程', disabled: !admin },
-              ]}
+      <SettingsCard
+        title="AI 运行方式"
+        action={
+          <Segmented<Mode>
+            label="运行方式"
+            value={mode}
+            onChange={setMode}
+            segments={[
+              { value: 'builtin', label: '内置（仅 CPU）', disabled: !admin },
+              { value: 'remote', label: '远程服务', disabled: !admin },
+            ]}
+          />
+        }
+        footer={status && <Connection status={status} mode={mode} tested={tested} />}
+        footerActions={
+          admin && (
+            <>
+              <Button onClick={test} disabled={testing || (mode === 'remote' && !url.trim())}>
+                {testing && <LoaderCircle className="size-3.5 animate-spin" />}
+                测试连接
+              </Button>
+              <Button
+                primary
+                disabled={!endpointChanged || busy || (mode === 'remote' && !url.trim())}
+                onClick={saveEndpoint}
+              >
+                保存
+              </Button>
+            </>
+          )
+        }
+      >
+        {mode === 'remote' && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="服务地址"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="例如 http://192.168.1.20:3003"
+              className="font-mono"
+              disabled={!admin}
+            />
+            <Field
+              label="访问令牌"
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder={status?.endpoint.has_token ? '已设置，不修改请留空' : '未设置'}
+              autoComplete="off"
+              disabled={!admin}
             />
           </div>
-          {status && <Services status={status} />}
-          {mode === 'remote' && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_14rem]">
-              <TextField
-                label="地址，例如 http://192.168.1.20:3003"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={!admin}
-              />
-              <TextField
-                label={status?.endpoint.has_token ? '令牌（已设置，不改就空着）' : '令牌（可以不填）'}
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                autoComplete="off"
-                disabled={!admin}
-              />
-            </div>
-          )}
-          <div className="mt-3 flex items-center gap-3 empty:hidden">
-            {admin && endpointChanged && (
-              <Button primary disabled={busy || (mode === 'remote' && !url.trim())} onClick={saveEndpoint}>
-                保存并连接
-              </Button>
-            )}
-          </div>
-        </li>
+        )}
+      </SettingsCard>
 
-        {status?.connected && status.config && (
-          <li className="px-4 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <span className="font-medium">计算设备</span>
-                <p className="mt-0.5 text-body text-muted">
-                  {gpu?.available
-                    ? `这台 AI 服务器有显卡（${gpuName(gpu)}）。GPU 快很多；只用 CPU 时显卡可以留给别的程序。`
-                    : '这台 AI 服务器没有能用的显卡，只能用 CPU。'}
-                </p>
-              </div>
+      {status?.connected && status.config && (
+        <SettingsCard
+          title="计算设备"
+          description={!gpu?.available && '没有可用的显卡，仅 CPU 可用。'}
+          action={
+            gpu?.available && (
               <Segmented<AIDevice>
                 label="计算设备"
-                value={gpu?.available ? device : 'cpu'}
-                onChange={(d) => run(() => setAIDevice(d), '没有切换成功')}
+                value={device}
+                onChange={(d) => void switchDevice(d)}
                 segments={[
                   { value: 'auto', label: '自动', disabled: !admin || busy },
-                  {
-                    value: 'gpu',
-                    label: 'GPU',
-                    disabled: !admin || busy || !gpu?.available,
-                    title: gpu?.available ? undefined : '没有能用的显卡',
-                  },
-                  { value: 'cpu', label: 'CPU', disabled: !admin || busy },
+                  { value: 'gpu', label: `GPU（${gpuName(gpu)}）`, disabled: !admin || busy },
+                  { value: 'cpu', label: '仅 CPU', disabled: !admin || busy },
                 ]}
               />
-            </div>
-            <SpeedTable stats={status.stats ?? {}} />
-          </li>
-        )}
+            )
+          }
+          footer={gpu?.available && '切换后将重新加载模型。'}
+        />
+      )}
 
-        {status?.connected && models.length > 0 && (
-          <li className="px-4 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <span className="font-medium">档位</span>
-                <p className="mt-0.5 text-body text-muted">
-                  {status.tier_auto
-                    ? rec
-                      ? `自动：这台 AI 服务器${rec.why}，用「${rec.label}」。换了 AI 服务器会跟着换。`
-                      : '自动：按 AI 服务器的硬件选一档。'
-                    : (TIERS.find((t) => t.value === status.tier)?.hint ??
-                      '现在用的是启动时配置的模型组合，选一档后按那一档的来。')}
-                </p>
-                {!status.tier_auto && rec && (
-                  <p className="mt-0.5 text-body text-muted">
-                    这台 AI 服务器{rec.why}，推荐「{rec.label}」{status.tier === rec.tier && '（就是现在这档）'}。
-                  </p>
-                )}
-              </div>
-              <Segmented<AITier | 'auto' | 'custom'>
-                label="档位"
-                value={status.tier_auto ? 'auto' : status.tier}
-                onChange={(t) => t !== 'custom' && void switchTier(t)}
-                segments={[{ value: 'auto' as const, label: '自动' }, ...TIERS].map((t) => ({
-                  value: t.value,
-                  label: t.label,
-                  disabled: !admin || busy,
-                }))}
-              />
-            </div>
-            {reprocessing && rp && (
-              <div className="mt-4 space-y-2.5 rounded-control border border-line px-3 py-3">
-                <p className="text-caption text-muted">按新模型重新处理中，人物、搜索照常能用</p>
-                <Bar label="人脸识别" done={rp.face[0]} total={rp.face[1]} />
-                <Bar label="语义搜索" done={rp.clip[0]} total={rp.clip[1]} />
-              </div>
-            )}
-            <p className="mt-4 text-body text-muted">
-              标着「使用中」的是这一档用的模型。
+      {status?.connected && models.length > 0 && (
+        <SettingsCard
+          title="模型档位"
+          description={
+            status.tier_auto
+              ? `当前自动选择：${rec?.label ?? TIERS.find((t) => t.value === status.tier)?.label ?? '按硬件选'}`
+              : TIERS.find((t) => t.value === status.tier)?.hint
+          }
+          action={
+            <Segmented<AITier | 'auto' | 'custom'>
+              label="档位"
+              value={status.tier_auto ? 'auto' : status.tier}
+              onChange={(t) => t !== 'custom' && void switchTier(t)}
+              segments={[{ value: 'auto' as const, label: '自动' }, ...TIERS].map((t) => ({
+                value: t.value,
+                label: t.label,
+                disabled: !admin || busy,
+              }))}
+            />
+          }
+          footer={
+            <>
+              文字识别模型已内置。
               {status.models?.auto_download === false
-                ? '这个 AI 服务不会自动下载模型，没下载的在这里点下载；'
-                : '第一次用到时会自动下载，也可以先在这里下载好；'}
-              文字识别的模型随 AI 服务装好了，不用下载。
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <span className="text-body text-muted">下载源</span>
-              <Segmented<AISource>
-                label="下载源"
-                value={status.config?.source ?? 'auto'}
-                onChange={(v) => run(() => setAISource(v), '没有切换成功')}
-                segments={[
-                  { value: 'auto', label: '自动', disabled: !admin || busy },
-                  { value: 'huggingface', label: 'Hugging Face', disabled: !admin || busy },
-                  { value: 'mirror', label: '国内镜像', disabled: !admin || busy },
-                ]}
-              />
-              <span className="text-caption text-muted">自动：连不上 huggingface.co 时用 hf-mirror.com</span>
+                ? '删除的模型需要时在这里重新下载。'
+                : '删除的模型会在需要时重新下载。'}
+              {status.models?.storage && (
+                <span className="block text-caption">
+                  模型目录：<span className="font-mono">{status.models.storage.dir}</span>
+                  {status.models.storage.mounted === false && '（在容器里，重建容器后要重新下载）'}
+                </span>
+              )}
+            </>
+          }
+        >
+          {reprocessing && rp && (
+            <div className="mb-4 space-y-2.5 rounded-control border border-line px-3 py-3">
+              <p className="text-caption text-muted">按新模型重新处理中，人物、搜索照常能用</p>
+              <Bar label="人脸识别" done={rp.face[0]} total={rp.face[1]} />
+              <Bar label="语义搜索" done={rp.clip[0]} total={rp.clip[1]} />
             </div>
-            {status.models?.storage && (
-              <p className="mt-1 text-caption text-muted">
-                模型存在 <span className="font-mono">{status.models.storage.dir}</span>
-                {status.models.storage.mounted === true && '（挂载的目录，重建容器不用重新下载）'}
-                {status.models.storage.mounted === false &&
-                  '（在容器里，删掉容器要重新下载；挂载一个目录到这里就能留着）'}
-              </p>
-            )}
-            {models.some((m) => inUse.has(m.id) && !m.downloaded) && (
-              <p className="mt-3 rounded-control bg-warn/10 px-3 py-2 text-body text-warn">
-                这一档要用的模型还没下载，下载好之前人脸识别、语义搜索先暂停。
-              </p>
-            )}
-            <ul className="mt-3 space-y-2.5">
-              {models.map((m) => (
-                <ModelRow
-                  key={m.id}
-                  model={m}
-                  inUse={inUse.has(m.id)}
-                  canDownload={admin}
-                  onDownload={() => run(() => downloadAIModel(m.id), '没有开始下载')}
-                />
-              ))}
-            </ul>
-          </li>
-        )}
-      </ul>
+          )}
+          {models.some((m) => inUse.has(m.id) && !m.downloaded) && (
+            <p className="mb-4 rounded-control bg-warn/10 px-3 py-2 text-body text-warn">
+              当前档位的模型未下载，下载完成前人脸识别和语义搜索暂停。
+            </p>
+          )}
+          <ModelTable
+            models={models}
+            inUse={inUse}
+            admin={admin}
+            busy={busy}
+            onDownload={(m) => run(() => downloadAIModel(m.id), '没有开始下载')}
+            onDelete={removeModel}
+          />
+        </SettingsCard>
+      )}
     </>
+  )
+}
+
+// Connection 是运行方式底栏的状态：测过就显示测试的结果，否则显示选中的那个服务现在通不通、多快、什么版本
+function Connection({ status, mode, tested }: { status: AIStatus; mode: Mode; tested: TestResult | null }) {
+  const using = status.endpoint.mode === mode
+  let ok: boolean
+  let detail: string
+  if (tested) {
+    ok = tested.ok
+    detail = tested.ok ? `测试通过 · ${latency(tested.latency_ms)} · ${versionLabel(tested.version ?? '')}` : '无法连接'
+  } else if (using && status.connected) {
+    ok = true
+    detail = `已连接 · ${latency(status.latency_ms)} · ${versionLabel(status.health?.version ?? '')}`
+  } else {
+    const s = status.services[mode]
+    ok = s.up
+    detail = s.up
+      ? `运行中 · ${versionLabel(s.version)}${using ? '' : ' · 未启用'}`
+      : using
+        ? '无法连接，AI 处理已暂停'
+        : '无法连接'
+  }
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className={cx('size-2 shrink-0 rounded-full', ok ? 'bg-ok' : 'bg-danger')} />
+      <span className={cx('truncate', ok ? 'text-ok' : 'text-danger')}>{detail}</span>
+    </span>
+  )
+}
+
+const latency = (ms?: number) => (ms === undefined ? '—' : `${Math.max(1, Math.round(ms))} ms`)
+
+// modelName 把 AI 服务给的名字「语义搜索 · 高精度（H/14）」拆成名字和型号（型号放在次要信息里）
+function modelName(label: string): { name: string; variant: string } {
+  const m = label.match(/^(.*?)（(.*)）$/)
+  return m ? { name: m[1], variant: m[2] } : { name: label, variant: '' }
+}
+
+// ModelTable 是档位卡片里的模型表：名字和模型 ID、大小、状态（使用中 / 已下载 / 下载中 / 没下载）、操作（下载 / 删除）
+function ModelTable({
+  models,
+  inUse,
+  admin,
+  busy,
+  onDownload,
+  onDelete,
+}: {
+  models: AIModel[]
+  inUse: Set<string>
+  admin: boolean
+  busy: boolean
+  onDownload: (m: AIModel) => void
+  onDelete: (m: AIModel) => void
+}) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-line">
+      <table className="w-full min-w-[520px] text-body">
+        <thead className="border-b border-line text-caption text-muted">
+          <tr>
+            <th className="px-4 py-2.5 text-left font-medium">模型</th>
+            <th className="px-4 py-2.5 text-left font-medium">大小</th>
+            <th className="px-4 py-2.5 text-left font-medium">状态</th>
+            {admin && <th className="px-4 py-2.5 text-right font-medium">操作</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {models.map((m) => {
+            const p = m.progress
+            const active = p?.state === 'downloading'
+            const used = inUse.has(m.id)
+            return (
+              <tr key={m.id}>
+                <td className="px-4 py-3">
+                  <div>{modelName(m.label).name}</div>
+                  <div className="font-mono text-caption text-muted">
+                    {[m.id, modelName(m.label).variant].filter(Boolean).join(' · ')}
+                  </div>
+                  {p?.state === 'error' && <div className="mt-1 text-caption text-danger">下载失败：{p.error}</div>}
+                </td>
+                <td className="px-4 py-3 font-mono text-caption whitespace-nowrap text-muted">{size(m.size_mb)}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {active ? (
+                    <Progress done={p.done} total={p.total} />
+                  ) : m.downloaded ? (
+                    <Badge tone={used ? 'ok' : 'plain'}>{used ? '使用中' : '已下载'}</Badge>
+                  ) : (
+                    <Badge tone={used ? 'warn' : 'none'}>{used ? '未下载（需要）' : '未下载'}</Badge>
+                  )}
+                </td>
+                {admin && (
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {active ? null : m.downloaded ? (
+                      <Tooltip label={used ? '正在用，换到别的档位后才能删' : '删除，腾出磁盘空间'}>
+                        <span>
+                          <Button danger label={`删除${m.label}`} disabled={used || busy} onClick={() => onDelete(m)}>
+                            删除
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      <Button primary disabled={busy} onClick={() => onDownload(m)}>
+                        <Download className="size-3.5" strokeWidth={2} />
+                        {p?.state === 'error' ? '重试' : '下载'}
+                      </Button>
+                    )}
+                  </td>
+                )}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Badge({ tone, children }: { tone: 'ok' | 'plain' | 'warn' | 'none'; children: string }) {
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-caption',
+        tone === 'ok' && 'bg-ok/12 text-ok',
+        tone === 'plain' && 'bg-fg/[0.06] text-muted',
+        tone === 'warn' && 'bg-warn/12 text-warn',
+        tone === 'none' && 'text-muted',
+      )}
+    >
+      {tone === 'ok' && <span className="size-1.5 rounded-full bg-ok" />}
+      {children}
+    </span>
+  )
+}
+
+function Progress({ done, total }: { done: number; total: number }) {
+  const ratio = total ? done / total : 0
+  return (
+    <div className="w-36">
+      <div className="flex items-center gap-1.5 text-caption text-muted tabular-nums">
+        <LoaderCircle className="size-3.5 animate-spin" />
+        {total ? `${Math.floor(ratio * 100)}% · ${mb(done)} / ${mb(total)}` : mb(done)}
+      </div>
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-line">
+        <div
+          className="h-full rounded-full bg-accent transition-[width] duration-500"
+          style={{ width: `${Math.max(2, ratio * 100)}%` }}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -296,6 +470,17 @@ const TIERS: { value: AITier; label: string; hint: string }[] = [
   { value: 'balanced', label: '均衡', hint: '语义搜索换小一号的模型，适合 Intel i5 级别的 NAS。' },
   { value: 'lite', label: '轻量', hint: '人脸、语义搜索都用小模型，适合 N100、树莓派 5。' },
 ]
+
+// recommendFor 是换到计算设备 d 后自动档会选哪档（和后端 ai.Recommend 一样：有显卡且不是仅 CPU 用高精度，
+// 否则内存不到 6 GB 轻量、再大均衡）
+function recommendFor(status: AIStatus, d: AIDevice): AITier | null {
+  const cfg = status.config
+  if (!cfg) return null
+  if (cfg.gpu.available && d !== 'cpu') return 'quality'
+  const mem = cfg.memory?.total ?? 0
+  if (mem <= 0) return null
+  return mem < 6 * (1 << 30) ? 'lite' : 'balanced'
+}
 
 // recommendation 是后端按 AI 服务器的硬件推荐的那档（有显卡高精度；只有 CPU 时内存不到 6 GB 轻量，再大均衡），
 // 和为什么（显示给人看）
@@ -337,145 +522,6 @@ function gpuName(gpu: NonNullable<NonNullable<AIStatus['config']>['gpu']>) {
   return '显卡'
 }
 
-// Connection 是连接状态：绿勾「已连接 · 版本」，红色「连不上」和原因
-// Services 是两个 AI 服务各自在不在：内置（Docker 里的）和远程（单独启动的），现在用的那个标「使用中」
-function Services({ status }: { status: AIStatus }) {
-  const rows = [
-    { key: 'builtin' as const, label: '内置', where: 'Docker 里的 AI 服务' },
-    {
-      key: 'remote' as const,
-      label: '远程',
-      where: status.endpoint.remote_url || '还没填地址',
-    },
-  ]
-  return (
-    <ul className="mt-3 space-y-1.5">
-      {rows.map((r) => {
-        const s = status.services[r.key]
-        const using = status.endpoint.mode === r.key
-        return (
-          <li key={r.key} className="flex min-w-0 items-center gap-2 text-body">
-            <span className={cx('size-2 shrink-0 rounded-full', s.up ? 'bg-ok' : 'bg-line-strong')} />
-            <span className="shrink-0 font-medium">{r.label}</span>
-            <span className="min-w-0 truncate text-muted">
-              {r.where} ·{' '}
-              {s.up ? `运行中 · 版本 ${s.version}` : r.key === 'remote' && !status.endpoint.remote_url ? '' : '连不上'}
-            </span>
-            {using && (
-              <span
-                className={cx(
-                  'shrink-0 rounded px-1.5 text-micro',
-                  s.up ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger',
-                )}
-              >
-                使用中
-              </span>
-            )}
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)} 秒` : `${Math.round(v)} 毫秒`)
-
-// SpeedTable 是处理一张照片要多久：GPU、CPU 的参考值（Apple M 系列），和这台 AI 服务器最近的实测
-function SpeedTable({ stats }: { stats: NonNullable<AIStatus['stats']> }) {
-  return (
-    <div className="mt-4 overflow-hidden rounded-control border border-line">
-      <table className="w-full text-body">
-        <thead className="bg-fg/[0.03] text-caption text-muted">
-          <tr>
-            <th className="px-3 py-2 text-left font-medium">每张照片</th>
-            <th className="px-3 py-2 text-right font-medium">GPU 参考</th>
-            <th className="px-3 py-2 text-right font-medium">CPU 参考</th>
-            <th className="px-3 py-2 text-right font-medium">最近实测</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line tabular-nums">
-          {REFERENCE.map((r) => {
-            const s = stats[r.task]
-            return (
-              <tr key={r.task}>
-                <td className="px-3 py-2">{r.label}</td>
-                <td className="px-3 py-2 text-right text-muted">{r.gpu === null ? '—' : `约 ${ms(r.gpu)}`}</td>
-                <td className="px-3 py-2 text-right text-muted">约 {ms(r.cpu)}</td>
-                <td className="px-3 py-2 text-right">
-                  {s ? (
-                    <>
-                      {ms(s.ms)} <span className="text-caption text-muted">{s.device.toUpperCase()}</span>
-                    </>
-                  ) : (
-                    <span className="text-muted">还没算过</span>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-      <p className="border-t border-line px-3 py-2 text-caption text-muted">
-        参考值是 Apple M 系列芯片上的大概数字；1 万张照片全部算完，GPU 大约 1.5 小时，CPU 大约 5 小时。
-      </p>
-    </div>
-  )
-}
-
+const size = (sizeMb: number) => (sizeMb >= 1000 ? `${(sizeMb / 1024).toFixed(1)} GB` : `${sizeMb} MB`)
 const mb = (bytes: number) =>
   bytes >= 1 << 30 ? `${(bytes / (1 << 30)).toFixed(1)} GB` : `${Math.round(bytes / (1 << 20))} MB`
-
-// ModelRow 是一个模型：名字、大小，右边是状态（已下载 / 使用中）或「下载」；下载中下面一条进度条
-function ModelRow({
-  model,
-  inUse,
-  canDownload,
-  onDownload,
-}: {
-  model: AIModel
-  inUse: boolean
-  canDownload: boolean
-  onDownload: () => void
-}) {
-  const p = model.progress
-  const active = p?.state === 'downloading'
-  const ratio = p && p.total ? p.done / p.total : 0
-  return (
-    <li>
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <span className="text-body">{model.label}</span>
-          <span className="ml-2 text-caption text-muted">
-            约 {model.size_mb >= 1000 ? `${(model.size_mb / 1024).toFixed(1)} GB` : `${model.size_mb} MB`}
-          </span>
-        </div>
-        {model.downloaded ? (
-          <span className={cx('text-caption', inUse ? 'text-ok' : 'text-muted')}>{inUse ? '使用中' : '已下载'}</span>
-        ) : active ? (
-          <span className="flex items-center gap-1.5 text-caption text-muted tabular-nums">
-            <LoaderCircle className="size-3.5 animate-spin" />
-            {p.total ? `${Math.floor(ratio * 100)}% · ${mb(p.done)} / ${mb(p.total)}` : `${mb(p.done)}`}
-          </span>
-        ) : (
-          canDownload && (
-            <Button onClick={onDownload}>
-              <span className="flex items-center gap-1.5">
-                <Download className="size-3.5" strokeWidth={2} />
-                {p?.state === 'error' ? '重试' : '下载'}
-              </span>
-            </Button>
-          )
-        )}
-      </div>
-      {active && (
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
-          <div
-            className="h-full rounded-full bg-accent transition-[width] duration-500"
-            style={{ width: `${Math.max(2, ratio * 100)}%` }}
-          />
-        </div>
-      )}
-      {p?.state === 'error' && <p className="mt-1 text-caption text-danger">下载失败：{p.error}</p>}
-    </li>
-  )
-}

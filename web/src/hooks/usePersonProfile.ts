@@ -22,7 +22,10 @@ export function usePersonProfile(id: string) {
         while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value as string)
         if (alive) setState({ id, profile, error: null })
       })
-      .catch((e) => alive && setState({ id, profile: cache.get(id) ?? null, error: e instanceof Error ? e.message : String(e) }))
+      .catch(
+        (e) =>
+          alive && setState({ id, profile: cache.get(id) ?? null, error: e instanceof Error ? e.message : String(e) }),
+      )
     return () => {
       alive = false
     }

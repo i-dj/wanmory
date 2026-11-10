@@ -404,6 +404,24 @@ export const setupAdmin = (name: string, password: string) =>
   send<{ user: User }>('POST', '/api/auth/setup', { name, password })
 export const logout = () => send<void>('POST', '/api/auth/logout')
 export const changePassword = (old: string, next: string) => send<void>('PUT', '/api/auth/password', { old, new: next })
+// 「我的账号」页：自己传了几张、隐藏了几张，在哪些设备上登录着（见 server/internal/auth/account.go）
+export interface Device {
+  created_at: string
+  expires_at: string
+  user_agent: string // 浏览器的 User-Agent；以前登录、还没再用过的是空的
+  ip: string // 最近一次从哪个 IP 用的
+  last_seen: string | null // 最近一次用的时间
+  current: boolean // 就是现在这台
+}
+export interface Account {
+  user: User
+  uploaded: number
+  hidden: number
+  devices: Device[]
+}
+export const getAccount = () => getJSON<Account>('/api/auth/account')
+export const renameMe = (name: string) => send<{ user: User }>('PUT', '/api/auth/name', { name })
+export const logoutOthers = () => send<void>('DELETE', '/api/auth/sessions')
 export const setAvatar = (assetId: string | null) =>
   send<{ user: User }>('PUT', '/api/auth/avatar', { asset_id: assetId })
 export const listUsers = () => getJSON<User[]>('/api/users')
@@ -694,7 +712,6 @@ export const moveFaces = (from: string, assetIds: string[], target: MoveTarget) 
 
 export type AIDevice = 'auto' | 'gpu' | 'cpu'
 export type AITier = 'quality' | 'balanced' | 'lite'
-export type AISource = 'auto' | 'huggingface' | 'mirror' // 模型从哪下载：自动、huggingface.co、国内镜像 hf-mirror.com
 export interface AIModel {
   id: string
   kind: 'face' | 'clip'
@@ -715,10 +732,10 @@ export interface AIStatus {
   tier_recommended?: AITier | '' // 按 AI 服务器的硬件推荐的那档（不知道硬件时是空的）
   reprocess?: { face: [number, number]; clip: [number, number] } // 现在的模型处理了多少张、一共多少张
   error?: string
+  latency_ms?: number // 现在用的 AI 服务回一次话要多久
   health?: { version: string; providers: string[] }
   config?: {
     device: AIDevice
-    source?: AISource
     gpu: { available: boolean; onnx: string[]; torch: string | null }
     threads?: number // 用 CPU 算时每个模型几个线程，0 是自动（threads_auto）
     threads_auto?: number
@@ -730,14 +747,20 @@ export interface AIStatus {
   } | null
   // storage：模型存在哪，mounted 是不是挂载进容器的目录（不在容器里时是 null）；auto_download 为 false 时要手动下载
   models?: { catalog?: AIModel[]; storage?: { dir: string; mounted: boolean | null }; auto_download?: boolean } | null
-  stats?: Record<string, { ms: number; count: number; device: 'gpu' | 'cpu' }> | null
 }
 export const aiStatus = () => getJSON<AIStatus>('/api/ai/status')
 export const setAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '') =>
   send<AIStatus>('PUT', '/api/ai/endpoint', { mode, url, token })
 export const setAIDevice = (device: AIDevice) => send<AIStatus>('PUT', '/api/ai/device', { device })
 export const setAITier = (tier: AITier | 'auto') => send<AIStatus>('PUT', '/api/ai/tier', { tier })
-export const setAISource = (source: AISource) => send<AIStatus>('PUT', '/api/ai/source', { source })
+export const deleteAIModel = (id: string) => send<AIStatus>('DELETE', `/api/ai/models/${encodeURIComponent(id)}`)
+// testAIEndpoint 不保存，只试一下填的地址连不连得上（令牌空着时用存着的）
+export const testAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '') =>
+  send<{ ok: boolean; version?: string; latency_ms?: number; error?: string }>('POST', '/api/ai/test', {
+    mode,
+    url,
+    token,
+  })
 export const setAIParallel = (parallel: number) => send<AIStatus>('PUT', '/api/ai/parallel', { parallel })
 export const setAIThreads = (threads: number) => send<AIStatus>('PUT', '/api/ai/threads', { threads })
 export const downloadAIModel = (id: string) =>

@@ -1,85 +1,141 @@
-import { type ReactNode, useEffect } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { type ReactNode, useEffect, useId } from 'react'
+import { createPortal } from 'react-dom'
+import DialogClose from '@/components/ui/DialogClose'
 import { cx } from '@/lib/cx'
 import { lockScroll } from '@/lib/scrollLock'
 
-// Modal 是弹出层：手机上从底部弹出，桌面上居中。按 Esc 或点遮罩关闭。
+// Modal 是所有弹出窗口的外框（重置密码、删除成员、设置生日、选目录、选头像……都用它）：
+//   压暗的背景上居中一张磨砂半透明的卡片（.glass-dialog），右上角圆形「×」；
+//   顶上可以有圆形图标（icon），旁边标题，标题下面一行小字（subtitle）；
+//   下面是 children，最后一般放 <DialogActions>（等宽的按钮，左边取消、右边主要操作）。
+// 按 Esc、点背景关闭；弹出时背后的页面不滚动。width 是卡片最宽多少（默认 420px）；
+// inline 时不挂到 body 下，就地渲染（大图查看器里的编辑窗口，跟着查看器用深色主题）
 export default function Modal({
   title,
+  subtitle,
+  icon: Icon,
   onClose,
   children,
-  footer,
+  width = 'max-w-105',
+  inline,
 }: {
   title: string
+  subtitle?: ReactNode
+  icon?: LucideIcon
   onClose: () => void
   children: ReactNode
-  footer?: ReactNode
+  width?: string
+  inline?: boolean
 }) {
+  const titleId = useId()
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    const unlock = lockScroll() // 弹出时背后的页面不滚动
+    const unlock = lockScroll()
     return () => {
       window.removeEventListener('keydown', onKey)
       unlock()
     }
   }, [onClose])
 
-  return (
+  const dialog = (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/25 sm:items-center sm:p-4"
+      className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
+      {/* 压暗、模糊的那层单独垫着（外层带 backdrop-filter 时卡片自己的磨砂会失灵） */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/25 backdrop-blur-[6px]" />
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title}
-        className="glass-dialog flex max-h-[85vh] w-full flex-col rounded-t-dialog shadow-xl sm:max-w-lg sm:rounded-panel"
+        aria-labelledby={titleId}
+        className={cx('dialog-card glass-dialog max-h-[90vh] w-full overflow-y-auto rounded-dialog p-6', width)}
       >
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <h3 className="text-heading font-semibold">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="关闭"
-            className="rounded-control px-2 text-xl leading-none text-muted hover:text-fg"
-          >
-            ×
-          </button>
+        <DialogClose onClose={onClose} />
+        <div className="flex min-h-10 items-center gap-3 pr-8">
+          {Icon && (
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+              <Icon className="size-4.5" strokeWidth={1.9} />
+            </div>
+          )}
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-heading font-semibold">
+              {title}
+            </h2>
+            {subtitle && <p className="truncate text-caption text-muted">{subtitle}</p>}
+          </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-        {footer && <div className="border-t border-line px-4 py-3">{footer}</div>}
+        <div className="mt-5">{children}</div>
       </div>
     </div>
   )
+  return inline ? dialog : createPortal(dialog, document.body)
 }
 
+// DialogActions 是弹出窗口最下面那排按钮：等宽，左边次要（取消）、右边主要。放在 children 的最后（表单里也行，提交按钮要在 form 里）
+export function DialogActions({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cx('mt-6 grid auto-cols-fr grid-flow-col gap-2.5', className)}>{children}</div>
+}
+
+// DialogError 是按钮上方那一行红字（没填、密码太短、名字重了……），不用浏览器自带的气泡。
+// 没有错误时也占着一行高度，出错时窗口不会跳
+export function DialogError({ children }: { children?: ReactNode }) {
+  return (
+    <p role="alert" className="mt-3 min-h-5 text-body text-danger">
+      {children}
+    </p>
+  )
+}
+
+// dialogInputClass 是弹出窗口里的输入框，和设置页的一样（见 Field.tsx）
+export { inputClass as dialogInputClass } from '@/components/ui/Field'
+
+// Button 是对话框、设置卡片里的按钮：
+//   primary：实心（深色主题白底黑字，浅色主题黑底白字），例如「保存」；不能点时是灰底灰字（不是半透明的白块）；
+//   danger：淡红底红字，例如「删除」；
+//   普通：很淡的底、细边框，例如「测试连接」「取消」。两个按钮挨着时一主一次：主要的 primary，另一个用普通的。
+// small 时矮一点（表格里每行的操作）
 export function Button({
   children,
   onClick,
   primary,
+  danger,
+  small,
   disabled,
   type = 'button',
+  label,
+  title,
 }: {
   children: ReactNode
   onClick?: () => void
   primary?: boolean
+  danger?: boolean
+  small?: boolean
   disabled?: boolean
   type?: 'button' | 'submit'
+  label?: string // 读屏用的名字（按钮上的字不够清楚时）
+  title?: string // 鼠标停上去的提示
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-label={label}
+      title={title}
       className={cx(
-        'shrink-0 rounded-control px-3 py-1.5 text-body disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+        small ? 'h-8 px-3 text-caption' : 'h-9 px-3.5 text-body',
         primary
-          ? 'bg-accent font-medium text-on-accent hover:opacity-90'
-          : 'border border-line bg-surface hover:bg-accent-soft',
+          ? 'border border-transparent bg-fg text-page hover:bg-fg/85 disabled:border-line disabled:bg-fg/[0.06] disabled:text-muted disabled:opacity-100'
+          : danger
+            ? 'border border-danger/25 bg-danger/10 text-danger hover:bg-danger/15'
+            : 'border border-line bg-fg/[0.04] text-fg hover:bg-fg/[0.08]',
       )}
     >
       {children}

@@ -9,7 +9,7 @@ const MARGIN = 8 // 离窗口边缘至少这么远
 let lastHidden = 0
 
 // Tooltip 是鼠标停在按钮上时出现的小提示，代替浏览器自带的 title（那个要等很久、样子也和页面不搭）。
-// 默认在上面，上面放不下就放到下面；左右不超出窗口。键盘 Tab 到按钮上也会出现。
+// 默认在上面，上面放不下就放到下面；side 为 right 时在右边（收起的侧边栏）；不超出窗口。键盘 Tab 到按钮上也会出现。
 // 包一层 display: contents 的 span，不影响按钮本身的布局。
 export default function Tooltip({
   label,
@@ -17,7 +17,7 @@ export default function Tooltip({
   children,
 }: {
   label: ReactNode
-  side?: 'top' | 'bottom'
+  side?: 'top' | 'bottom' | 'right'
   children: ReactElement
 }) {
   const wrap = useRef<HTMLSpanElement>(null)
@@ -58,6 +58,16 @@ export default function Tooltip({
     const target = wrap.current?.firstElementChild?.getBoundingClientRect()
     const box = tip.current?.getBoundingClientRect()
     if (!target || !box) return
+    if (side === 'right') {
+      setPos({
+        left: target.right + GAP,
+        top: Math.min(
+          Math.max(MARGIN, target.top + target.height / 2 - box.height / 2),
+          window.innerHeight - MARGIN - box.height,
+        ),
+      })
+      return
+    }
     const above = target.top - GAP - box.height
     const top =
       side === 'top' && above >= MARGIN

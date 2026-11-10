@@ -94,7 +94,9 @@ function SubLine({
   let text: string | null = span
   if (person.birthday) {
     const b = parseDate(person.birthday)
-    text = [ageAt(person.birthday, new Date()), `${b.getMonth() + 1} 月 ${b.getDate()} 日生日`].filter(Boolean).join(' · ')
+    text = [ageAt(person.birthday, new Date()), `${b.getMonth() + 1} 月 ${b.getDate()} 日生日`]
+      .filter(Boolean)
+      .join(' · ')
   }
   const Icon = person.birthday ? Cake : CalendarRange
   return (

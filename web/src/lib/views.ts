@@ -57,7 +57,6 @@ export const HIDDEN: View = {
   empty: '没有隐藏的照片。选中照片后在「更多」里点「隐藏」，它们就只会出现在这里。',
   layout: 'days',
   dayOf: (a) => a.sort_time, // 按拍摄的日子
-  note: '不会出现在图库和相册里',
 }
 
 export const DELETED: View = {
@@ -67,17 +66,18 @@ export const DELETED: View = {
   empty: '最近删除是空的。删除的照片会先放在这里，随时可以恢复。',
   layout: 'days',
   dayOf: (a) => a.deleted_at ?? a.sort_time, // 按删除的日子
-  note: '可以恢复，永久删除后无法找回',
 }
 
-// 自动分类：AI 看照片内容分出来的（截图还认文件名和 iPhone 的标记）。键和后端 clip 包里的一致
-export const CATEGORIES: { key: string; label: string }[] = [
-  { key: 'screenshot', label: 'App' }, // 手机、电脑、网页、聊天的截图
-  { key: 'id', label: '证件' },
-  { key: 'document', label: '文档' },
-  { key: 'food', label: '美食' },
-  { key: 'pet', label: '宠物' },
+// 自动分类：AI 看照片内容分出来的（截图还认文件名和 iPhone 的标记）。键和后端 clip 包里的一致。
+// more 的几类（截图、文档、证件）在菜单「分类」里收在「更多」下面
+export const CATEGORIES: { key: string; label: string; more?: boolean }[] = [
   { key: 'scenery', label: '风景' },
+  { key: 'food', label: '美食' },
+  { key: 'pet', label: '动物' }, // 键还叫 pet（以前叫「宠物」），猫狗以外的鸟、动物园里的动物也算
+  { key: 'plant', label: '植物' },
+  { key: 'screenshot', label: '截图', more: true }, // 手机、电脑、网页、聊天的截图
+  { key: 'document', label: '文档', more: true },
+  { key: 'id', label: '证件', more: true },
 ]
 export const CATEGORY_VIEWS: View[] = CATEGORIES.map((c) => ({
   path: `/category/${c.key}`,
@@ -87,6 +87,15 @@ export const CATEGORY_VIEWS: View[] = CATEGORIES.map((c) => ({
   layout: 'timeline',
 }))
 
+// 视频：按文件类型分，不用等 AI。菜单「分类」里的一项
+export const VIDEOS: View = {
+  path: '/videos',
+  title: '视频',
+  filter: { kind: 'video' },
+  empty: '还没有视频。',
+  layout: 'timeline',
+}
+
 // 媒体类型：按文件本身分，不用等 AI。照片不含动图。工具栏的「筛选」菜单、搜索框的「类型」用
 export const MEDIA_KINDS: { kind: NonNullable<Filter['kind']>; label: string }[] = [
   { kind: 'photo', label: '照片' },
@@ -94,7 +103,7 @@ export const MEDIA_KINDS: { kind: NonNullable<Filter['kind']>; label: string }[]
   { kind: 'gif', label: '动图' },
 ]
 export const kindLabel = (kind: Filter['kind']) => MEDIA_KINDS.find((k) => k.kind === kind)?.label ?? '照片'
-export const PHOTO_VIEWS = [LIBRARY, RECENT, FAVORITES, ...RATINGS, HIDDEN, DELETED, ...CATEGORY_VIEWS]
+export const PHOTO_VIEWS = [LIBRARY, RECENT, FAVORITES, VIDEOS, ...RATINGS, HIDDEN, DELETED, ...CATEGORY_VIEWS]
 
 // SearchQuery 是搜索框里的搜索词和筛选条件，可以只有其中几样
 export type SearchQuery = Pick<Filter, 'q' | 'camera' | 'lens' | 'tag' | 'kind' | 'person'>
@@ -298,8 +307,7 @@ function findPersonRoute(path: string, people: Person[]): Route | undefined {
 
 export function findRoute(path: string, albums: Album[], people: Person[]): Route | undefined {
   const fixed = PHOTO_VIEWS.find((v) => v.path === path)
-  // 自动分类侧边栏上没有单独的一项，亮「图库」
-  if (fixed) return CATEGORY_VIEWS.includes(fixed) ? { view: fixed, sidebar: LIBRARY.path } : { view: fixed }
+  if (fixed) return { view: fixed } // 分类也在菜单「分类」里，亮它自己
   if (path.startsWith('/person/')) return findPersonRoute(path, people)
   if (path.startsWith('/memory/')) return memoryRoute(path)
   if (path.startsWith('/places/')) return areaRoute(path)

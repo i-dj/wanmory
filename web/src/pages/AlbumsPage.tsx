@@ -96,7 +96,7 @@ export default function AlbumsPage({
                   {album.kind === 'smart' && (
                     <Sparkles className="size-3.5 shrink-0" strokeWidth={2.2} aria-label="智能相册" />
                   )}
-                  {album.private && <Lock className="size-3.5 shrink-0" strokeWidth={2.2} aria-label="私有" />}
+                  {album.private && <Lock className="size-3.5 shrink-0" strokeWidth={2.2} aria-label="仅自己" />}
                 </span>
                 <span className="block truncate text-caption text-white/85 tabular-nums">
                   {album.count.toLocaleString()} 项

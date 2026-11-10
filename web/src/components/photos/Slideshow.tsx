@@ -24,7 +24,9 @@ import { type BackdropMode, BACKDROP_LABELS, fillsScreen, paintFrame } from '@/l
 import { canUseWebGL, GL_EFFECT_NAMES, GL_EFFECTS, type GLEffect, GLSlideshow } from '@/lib/glSlideshow'
 import { MOOD_LABELS, type Mood, MUSIC_CREDIT, TRACKS, trackFor, TrackPlayer } from '@/lib/musicLibrary'
 import Filmstrip from './Filmstrip'
+import DialogButton from '@/components/ui/DialogButton'
 import DialogClose from '@/components/ui/DialogClose'
+import { DialogActions } from '@/components/ui/Modal'
 
 const SPEEDS = [4, 3, 2, 1.5, 1] // 每张停几小节，从慢到快；速度滑块的五档，默认中间（两小节，大约 4 秒）
 const IDLE_MS = 2500
@@ -549,7 +551,7 @@ function OptionsDialog({
           e.preventDefault()
           onSave(draft)
         }}
-        className="popover-card glass-dialog w-full max-w-96 rounded-dialog px-8 pt-8 pb-7 text-fg shadow-2xl"
+        className="popover-card glass-dialog w-full max-w-96 rounded-dialog px-8 pt-8 pb-7 text-fg"
       >
         <DialogClose onClose={onClose} />
         <SquarePlay className="mx-auto size-11 text-select" strokeWidth={1.6} />
@@ -631,22 +633,12 @@ function OptionsDialog({
 
         <p className="mt-6 text-center text-caption text-muted">{MUSIC_CREDIT}</p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-12 rounded-panel bg-fg/12 text-heading transition hover:bg-fg/18 active:scale-[0.98]"
-          >
-            取消
-          </button>
-          <button
-            type="submit"
-            autoFocus
-            className="h-12 rounded-panel bg-select text-heading font-medium text-on-accent transition hover:brightness-110 active:scale-[0.98]"
-          >
+        <DialogActions className="mt-4">
+          <DialogButton onClick={onClose}>取消</DialogButton>
+          <DialogButton type="submit" variant="primary" autoFocus>
             保存
-          </button>
-        </div>
+          </DialogButton>
+        </DialogActions>
       </form>
     </div>
   )

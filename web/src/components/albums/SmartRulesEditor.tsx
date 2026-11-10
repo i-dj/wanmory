@@ -79,7 +79,7 @@ export default function SmartRulesEditor({
         type="button"
         onClick={add}
         disabled={value.rules.length >= MAX_RULES}
-        className="mt-3 flex items-center gap-1.5 rounded-control bg-line/50 px-3 py-1.5 text-body font-medium transition hover:bg-line active:scale-[0.97] disabled:opacity-40"
+        className="mt-3 inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-fg/[0.04] px-3.5 text-body font-medium whitespace-nowrap text-fg transition-colors hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus className="size-4" strokeWidth={2.2} />
         添加条件

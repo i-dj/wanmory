@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import AlbumDialog from '@/components/albums/AlbumDialog'
-import Sidebar, { SETTINGS_PATH } from '@/components/layout/Sidebar'
+import Sidebar, { ACCOUNT_PATH, SETTINGS_PATH } from '@/components/layout/Sidebar'
 import { useAlbums } from '@/hooks/useAlbums'
 import { usePeople } from '@/hooks/usePeople'
 import { usePath } from '@/hooks/usePath'
@@ -33,6 +33,7 @@ import PhotosPage from '@/pages/PhotosPage'
 import PlacesPage from '@/pages/PlacesPage'
 import BurstsPage from '@/pages/BurstsPage'
 import SettingsPage from '@/pages/SettingsPage'
+import AccountPage from '@/pages/AccountPage'
 import { showError } from '@/lib/dialog'
 import { SearchScope } from '@/components/photos/GlobalSearch'
 
@@ -56,21 +57,24 @@ export default function App() {
   const page =
     path === SETTINGS_PATH
       ? 'settings'
-      : path === PEOPLE_PATH
-        ? 'people'
-        : path === ALBUMS_PATH
-          ? 'albums'
-          : path === PLACES_PATH
-            ? 'places'
-            : path === BURSTS_PATH
-              ? 'bursts'
-              : personTab
-                ? 'person'
-                : 'photos'
+      : path === ACCOUNT_PATH
+        ? 'account'
+        : path === PEOPLE_PATH
+          ? 'people'
+          : path === ALBUMS_PATH
+            ? 'albums'
+            : path === PLACES_PATH
+              ? 'places'
+              : path === BURSTS_PATH
+                ? 'bursts'
+                : personTab
+                  ? 'person'
+                  : 'photos'
   // 访客打开了用不了的页面（设置、连拍整理、已隐藏、最近删除，例如别人发来的链接）：回到图库
   const { guest } = useCurrentUser()
   const guestBlocked =
-    guest && (page === 'settings' || page === 'bursts' || path === HIDDEN.path || path === DELETED.path)
+    guest &&
+    (page === 'settings' || page === 'account' || page === 'bursts' || path === HIDDEN.path || path === DELETED.path)
   useEffect(() => {
     if (guestBlocked) navigate(LIBRARY.path)
   }, [guestBlocked, navigate])
@@ -123,76 +127,77 @@ export default function App() {
 
   return (
     <SearchScope.Provider value={searchScope}>
-    <div className="min-h-screen overflow-x-clip md:flex">
-      <Sidebar
-        path={
-          route.person
-            ? PEOPLE_PATH // 在某个人的照片、成长、足迹、合影里时，侧边栏的「人物」亮着
-            : onSettings
-              ? path
-              : (route.sidebar ?? route.view.path)
-        }
-        stats={stats}
-        navigate={navigate}
-        onUpload={(files) => {
-          uploadRef.current?.(files)
-          if (page !== 'photos') navigate(LIBRARY.path) // 在人物、相册列表这些页上传：回到图库，看得到上传进度
-        }}
-      />
-      <main ref={mainRef} className="min-w-0 flex-1 px-4 pb-16 md:px-8">
-        {/* 照片页一直挂着，只是在设置页、人物页时隐藏：上传队列在里面，切过去也不会中断上传 */}
-        <div hidden={onSettings || waiting}>
-          <PhotosPage
-            route={route}
-            albums={albums ?? []}
-            active={!onSettings}
-            navigate={navigate}
-            onStats={onStats}
-            onAlbumsChanged={refreshAlbums}
-            people={people ?? []}
-            onPeopleChanged={refreshPeople}
-            onCreateAlbum={(assetIds) => setDialog({ mode: 'create', assetIds })}
-            albumVersion={albumVersion}
-            autoAddTo={justCreated}
-            onAutoAdded={clearJustCreated}
-            uploadRef={uploadRef}
-          />
-        </div>
-        {page === 'settings' && <SettingsPage />}
-        {page === 'places' && <PlacesPage navigate={navigate} />}
-        {page === 'bursts' && <BurstsPage />}
-        {page === 'albums' && (
-          <AlbumsPage
-            albums={albums}
-            navigate={navigate}
-            onNew={() => setDialog({ mode: 'create', assetIds: [] })}
-            onEdit={(album) => setDialog({ mode: 'edit', album })}
-            onDelete={removeAlbum}
-            onChanged={refreshAlbums}
-          />
-        )}
-        {page === 'people' && <PeoplePage people={people} navigate={navigate} onChanged={refreshPeople} />}
-        {route.person && personTab && (
-          <PersonPage
-            key={route.person.id}
-            person={route.person}
-            tab={personTab}
-            navigate={navigate}
-            onChanged={refreshPeople}
-          />
-        )}
-      </main>
-      {dialog && (
-        <AlbumDialog
-          album={dialog.mode === 'edit' ? dialog.album : undefined}
-          count={dialog.mode === 'create' ? dialog.assetIds.length : undefined}
-          allowSmart={dialog.mode === 'create' && dialog.assetIds.length === 0}
-          albums={albums ?? []}
-          onSubmit={submitAlbum}
-          onClose={closeDialog}
+      <div className="min-h-screen overflow-x-clip md:flex">
+        <Sidebar
+          path={
+            route.person
+              ? PEOPLE_PATH // 在某个人的照片、成长、足迹、合影里时，侧边栏的「人物」亮着
+              : onSettings
+                ? path
+                : (route.sidebar ?? route.view.path)
+          }
+          stats={stats}
+          navigate={navigate}
+          onUpload={(files) => {
+            uploadRef.current?.(files)
+            if (page !== 'photos') navigate(LIBRARY.path) // 在人物、相册列表这些页上传：回到图库，看得到上传进度
+          }}
         />
-      )}
-    </div>
+        <main ref={mainRef} className="min-w-0 flex-1 px-4 pb-16 md:px-8">
+          {/* 照片页一直挂着，只是在设置页、人物页时隐藏：上传队列在里面，切过去也不会中断上传 */}
+          <div hidden={onSettings || waiting}>
+            <PhotosPage
+              route={route}
+              albums={albums ?? []}
+              active={!onSettings}
+              navigate={navigate}
+              onStats={onStats}
+              onAlbumsChanged={refreshAlbums}
+              people={people ?? []}
+              onPeopleChanged={refreshPeople}
+              onCreateAlbum={(assetIds) => setDialog({ mode: 'create', assetIds })}
+              albumVersion={albumVersion}
+              autoAddTo={justCreated}
+              onAutoAdded={clearJustCreated}
+              uploadRef={uploadRef}
+            />
+          </div>
+          {page === 'settings' && <SettingsPage />}
+          {page === 'account' && <AccountPage />}
+          {page === 'places' && <PlacesPage navigate={navigate} />}
+          {page === 'bursts' && <BurstsPage />}
+          {page === 'albums' && (
+            <AlbumsPage
+              albums={albums}
+              navigate={navigate}
+              onNew={() => setDialog({ mode: 'create', assetIds: [] })}
+              onEdit={(album) => setDialog({ mode: 'edit', album })}
+              onDelete={removeAlbum}
+              onChanged={refreshAlbums}
+            />
+          )}
+          {page === 'people' && <PeoplePage people={people} navigate={navigate} onChanged={refreshPeople} />}
+          {route.person && personTab && (
+            <PersonPage
+              key={route.person.id}
+              person={route.person}
+              tab={personTab}
+              navigate={navigate}
+              onChanged={refreshPeople}
+            />
+          )}
+        </main>
+        {dialog && (
+          <AlbumDialog
+            album={dialog.mode === 'edit' ? dialog.album : undefined}
+            count={dialog.mode === 'create' ? dialog.assetIds.length : undefined}
+            allowSmart={dialog.mode === 'create' && dialog.assetIds.length === 0}
+            albums={albums ?? []}
+            onSubmit={submitAlbum}
+            onClose={closeDialog}
+          />
+        )}
+      </div>
     </SearchScope.Provider>
   )
 }

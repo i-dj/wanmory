@@ -30,7 +30,7 @@ type Endpoint struct {
 }
 
 // Admin 是网页设置里「AI 服务」那一块的接口：换地址、选 GPU 还是 CPU、下载模型。
-// 这些都转给 AI 服务（见 ml/wanmory_ml/app.py 的 /config、/models、/stats），后端只记地址
+// 这些都转给 AI 服务（见 ml/wanmory_ml/app.py 的 /config、/models），后端只记地址
 // SettingTier 是设置里选的档位（quality / balanced / lite），决定人脸和语义搜索用哪个模型（见 Tiers）。
 // 没选过时用启动时的 WANMORY_FACE_MODEL、WANMORY_CLIP_MODEL
 const SettingTier = "ai.tier"
@@ -200,19 +200,21 @@ func (a *Admin) apply(ep Endpoint) {
 //	PUT  /api/ai/device                 {"device": "auto" | "gpu" | "cpu"}（管理员）
 //	PUT  /api/ai/threads                {"threads": 2} 用 CPU 算时每个模型几个线程，0 是自动（核数减一）（管理员）
 //	PUT  /api/ai/parallel               {"parallel": 2} 同时算几张照片，0 是自动（管理员）
-//	PUT  /api/ai/source                 {"source": "auto" | "huggingface" | "mirror"} 模型从哪下载（管理员）
 //	PUT  /api/ai/tier                   {"tier": "auto" | "quality" | "balanced" | "lite"} 换档位，所有照片按新模型重新处理（管理员）；
 //	                                    auto 按 AI 服务器的硬件定
-//	POST /api/ai/models/{id}/download   在 AI 服务上下载模型（管理员）
+//	POST /api/ai/test                   {"mode", "url", "token"} 不保存，只试一下连不连得上、多快（管理员）
+//	POST /api/ai/models/{id}/download   在 AI 服务上下载模型（管理员）；从哪下载 AI 服务自己试哪个通、哪个快
+//	DELETE /api/ai/models/{id}          删掉 AI 服务上下载过的模型，只是腾出磁盘，用到时再下载（管理员）
 func (a *Admin) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/ai/status", a.status)
 	mux.HandleFunc("PUT /api/ai/endpoint", admin(a.setEndpoint))
 	mux.HandleFunc("PUT /api/ai/device", admin(a.setDevice))
 	mux.HandleFunc("PUT /api/ai/tier", admin(a.setTier))
-	mux.HandleFunc("PUT /api/ai/source", admin(a.setSource))
 	mux.HandleFunc("PUT /api/ai/threads", admin(a.setThreads))
 	mux.HandleFunc("PUT /api/ai/parallel", admin(a.setParallel))
+	mux.HandleFunc("POST /api/ai/test", admin(a.test))
 	mux.HandleFunc("POST /api/ai/models/{id}/download", admin(a.download))
+	mux.HandleFunc("DELETE /api/ai/models/{id}", admin(a.deleteModel))
 }
 
 func admin(h http.HandlerFunc) http.HandlerFunc {
@@ -250,6 +252,7 @@ func (a *Admin) status(w http.ResponseWriter, r *http.Request) {
 	// AI 服务连不上时别让设置页一直转圈
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
+	start := time.Now()
 	health, err := a.client.Health(ctx)
 	if err != nil {
 		resp["error"] = err.Error()
@@ -258,14 +261,15 @@ func (a *Admin) status(w http.ResponseWriter, r *http.Request) {
 	}
 	resp["connected"] = true
 	resp["health"] = health
-	var config, models, stats json.RawMessage
-	for path, dst := range map[string]*json.RawMessage{"/config": &config, "/models": &models, "/stats": &stats} {
+	resp["latency_ms"] = float64(time.Since(start).Microseconds()) / 1000
+	var config, models json.RawMessage
+	for path, dst := range map[string]*json.RawMessage{"/config": &config, "/models": &models} {
 		if err := a.client.Call(ctx, http.MethodGet, path, nil, dst); err != nil {
 			// 旧版本的 AI 服务没有这几个接口：照样显示连上了，只是不能选 GPU、下载
 			resp["error"] = "AI 服务版本太旧，更新后才能在这里设置：" + err.Error()
 		}
 	}
-	resp["config"], resp["models"], resp["stats"] = config, models, stats
+	resp["config"], resp["models"] = config, models
 	if config != nil {
 		a.noteConfig(config)
 		a.autoApply(r.Context(), config)
@@ -343,20 +347,6 @@ func (a *Admin) setEndpoint(w http.ResponseWriter, r *http.Request) {
 func (a *Admin) setDevice(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Device string `json:"device"`
-	}
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil {
-		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
-		return
-	}
-	if !a.forward(w, r, http.MethodPut, "/config", req) {
-		return
-	}
-	a.status(w, r)
-}
-
-func (a *Admin) setSource(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Source string `json:"source"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
@@ -450,6 +440,47 @@ func (a *Admin) download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.status(w, r)
+}
+
+func (a *Admin) deleteModel(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if m := a.models(); id == m.Face || id == m.Clip {
+		httpx.Error(w, http.StatusConflict, "这个模型正在用，换到别的档位后才能删")
+		return
+	}
+	if !a.forward(w, r, http.MethodDelete, "/models/"+url.PathEscape(id), nil) {
+		return
+	}
+	a.status(w, r)
+}
+
+// test 试一下填的地址连不连得上、多快、什么版本，不保存（「测试连接」）。没填令牌时用存着的
+func (a *Admin) test(w http.ResponseWriter, r *http.Request) {
+	var req Endpoint
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<14)).Decode(&req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
+		return
+	}
+	base, token := a.localURL, a.localToken
+	if req.Mode == "remote" {
+		base, token = strings.TrimRight(strings.TrimSpace(req.URL), "/"), req.Token
+		if token == "" {
+			if old, err := a.endpoint(r.Context()); err == nil {
+				token = old.Token
+			}
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	start := time.Now()
+	h, err := NewClient(base, token).Health(ctx)
+	if err != nil {
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"ok": true, "version": h.Version, "latency_ms": float64(time.Since(start).Microseconds()) / 1000,
+	})
 }
 
 // forward 把请求转给 AI 服务，出错时回答网页（连不上是 502），成功返回 true

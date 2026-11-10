@@ -1,4 +1,4 @@
-import { CirclePause, LoaderCircle, Settings } from 'lucide-react'
+import { CircleCheck, CirclePause, LoaderCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Tooltip from '@/components/ui/Tooltip'
@@ -31,8 +31,8 @@ const BUSY_MS = 3000
 const IDLE_MS = 15000
 
 // TaskIndicator 是菜单顶上的任务图标：后台有任务没做完时出现（转圈；AI 暂停时是暂停图标），
-// 点开看每类任务做到哪了、AI 为什么暂停，底下可以去性能设置。没有任务时不显示
-export default function TaskIndicator({ onSettings }: { onSettings: () => void }) {
+// 点开看每类任务做到哪了、AI 为什么暂停。没有任务时不显示
+export default function TaskIndicator() {
   const [jobs, setJobs] = useState<ActiveJobs[]>([])
   const [perf, setPerf] = useState<PerfStatus | null>(null)
   const [open, setOpen] = useState(false)
@@ -57,6 +57,12 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
 
   const busy = jobs.length > 0
   const hasAI = jobs.some((j) => j.key === 'ai')
+  // 面板开着、任务都做完了：显示一会儿「暂无后台任务」就收起（图标也跟着消失）
+  useEffect(() => {
+    if (!open || busy) return
+    const t = setTimeout(() => setOpen(false), 2500)
+    return () => clearTimeout(t)
+  }, [open, busy])
   useEffect(() => {
     let stop = false
     let timer = 0
@@ -65,7 +71,8 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
         try {
           const list = await activeJobs()
           if (stop) return
-          setJobs(list.sort((a, b) => order(a.key) - order(b.key)))
+          // 只算还没做完的（做完了、剩 0 张的不算，不然图标一直转着、角上写 0）
+          setJobs(list.filter((j) => j.remaining > 0).sort((a, b) => order(a.key) - order(b.key)))
           // 有 AI 任务时顺便看 AI 停着没有
           if (list.some((j) => j.key === 'ai')) setPerf(await perfStatus())
         } catch {
@@ -82,10 +89,11 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
   }, [busy, open])
 
   if (!busy && !open) return null
+  const done = !busy // 面板开着时任务做完了：图标停下来变成勾，不再转，几秒后面板自己收起
   const paused = hasAI && perf && !perf.ai_running
   // 角上的数字是还剩几张（导入和 AI 里多的那个：同一批照片先导入再识别）
   const remaining = Math.max(0, ...jobs.map((j) => j.remaining))
-  const Icon = paused ? CirclePause : LoaderCircle
+  const Icon = done ? CircleCheck : paused ? CirclePause : LoaderCircle
 
   return (
     <div className="ml-auto">
@@ -104,10 +112,15 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
             open && 'bg-line/60 text-fg',
           )}
         >
-          <Icon className={cx('size-[18px]', !paused && 'animate-spin', paused && 'text-warn')} strokeWidth={2} />
-          <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-accent px-1 text-[10px] leading-4 font-semibold text-white tabular-nums">
-            {remaining > 999 ? '999+' : remaining}
-          </span>
+          <Icon
+            className={cx('size-[18px]', !paused && !done && 'animate-spin', paused && 'text-warn', done && 'text-ok')}
+            strokeWidth={2}
+          />
+          {!done && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-accent px-1 text-[10px] leading-4 font-semibold text-white tabular-nums">
+              {remaining > 999 ? '999+' : remaining}
+            </span>
+          )}
         </button>
       </Tooltip>
       {open &&
@@ -122,7 +135,7 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
           >
             <div className="text-body font-semibold">后台任务</div>
             {jobs.length === 0 ? (
-              <p className="mt-3 text-body text-muted">都处理完了</p>
+              <p className="mt-3 text-body text-muted">暂无后台任务</p>
             ) : (
               <ul className="mt-3 space-y-3">
                 {jobs.map((j) => (
@@ -130,17 +143,6 @@ export default function TaskIndicator({ onSettings }: { onSettings: () => void }
                 ))}
               </ul>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                onSettings()
-              }}
-              className="mt-4 flex items-center gap-1.5 text-caption text-muted hover:text-fg"
-            >
-              <Settings className="size-3.5" />
-              性能设置
-            </button>
           </div>,
           document.body,
         )}

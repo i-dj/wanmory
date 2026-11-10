@@ -35,6 +35,15 @@ func (s *Service) Search(ctx context.Context, text string) ([]uuid.UUID, error) 
 	if text == "" {
 		return nil, nil
 	}
+	// 搜的就是一个自动分类（「美食」「风景」「宠物」……）：结果就是这一类的照片，不再按意思、按字去凑。
+	// 「美食」这种笼统的词按意思比，风景照的分数也差不多，会混进来一大片；截图上正好写着这两个字的也不是美食
+	byTag, err := s.searchTag(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+	if byTag != nil {
+		return byTag, nil
+	}
 	byText, err := s.searchText(ctx, text)
 	if err != nil {
 		return nil, err
@@ -59,6 +68,46 @@ func (s *Service) Search(ctx context.Context, text string) ([]uuid.UUID, error) 
 		}
 	}
 	return ids, nil
+}
+
+// tagAliases 是分类的别的叫法，搜这些词也算搜那个分类（分类名本身，见 tags.go 的 categories，也算）
+var tagAliases = map[string]string{
+	"食物": "food", "吃的": "food", "饭菜": "food", "美味": "food",
+	"宠物": "pet", "猫": "pet", "狗": "pet", "小猫": "pet", "小狗": "pet", "鸟": "pet",
+	"风光": "scenery", "景色": "scenery", "风景照": "scenery",
+	"花": "plant", "花草": "plant", "鲜花": "plant",
+	"屏幕截图": "screenshot", "截屏": "screenshot",
+	"文件": "document", "票据": "document",
+	"身份证": "id", "护照": "id",
+}
+
+// searchTag 搜索词正好是一个自动分类的名字（或者 tagAliases 里的叫法）时，返回这一类的照片（新的在前）；不是分类返回 nil
+func (s *Service) searchTag(ctx context.Context, text string) ([]uuid.UUID, error) {
+	key := tagAliases[text]
+	for _, c := range categories {
+		if c.Label == text {
+			key = c.Key
+		}
+	}
+	if key == "" {
+		return nil, nil
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id FROM assets WHERE deleted_at IS NULL AND $1 = ANY(tags)
+		ORDER BY COALESCE(taken_at, file_mtime) DESC LIMIT $2`, key, maxTextMatches)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 // placeAliases 是常说的简称，搜的时候换成地址里的写法（Nominatim 给的是全称：加利福尼亚州、佛罗里达州……）

@@ -69,6 +69,11 @@ export default function PageHeader({
   )
 }
 
+// HeaderTitle 是固定栏正中的页面名，代替搜索框（「系统设置」「我的账号」）
+export function HeaderTitle({ children }: { children: string }) {
+  return <div className="w-full text-center text-[19px] font-semibold">{children}</div>
+}
+
 // ToolGroup 是固定栏右边那一组图标按钮（日历、排序、筛选、显示大小……）外面的白色胶囊，最后可以放播放按钮
 export function ToolGroup({ children }: { children: ReactNode }) {
   return (

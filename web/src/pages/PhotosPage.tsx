@@ -24,6 +24,7 @@ import TimelineScrubber from '@/components/photos/TimelineScrubber'
 import UploadButton from '@/components/photos/UploadButton'
 import PersonHero from '@/components/people/PersonHero'
 import { PlayButton } from '@/components/layout/PageHeader'
+import { Button } from '@/components/ui/Modal'
 import UploadPanel from '@/components/upload/UploadPanel'
 import { MenuItem, ToolbarButton } from '@/components/ui/Popover'
 import { useElementSize } from '@/hooks/useElementSize'
@@ -62,14 +63,7 @@ import { unlockAudio } from '@/lib/musicLibrary'
 import { formatCounts } from '@/lib/format'
 import { groupByDay, groupByMonth, type Section } from '@/lib/groups'
 import { showError } from '@/lib/dialog'
-import {
-  albumAddPath,
-  albumPath,
-  LIBRARY,
-  personPath,
-  type Route,
-  type View,
-} from '@/lib/views'
+import { albumAddPath, albumPath, LIBRARY, personPath, type Route, type View } from '@/lib/views'
 
 const BUSY_DELAY = 300 // 批量操作超过这么久（毫秒）才把工具栏按钮变灰
 
@@ -461,12 +455,7 @@ export default function PhotosPage({
         hero={
           person &&
           tab === 'photos' && (
-            <PersonHero
-              person={person}
-              tab="photos"
-              navigate={navigate}
-              onChanged={onPeopleChanged}
-            />
+            <PersonHero person={person} tab="photos" navigate={navigate} onChanged={onPeopleChanged} />
           )
         }
         menus={
@@ -489,10 +478,7 @@ export default function PhotosPage({
             )}
           </>
         }
-        tools={
-          showPlay &&
-          !selecting && <PlayButton label="幻灯片播放" disabled={!canPlay} onClick={playSlideshow} />
-        }
+        tools={showPlay && !selecting && <PlayButton label="幻灯片播放" disabled={!canPlay} onClick={playSlideshow} />}
         actions={
           !guest && picking ? (
             <PickActions
@@ -567,11 +553,7 @@ export default function PhotosPage({
         <MemoriesStrip navigate={navigate} filter={{ kinds: filter.kinds, uploaders: filter.uploaders }} />
       )}
       {album && heroAsset && (
-        <AlbumHero
-          album={album}
-          asset={heroAsset}
-          summary={status.summary ? pageSubtitle(view, status.summary) : ''}
-        />
+        <AlbumHero album={album} asset={heroAsset} summary={status.summary ? pageSubtitle(view, status.summary) : ''} />
       )}
       {view.filter.near && view.path.startsWith('/places/') && (
         <AreaFootprint key={view.path} box={view.filter.near} city={view.filter.city} navigate={navigate} />
@@ -736,21 +718,10 @@ function PickActions({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="rounded-control border border-line px-3 py-1.5 text-body hover:bg-line/50"
-      >
-        取消
-      </button>
-      <button
-        type="button"
-        disabled={count === 0 || busy}
-        onClick={onAdd}
-        className="rounded-control bg-accent px-3 py-1.5 text-body font-medium text-on-accent hover:opacity-90 disabled:opacity-40"
-      >
+      <Button onClick={onCancel}>取消</Button>
+      <Button primary disabled={count === 0 || busy} onClick={onAdd}>
         {count > 0 ? `添加 ${count} 项` : '添加'}
-      </button>
+      </Button>
     </div>
   )
 }

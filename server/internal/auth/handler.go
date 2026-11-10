@@ -31,6 +31,7 @@ func (s *Service) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/logout", s.logout)
 	mux.HandleFunc("PUT /api/auth/password", s.changePassword)
 	mux.HandleFunc("PUT /api/auth/avatar", s.setAvatar)
+	s.accountRoutes(mux)
 	mux.HandleFunc("GET /api/users", s.listUsers)
 	mux.HandleFunc("POST /api/users", s.admin(s.addUser))
 	mux.HandleFunc("DELETE /api/users/{id}", s.admin(s.deleteUser))
@@ -107,6 +108,7 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			s.guestOr401(w, r, next, "登录已过期，请重新登录")
 			return
 		}
+		s.noteDevice(r.Context(), c.Value, r)
 		next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), u)))
 	})
 }
@@ -127,7 +129,7 @@ func (s *Service) guestOr401(w http.ResponseWriter, r *http.Request, next http.H
 func (s *Service) admin(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if u := UserFrom(r.Context()); u == nil || !u.IsAdmin {
-			httpx.Error(w, http.StatusForbidden, "只有管理员能管理家庭成员")
+			httpx.Error(w, http.StatusForbidden, "只有管理员能管理成员")
 			return
 		}
 		h(w, r)
@@ -206,6 +208,7 @@ func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, pas
 		cookie.Expires = time.Now().Add(sessionTTL)
 	}
 	http.SetCookie(w, cookie)
+	s.noteDevice(r.Context(), token, r)
 	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
 }
 

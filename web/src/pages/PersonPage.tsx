@@ -57,14 +57,7 @@ export default function PersonPage({
             ? `${moments.length.toLocaleString()} 张照片 · ${formatMonthSpan(moments[0].taken, moments[moments.length - 1].taken)}`
             : ''
         }
-        hero={
-          <PersonHero
-            person={person}
-            tab={tab}
-            navigate={navigate}
-            onChanged={onChanged}
-          />
-        }
+        hero={<PersonHero person={person} tab={tab} navigate={navigate} onChanged={onChanged} />}
         // 播放和别的页一样在工具组最右边：成长标签播放成长延时，足迹、合影没有可播的
         tools={
           tab === 'growth' && (

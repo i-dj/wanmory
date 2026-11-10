@@ -1,16 +1,9 @@
 import PageHeader from '@/components/layout/PageHeader'
-import { Check, UserRound } from 'lucide-react'
+import { UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import Modal, { Button } from '@/components/ui/Modal'
-import {
-  facePortraitUrl,
-  faceStatus,
-  type FaceStatus,
-  faceThumbUrl,
-  mergePeople,
-  type Person,
-  renamePerson,
-} from '@/lib/api'
+import DialogButton from '@/components/ui/DialogButton'
+import Modal, { DialogActions } from '@/components/ui/Modal'
+import { facePortraitUrl, faceStatus, type FaceStatus, mergePeople, type Person, renamePerson } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { personPath } from '@/lib/views'
 import { showError } from '@/lib/dialog'
@@ -21,7 +14,7 @@ const POLL_MS = 4000 // 还在识别时多久刷新一次进度和人物
 // PeoplePage 是人脸识别归出来的人物：一张张竖的照片卡片（封面是这个人拍得最好的一张），名字写在左下角
 // （点一下就能改，没名字的指上去出现「添加名字」），点卡片看这个人的所有照片。起了名字的排在前面。
 // 还在识别时上面显示进度，人物会陆续出现。起的名字和别人重了，会问是不是同一个人、要不要合并。
-// 点右上角「选择」后点卡片选人，选了两个以上可以「合并」：同一个人被认成了几个（例如宝宝不同月龄）时用
+// 同一个人被认成了几个（例如宝宝不同月龄）时，给他们起同一个名字就会问要不要合并
 export default function PeoplePage({
   people,
   navigate,
@@ -33,21 +26,6 @@ export default function PeoplePage({
 }) {
   const status = useFaceStatus(onChanged)
   const { guest } = useCurrentUser() // 访客：不能起名字、合并
-  const [selecting, setSelecting] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [merging, setMerging] = useState(false)
-  const toggle = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  const stopSelecting = () => {
-    setSelecting(false)
-    setSelected(new Set())
-  }
-  const chosen = people?.filter((p) => selected.has(p.id)) ?? []
 
   // 起名字：和别人重名时先问是不是同一个人
   const [duplicate, setDuplicate] = useState<{ person: Person; other: Person; name: string } | null>(null)
@@ -70,28 +48,7 @@ export default function PeoplePage({
 
   return (
     <section>
-      <PageHeader
-        title="人物"
-        subtitle={status ? statusLine(status) : ''}
-        right={
-          !!people?.length &&
-          !guest &&
-          (selecting ? (
-            <>
-              <span className="text-body text-muted tabular-nums">已选 {selected.size} 个</span>
-              <Button primary disabled={selected.size < 2} onClick={() => setMerging(true)}>
-                合并
-              </Button>
-              <Button onClick={stopSelecting}>完成</Button>
-            </>
-          ) : (
-            <Button onClick={() => setSelecting(true)}>选择</Button>
-          ))
-        }
-      />
-      {selecting && (
-        <p className="mt-3 text-caption text-muted">点照片选人。同一个人被分成了几个时，选上他们点「合并」。</p>
-      )}
+      <PageHeader title="人物" subtitle={status ? statusLine(status) : ''} />
 
       {people && people.length === 0 && (
         <div className="mt-16 flex flex-col items-center text-center text-muted">
@@ -108,20 +65,15 @@ export default function PeoplePage({
         {people?.map((p) => (
           <li
             key={p.id}
-            className={cx(
-              'group relative aspect-3/4 overflow-hidden rounded-[14px] bg-line ring-accent ring-offset-2 ring-offset-page transition has-[a:focus-visible]:ring-2',
-              selected.has(p.id) && 'ring-3 ring-select has-[a:focus-visible]:ring-3',
-            )}
+            className="group relative aspect-3/4 overflow-hidden rounded-[14px] bg-line ring-accent ring-offset-2 ring-offset-page transition has-[a:focus-visible]:ring-2"
           >
             <a
               href={personPath(p.id)}
               onClick={(e) => {
                 e.preventDefault()
-                if (selecting) toggle(p.id)
-                else navigate(personPath(p.id))
+                navigate(personPath(p.id))
               }}
               aria-label={p.name || '未命名的人'}
-              aria-pressed={selecting ? selected.has(p.id) : undefined}
               className="absolute inset-0 outline-none"
             >
               {p.cover ? (
@@ -137,18 +89,8 @@ export default function PeoplePage({
               )}
               {/* 下面压暗一点，白字的名字才看得清 */}
               <span className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/60 to-transparent" />
-              {selecting && (
-                <span
-                  className={cx(
-                    'absolute inset-0 flex items-center justify-center transition-colors',
-                    selected.has(p.id) ? 'bg-select/35' : 'bg-black/10 group-hover:bg-black/20',
-                  )}
-                >
-                  {selected.has(p.id) && <Check className="size-9 text-white drop-shadow" strokeWidth={3} />}
-                </span>
-              )}
             </a>
-            {!selecting && <PersonName person={p} readOnly={guest} onRename={(name) => rename(p, name)} />}
+            <PersonName person={p} readOnly={guest} onRename={(name) => rename(p, name)} />
           </li>
         ))}
       </ul>
@@ -167,89 +109,7 @@ export default function PeoplePage({
           }}
         />
       )}
-
-      {merging && (
-        <MergeDialog
-          people={chosen}
-          onClose={() => setMerging(false)}
-          onMerged={async () => {
-            setMerging(false)
-            stopSelecting()
-            await onChanged()
-          }}
-        />
-      )}
     </section>
-  )
-}
-
-// MergeDialog 确认合并：合成照片最多的那个人；几个人起过不一样的名字时，选留哪个
-function MergeDialog({
-  people,
-  onClose,
-  onMerged,
-}: {
-  people: Person[]
-  onClose: () => void
-  onMerged: () => Promise<void>
-}) {
-  const into = people.reduce((a, b) => (b.assets > a.assets ? b : a))
-  const names = [...new Set(people.map((p) => p.name).filter(Boolean))]
-  const [name, setName] = useState(names.includes(into.name) ? into.name : (names[0] ?? ''))
-  const [busy, setBusy] = useState(false)
-  const merge = async () => {
-    setBusy(true)
-    try {
-      await mergePeople(
-        people.map((p) => p.id),
-        into.id,
-        name,
-      )
-      await onMerged()
-    } catch (e) {
-      showError('没有合并成功', e)
-      setBusy(false)
-    }
-  }
-  return (
-    <Modal
-      title={`把 ${people.length} 个人合并成一个`}
-      onClose={onClose}
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button onClick={onClose}>取消</Button>
-          <Button primary disabled={busy} onClick={merge}>
-            {busy ? '合并中…' : '合并'}
-          </Button>
-        </div>
-      }
-    >
-      <div className="px-4 py-4">
-        <div className="flex -space-x-3">
-          {people.map((p) => (
-            <span key={p.id} className="size-14 overflow-hidden rounded-full border-2 border-surface bg-line">
-              {p.cover && <img src={faceThumbUrl(p.cover)} alt="" className="size-full object-cover" />}
-            </span>
-          ))}
-        </div>
-        <p className="mt-3 text-body">
-          他们的 {people.reduce((n, p) => n + p.assets, 0).toLocaleString()} 张照片会归到同一个人下面。
-        </p>
-        {names.length > 1 && (
-          <fieldset className="mt-4">
-            <legend className="text-body font-medium">名字不一样，留哪个？</legend>
-            <div className="mt-2 flex flex-col gap-1.5">
-              {names.map((n) => (
-                <label key={n} className="flex items-center gap-2 text-body">
-                  <input type="radio" name="merge-name" checked={name === n} onChange={() => setName(n)} />
-                  {n}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
-      </div>
-    </Modal>
   )
 }
 
@@ -346,22 +206,8 @@ function DuplicateNameDialog({
     }
   }
   return (
-    <Modal
-      title={`已经有叫「${name}」的人了`}
-      onClose={onClose}
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button onClick={onClose}>取消</Button>
-          <Button disabled={busy} onClick={() => void onSeparate()}>
-            不是同一个人
-          </Button>
-          <Button primary disabled={busy} onClick={merge}>
-            {busy ? '合并中…' : '是，合并'}
-          </Button>
-        </div>
-      }
-    >
-      <div className="px-4 py-4">
+    <Modal title={`已经有叫「${name}」的人了`} onClose={onClose}>
+      <div>
         <div className="flex gap-3">
           {[person, other].map((p) => (
             <span key={p.id} className="aspect-3/4 w-24 overflow-hidden rounded-item bg-line">
@@ -373,6 +219,14 @@ function DuplicateNameDialog({
           是同一个人吗？合并后他们的 {(person.assets + other.assets).toLocaleString()} 张照片会归到「{name}」下面。
         </p>
       </div>
+      <DialogActions>
+        <DialogButton disabled={busy} onClick={() => void onSeparate()}>
+          不是同一个人
+        </DialogButton>
+        <DialogButton variant="primary" disabled={busy} onClick={merge}>
+          {busy ? '合并中…' : '是，合并'}
+        </DialogButton>
+      </DialogActions>
     </Modal>
   )
 }

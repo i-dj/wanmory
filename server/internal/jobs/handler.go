@@ -77,6 +77,9 @@ func (h *Handler) active(w http.ResponseWriter, r *http.Request) {
 		a.Key = g.Key
 		a.Done = photos * doneJobs / (doneJobs + remainingJobs)
 		a.Remaining = photos - a.Done
+		if a.Remaining < 1 { // 按比例折算会向下取整：还有任务没做完时至少算 1 张，不会出现「还剩 0 张」却一直在转
+			a.Remaining, a.Done = 1, max(0, photos-1)
+		}
 		// 最近做完了至少 5 个、跨了 20 秒以上才估，不然刚开始时一下子估出几秒或者几天
 		if recentDone >= 5 && recentSpan != nil && *recentSpan >= 20 {
 			eta := int(float64(remainingJobs) * *recentSpan / float64(recentDone))

@@ -321,7 +321,7 @@ func ParseFilter(q url.Values) (Filter, error) {
 		for _, s := range strings.Split(v, ",") {
 			id, err := uuid.Parse(s)
 			if err != nil {
-				return f, errors.New("uploader 应该是家庭成员 ID，几个用逗号隔开")
+				return f, errors.New("uploader 应该是成员 ID，几个用逗号隔开")
 			}
 			f.Uploaders = append(f.Uploaders, id)
 		}

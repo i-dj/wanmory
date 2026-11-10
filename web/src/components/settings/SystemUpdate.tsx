@@ -5,6 +5,7 @@ import { type Release, aiStatus } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { showError } from '@/lib/dialog'
 import { refreshUpdate, useUpdate, useVersion, versionLabel } from '@/lib/version'
+import SettingsCard from './SettingsCard'
 
 const SHOWN = 3
 const UPDATE_COMMAND = 'docker compose pull && docker compose up -d'
@@ -67,113 +68,107 @@ export default function SystemUpdate() {
     version && aiVersion && version !== 'dev' && aiVersion !== 'dev' && version !== aiVersion ? aiVersion : null
 
   return (
-    <>
-      <h3 id="update" className="mt-6 mb-2 scroll-mt-6 text-body font-semibold text-muted">
-        系统更新
-      </h3>
-      <ul className="divide-y divide-line rounded-panel border border-line bg-surface">
-        <li className="px-4 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <dl className="grid min-w-0 flex-1 grid-cols-[6rem_1fr] gap-x-3 gap-y-1.5 text-body">
-              <dt className="text-muted">相册程序</dt>
-              <dd className="tabular-nums">{version ? versionLabel(version) : '…'}</dd>
-              <dt className="text-muted">AI 服务</dt>
-              <dd className="tabular-nums">
-                {aiVersion === undefined ? '…' : aiVersion === null ? '连不上' : versionLabel(aiVersion)}
-                {mismatch && <span className="ml-2 text-caption text-warn">和相册程序不一样，更新时一起更新</span>}
-              </dd>
-              <dt className="text-muted">最新版本</dt>
-              <dd className="tabular-nums">
-                {update?.latest ? (
-                  <>
-                    {versionLabel(update.latest.version)}
-                    <span className="ml-2 text-caption text-muted">{date(update.latest.published_at)} 发布</span>
-                  </>
-                ) : update?.error ? (
-                  <span className="text-muted">不知道</span>
-                ) : update ? (
-                  <span className="text-muted">还没有发布过</span>
-                ) : (
-                  '…'
-                )}
-              </dd>
-            </dl>
-            <Button onClick={check} disabled={checking}>
-              <span className="flex items-center gap-1.5">
-                {checking ? (
-                  <LoaderCircle className="size-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-3.5" strokeWidth={2} />
-                )}
-                检查更新
-              </span>
-            </Button>
+    <SettingsCard
+      id="update"
+      title="系统更新"
+      footer={
+        update?.error ? (
+          <span className="text-danger">{update.error}</span>
+        ) : update?.checked_at ? (
+          `上次检查：${ago(update.checked_at)}`
+        ) : null
+      }
+      footerActions={
+        <Button primary onClick={check} disabled={checking}>
+          <span className="flex items-center gap-1.5">
+            {checking ? (
+              <LoaderCircle className="size-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="size-3.5" strokeWidth={2} />
+            )}
+            检查更新
+          </span>
+        </Button>
+      }
+    >
+      <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1.5 text-body">
+        <dt className="text-muted">相册程序</dt>
+        <dd className="tabular-nums">{version ? versionLabel(version) : '…'}</dd>
+        <dt className="text-muted">AI 服务</dt>
+        <dd className="tabular-nums">
+          {aiVersion === undefined ? '…' : aiVersion === null ? '连不上' : versionLabel(aiVersion)}
+          {mismatch && <span className="ml-2 text-caption text-warn">和相册程序不一样，更新时一起更新</span>}
+        </dd>
+        <dt className="text-muted">最新版本</dt>
+        <dd className="tabular-nums">
+          {update?.latest ? (
+            <>
+              {versionLabel(update.latest.version)} · {date(update.latest.published_at)}发布
+            </>
+          ) : update?.error ? (
+            <span className="text-muted">不知道</span>
+          ) : update ? (
+            <span className="text-muted">还没有发布过</span>
+          ) : (
+            '…'
+          )}
+        </dd>
+      </dl>
+      {update && !update.error && !update.update_available && update.latest && version !== 'dev' && (
+        <p className="mt-3 flex items-center gap-1.5 text-body text-ok">
+          <CircleCheck className="size-4" strokeWidth={2} />
+          已经是最新版本
+        </p>
+      )}
+
+      {update?.update_available && (
+        <div className="mt-5 border-t border-line pt-5">
+          <div className="font-medium">
+            有新版本 <span className="text-accent">{versionLabel(update.releases[0].version)}</span>
+            {update.releases.length > 1 && (
+              <span className="ml-2 text-caption font-normal text-muted">比现在新 {update.releases.length} 个版本</span>
+            )}
           </div>
-          {update?.error && <p className="mt-3 text-caption text-danger">{update.error}</p>}
-          {update?.checked_at && (
+          <div className="mt-3 space-y-4">
+            {(showAll ? update.releases : update.releases.slice(0, SHOWN)).map((r) => (
+              <ReleaseNotes key={r.version} release={r} />
+            ))}
+            {!showAll && update.releases.length > SHOWN && (
+              <button
+                type="button"
+                onClick={() => setShowAll(true)}
+                className="text-caption text-accent hover:underline"
+              >
+                展开更早的 {update.releases.length - SHOWN} 个版本
+              </button>
+            )}
+          </div>
+
+          <div className="mt-5 rounded-control border border-line px-3 py-3">
+            <p className="text-body font-medium">怎么更新</p>
+            <p className="mt-1 text-body text-muted">在放 docker-compose.yml 的目录里运行：</p>
+            <div className="mt-2 flex items-center gap-2 rounded-control bg-fg/[0.04] py-1.5 pr-1.5 pl-3">
+              <code className="min-w-0 flex-1 overflow-x-auto font-mono text-caption whitespace-nowrap">
+                {UPDATE_COMMAND}
+              </code>
+              <button
+                type="button"
+                onClick={copy}
+                aria-label="复制命令"
+                className="flex shrink-0 items-center gap-1 rounded-control px-2 py-1 text-caption text-muted hover:bg-line/60 hover:text-fg"
+              >
+                {copied ? <CircleCheck className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copied ? '已复制' : '复制'}
+              </button>
+            </div>
             <p className="mt-2 text-caption text-muted">
-              上次检查：{ago(update.checked_at)}（每 6 小时从 GitHub 检查一次）
+              会下载新的相册程序和 AI
+              服务，再重新启动，中间一两分钟打不开。照片、数据库、下载好的模型都在挂载的目录和卷里，不会丢。
             </p>
-          )}
-          {update && !update.error && !update.update_available && update.latest && version !== 'dev' && (
-            <p className="mt-3 flex items-center gap-1.5 text-body text-ok">
-              <CircleCheck className="size-4" strokeWidth={2} />
-              已经是最新版本
-            </p>
-          )}
-        </li>
-
-        {update?.update_available && (
-          <li className="px-4 py-4">
-            <div className="font-medium">
-              有新版本 <span className="text-accent">{versionLabel(update.releases[0].version)}</span>
-              {update.releases.length > 1 && (
-                <span className="ml-2 text-caption font-normal text-muted">
-                  比现在新 {update.releases.length} 个版本
-                </span>
-              )}
-            </div>
-            <div className="mt-3 space-y-4">
-              {(showAll ? update.releases : update.releases.slice(0, SHOWN)).map((r) => (
-                <ReleaseNotes key={r.version} release={r} />
-              ))}
-              {!showAll && update.releases.length > SHOWN && (
-                <button
-                  type="button"
-                  onClick={() => setShowAll(true)}
-                  className="text-caption text-accent hover:underline"
-                >
-                  展开更早的 {update.releases.length - SHOWN} 个版本
-                </button>
-              )}
-            </div>
-
-            <div className="mt-5 rounded-control border border-line px-3 py-3">
-              <p className="text-body font-medium">怎么更新</p>
-              <p className="mt-1 text-body text-muted">在放 docker-compose.yml 的目录里运行：</p>
-              <div className="mt-2 flex items-center gap-2 rounded-control bg-fg/[0.04] py-1.5 pr-1.5 pl-3">
-                <code className="min-w-0 flex-1 overflow-x-auto font-mono text-caption whitespace-nowrap">
-                  {UPDATE_COMMAND}
-                </code>
-                <button
-                  type="button"
-                  onClick={copy}
-                  aria-label="复制命令"
-                  className="flex shrink-0 items-center gap-1 rounded-control px-2 py-1 text-caption text-muted hover:bg-line/60 hover:text-fg"
-                >
-                  {copied ? <CircleCheck className="size-3.5" /> : <Copy className="size-3.5" />}
-                  {copied ? '已复制' : '复制'}
-                </button>
-              </div>
-              <p className="mt-2 text-caption text-muted">
-                会下载新的相册程序和 AI
-                服务，再重新启动，中间一两分钟打不开。照片、数据库、下载好的模型都在挂载的目录和卷里，不会丢。
-              </p>
-            </div>
-          </li>
-        )}
-      </ul>
-    </>
+          </div>
+        </div>
+      )}
+    </SettingsCard>
   )
 }
 

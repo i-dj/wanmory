@@ -21,7 +21,7 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 	r.Register(settings.Def{
 		Key:         assets.SettingUploadDir,
 		Label:       "上传目录",
-		Description: "网页上传的照片和视频保存在这里，按年月分子目录。修改后只影响之后上传的文件。",
+		Description: "按年月保存上传文件，修改后仅影响新上传的文件。",
 		Kind:        settings.KindPath,
 		Default:     cfg.UploadDir,
 		Validate: func(ctx context.Context, raw json.RawMessage) (any, error) {
@@ -46,7 +46,7 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 	r.Register(settings.Def{
 		Key:         auth.SettingGuest,
 		Label:       "访客浏览",
-		Description: "没登录的人能不能只读浏览：图库里没隐藏的照片、共享给所有人的相册、人物、足迹。不能上传、修改，看不到任何人的私有相册和已隐藏的照片。能连上这台服务器的人都能看到，开到外网时建议关掉。",
+		Description: "允许未登录用户浏览共享内容，私有相册和隐藏照片不可见。公网访问建议关闭。",
 		Kind:        settings.KindChoice,
 		Default:     "on",
 		Choices: []settings.Choice{
@@ -58,7 +58,7 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 	r.Register(settings.Def{
 		Key:         "maps.online",
 		Label:       "在线地图",
-		Description: "照片信息里用 OpenStreetMap 显示地图、地名和搜索地点。打开时会把照片的大致位置发给 OpenStreetMap 的服务器；关掉后只显示坐标。",
+		Description: "显示地图、地名和地点搜索，会向地图服务发送照片位置。关闭后仅显示坐标。",
 		Kind:        settings.KindChoice,
 		Default:     "on",
 		Choices: []settings.Choice{
@@ -70,11 +70,11 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 	r.Register(settings.Def{
 		Key:         "maps.source",
 		Label:       "地图来源",
-		Description: "在线地图用哪家的底图。OpenStreetMap 在中国大陆打开很慢或打不开；高德在国内快，但海外只有简略的地图。自动：看的地方在中国大陆就用高德，其他地方用 OpenStreetMap。",
+		Description: "",
 		Kind:        settings.KindChoice,
 		Default:     "auto",
 		Choices: []settings.Choice{
-			{Value: "auto", Label: "自动", Hint: "国内用高德，海外用 OpenStreetMap"},
+			{Value: "auto", Label: "自动", Hint: "中国大陆用高德，其他地区用 OpenStreetMap"},
 			{Value: "amap", Label: "高德", Hint: "全部用高德，人在国内、OpenStreetMap 打不开时选它"},
 			{Value: "osm", Label: "OpenStreetMap", Hint: "全部用 OpenStreetMap，海外地图更详细"},
 		},

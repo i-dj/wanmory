@@ -30,11 +30,13 @@ export default function DialogButton({
       autoFocus={autoFocus}
       onClick={onClick}
       className={cx(
-        'flex h-10 items-center justify-center gap-2 rounded-control border border-line bg-transparent px-4 text-body font-semibold transition',
-        'hover:border-line-strong hover:bg-fg/3 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40',
-        variant === 'primary' && 'text-accent focus-visible:ring-accent/40',
-        variant === 'danger' && 'text-danger focus-visible:ring-danger/40',
-        variant === 'default' && 'text-fg focus-visible:ring-fg/20',
+        'flex h-10 items-center justify-center gap-2 rounded-lg border px-4 text-body font-semibold whitespace-nowrap transition',
+        'focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40',
+        // 主次分明：确定是实心（深色主题白底黑字，浅色主题黑底白字），删除这种是淡红底红字，取消是淡底细边框
+        variant === 'primary' && 'border-transparent bg-fg text-page hover:bg-fg/85 focus-visible:ring-fg/30',
+        variant === 'danger' &&
+          'border-danger/25 bg-danger/10 text-danger hover:bg-danger/15 focus-visible:ring-danger/40',
+        variant === 'default' && 'border-line bg-fg/[0.04] text-fg hover:bg-fg/[0.08] focus-visible:ring-fg/20',
       )}
     >
       {children}

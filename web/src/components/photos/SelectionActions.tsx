@@ -145,7 +145,7 @@ export function DeleteButton({
           type="button"
           disabled={disabled}
           onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-1.5 rounded-control border border-line px-3 py-1.5 text-body text-danger hover:border-line-strong hover:bg-danger/8 disabled:opacity-40"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-danger/25 bg-danger/10 px-3.5 text-body font-medium whitespace-nowrap text-danger transition-colors hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Trash2 className="size-4" strokeWidth={1.8} />
           {label}

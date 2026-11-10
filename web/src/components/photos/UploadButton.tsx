@@ -19,7 +19,7 @@ export default function UploadButton({ onFiles }: { onFiles: (files: FileList) =
       <button
         type="button"
         onClick={() => openFilePicker(input.current)}
-        className="flex items-center gap-1.5 rounded-control border border-line bg-fg/[0.04] px-3 py-1.5 text-body font-medium text-fg hover:bg-fg/[0.08]"
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-fg/[0.04] px-3.5 text-body font-medium whitespace-nowrap text-fg transition-colors hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Upload className="size-4" strokeWidth={2} />
         上传

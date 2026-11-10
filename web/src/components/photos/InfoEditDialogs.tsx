@@ -1,12 +1,11 @@
 import { ArrowUpRight, LoaderCircle, MapPin } from 'lucide-react'
-import { lazy, Suspense, type ReactNode, useEffect, useId, useState } from 'react'
+import { lazy, Suspense, type ReactNode, useEffect, useState } from 'react'
 import DialogButton from '@/components/ui/DialogButton'
 import TextField from '@/components/ui/TextField'
 import { type Asset, type AssetDetails, type InfoPatch, thumbnailUrl } from '@/lib/api'
-import { cx } from '@/lib/cx'
 import { formatCoords } from '@/lib/format'
 import { osmLink, parseCoords, type Place, searchPlaces, usePlaceName } from '@/lib/geo'
-import DialogClose from '@/components/ui/DialogClose'
+import Modal, { DialogActions } from '@/components/ui/Modal'
 
 // 地图库（Leaflet）比较大，用到地图时才加载
 const PlaceMap = lazy(() => import('./PlaceMap'))
@@ -262,7 +261,7 @@ export function EditLocationDialog({
   )
 }
 
-// EditDialog 是编辑对话框的外壳：盖住整个查看器（在照片页里批量修改时盖住整页，连工具栏），正中一张卡片，左上角关闭，标题居中，底下「取消」「保存」。
+// EditDialog 是编辑对话框的外壳（通用的 Modal，就地渲染，盖住整个查看器；在照片页里批量修改时盖住整页），底下「取消」「保存」。
 // Esc、点外面都是取消；回车保存
 function EditDialog({
   title,
@@ -283,45 +282,24 @@ function EditDialog({
   onSave: () => void
   children: ReactNode
 }) {
-  const id = useId()
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <Modal title={title} onClose={onClose} width={wide ? 'max-w-120' : 'max-w-100'} inline>
       <form
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={id}
         onSubmit={(e) => {
           e.preventDefault()
           if (canSave && !busy) onSave()
         }}
-        className={cx(
-          'popover-card glass-dialog relative max-h-[90vh] w-full overflow-y-auto rounded-dialog p-6 shadow-2xl',
-          wide ? 'max-w-120' : 'max-w-100',
-        )}
       >
-        <DialogClose onClose={onClose} />
-        <h2 id={id} className="text-center text-heading font-semibold">
-          {title}
-        </h2>
-        <div className="mt-5">{children}</div>
+        {children}
         {error && <p className="mt-3 text-center text-caption text-danger">{error}</p>}
-        <div className="mt-6 grid grid-cols-2 gap-2.5">
+        <DialogActions>
           <DialogButton onClick={onClose}>取消</DialogButton>
           <DialogButton type="submit" variant="primary" disabled={!canSave || busy}>
             {busy ? '保存中…' : '保存'}
           </DialogButton>
-        </div>
+        </DialogActions>
       </form>
-    </div>
+    </Modal>
   )
 }
 

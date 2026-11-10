@@ -113,11 +113,29 @@ def start_download(name: str, original: bool = False) -> None:
                 hf_model(name, CLIP_REPOS[name], download=True)
             else:
                 onnx_model(name, download=True)
-        except Exception as e:  # 网络断了、磁盘满了：记下来给网页看，可以再点一次重试
+        except Exception as e:  # 网络断了、磁盘满了：记下来给网页看，可以再点一次重试（重试时重新选下载源）
             log.exception("下载模型 %s 失败", name)
+            forget_endpoint()
             _report(name, state="error", error=str(e))
 
     threading.Thread(target=run, daemon=True).start()
+
+
+def delete(name: str) -> None:
+    """删掉下载过的模型文件（ONNX 版、原版都删），只是腾出磁盘，用到时再下载。正在下载时不能删"""
+    if name not in _download_locks:
+        raise KeyError(name)
+    if not _download_locks[name].acquire(blocking=False):
+        raise RuntimeError("正在下载，下载完才能删")
+    try:
+        for d in (MODEL_DIR / name, onnx_dir(name)):
+            if d.exists():
+                shutil.rmtree(d)
+        with _progress_lock:
+            _progress.pop(name, None)
+        log.info("删掉了模型 %s", name)
+    finally:
+        _download_locks[name].release()
 
 
 def insightface_pack(name: str, download: bool = AUTO_DOWNLOAD) -> Path:
@@ -166,33 +184,65 @@ def _download(url: str, dest: Path, on_progress: Callable[[int, int], None], sta
 
 
 # 语义搜索的 ONNX 版（见 clip_onnx.py，scripts/export_clip_onnx.py 导出）放在 <模型目录>/<模型>-onnx/，
-# meta.json 里列着其他文件和它们的大小、SHA-256。从 Hugging Face 上的 ONNX_REPO 下载（<模型>/meta.json，再按 files 一个个下），
-# 网页设置里可以选从 huggingface.co 还是国内镜像 hf-mirror.com 下（见 runtime.py 的 source）。
+# meta.json 里列着其他文件和它们的大小、SHA-256。从 Hugging Face 上的 ONNX_REPO 下载（<模型>/meta.json，再按 files 一个个下）。
+# huggingface.co 和国内镜像 hf-mirror.com 自动选：两个同时试，连得上的里面用快的（见 endpoint()）。
 # WANMORY_ONNX_URL 可以换成别的地址（<地址>/<模型>/<文件>），例如自己局域网里放的
 ONNX_REPO = os.environ.get("WANMORY_ONNX_REPO", "i-dj/chinese-clip-onnx")
 ONNX_URL = os.environ.get("WANMORY_ONNX_URL", "").rstrip("/")
-HF_ENDPOINTS = {"huggingface": "https://huggingface.co", "mirror": "https://hf-mirror.com"}
+HF_ENDPOINTS = ("https://huggingface.co", "https://hf-mirror.com")
+PROBE_BYTES = 256 << 10  # 测速时每个源下载多少
 _endpoint_cache: tuple[float, str] | None = None
+_endpoint_lock = threading.Lock()
+
+
+def _probe(base: str) -> float | None:
+    """从 base 下一小段模型文件，返回用了几秒；连不上、出错返回 None"""
+    url = f"{base}/{ONNX_REPO}/resolve/main/chinese-clip-vit-b-16/meta.json"
+    start = time.monotonic()
+    try:
+        with urllib.request.urlopen(url, timeout=6) as resp:
+            meta = json.loads(resp.read())
+        # 再按 Range 下一段大文件，看真实的下载速度（meta.json 太小，只能看出延迟）
+        big = max(meta.get("sizes", {}).items(), key=lambda kv: kv[1], default=(None, 0))[0]
+        if big:
+            req = urllib.request.Request(
+                f"{base}/{ONNX_REPO}/resolve/main/chinese-clip-vit-b-16/{big}",
+                headers={"Range": f"bytes=0-{PROBE_BYTES - 1}"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                while resp.read(1 << 16):
+                    pass
+    except (OSError, ValueError):
+        return None
+    return time.monotonic() - start
 
 
 def endpoint() -> str:
-    """从哪下载 Hugging Face 上的模型：设置里选的；自动时试一下 huggingface.co 连不连得上（结果记 10 分钟）"""
+    """从哪下载 Hugging Face 上的模型：huggingface.co 和 hf-mirror.com 同时试，用连得上、下得快的那个（结果记 10 分钟；
+    下载出错时 forget_endpoint() 清掉，下次重新试）。都连不上时先用 huggingface.co，下载会报出原因"""
     global _endpoint_cache
-    from .runtime import source_pref
+    with _endpoint_lock:
+        if _endpoint_cache and time.monotonic() - _endpoint_cache[0] < 600:
+            return _endpoint_cache[1]
+        results: dict[str, float | None] = {}
+        threads = [
+            threading.Thread(target=lambda b=b: results.__setitem__(b, _probe(b)), daemon=True) for b in HF_ENDPOINTS
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(20)
+        ok = {b: t for b, t in results.items() if t is not None}
+        chosen = min(ok, key=ok.__getitem__) if ok else HF_ENDPOINTS[0]
+        _endpoint_cache = (time.monotonic(), chosen)
+        log.info("模型从 %s 下载（测速：%s）", chosen, {b: (f"{t:.1f}s" if t else "连不上") for b, t in results.items()})
+        return chosen
 
-    pref = source_pref()
-    if pref in HF_ENDPOINTS:
-        return HF_ENDPOINTS[pref]
-    if _endpoint_cache and time.monotonic() - _endpoint_cache[0] < 600:
-        return _endpoint_cache[1]
-    try:
-        urllib.request.urlopen(urllib.request.Request(HF_ENDPOINTS["huggingface"], method="HEAD"), timeout=3).close()
-        chosen = HF_ENDPOINTS["huggingface"]
-    except OSError:
-        chosen = HF_ENDPOINTS["mirror"]
-    _endpoint_cache = (time.monotonic(), chosen)
-    log.info("模型从 %s 下载", chosen)
-    return chosen
+
+def forget_endpoint() -> None:
+    global _endpoint_cache
+    with _endpoint_lock:
+        _endpoint_cache = None
 
 
 def onnx_base(name: str) -> str:

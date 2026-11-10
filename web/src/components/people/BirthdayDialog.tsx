@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import Modal, { Button } from '@/components/ui/Modal'
+import DialogButton from '@/components/ui/DialogButton'
+import Modal, { DialogActions } from '@/components/ui/Modal'
 import Select from '@/components/ui/Select'
 import { faceThumbUrl, type Person, setBirthday } from '@/lib/api'
 import { ageAt } from '@/lib/age'
@@ -50,36 +51,12 @@ export default function BirthdayDialog({
 
   const years = Array.from({ length: 100 }, (_, i) => today.getFullYear() - i)
   return (
-    <Modal
-      title={person.birthday ? '修改生日' : '设置生日'}
-      onClose={onClose}
-      footer={
-        <div className="flex items-center gap-2">
-          {person.birthday && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void save('')}
-              className="text-body text-danger hover:underline disabled:opacity-50"
-            >
-              去掉生日
-            </button>
-          )}
-          <div className="ml-auto flex gap-2">
-            <Button onClick={onClose}>取消</Button>
-            <Button primary disabled={busy || future} onClick={() => void save(value)}>
-              {busy ? '保存中…' : '保存'}
-            </Button>
-          </div>
-        </div>
-      }
-    >
-      <div className="flex flex-col items-center px-6 pt-6 pb-5 text-center">
+    <Modal title={person.birthday ? '修改生日' : '设置生日'} subtitle={personName(person)} onClose={onClose}>
+      <div className="flex flex-col items-center text-center">
         <span className="size-20 overflow-hidden rounded-full bg-line shadow-md">
           {person.cover && <img src={faceThumbUrl(person.cover)} alt="" className="size-full object-cover" />}
         </span>
-        <p className="mt-3 text-heading font-semibold">{personName(person)} 的生日</p>
-        <p className="mt-1 text-caption text-muted">设置后，「成长」按年龄分段：两岁前每个月，之后每半年、每年</p>
+        <p className="mt-3 text-caption text-muted">设置后，「成长」按年龄分段：两岁前每个月，之后每半年、每年</p>
 
         <div className="mt-5 flex items-center gap-2">
           <Select
@@ -117,6 +94,18 @@ export default function BirthdayDialog({
         </p>
         {error && <p className="mt-2 text-caption text-danger">没有保存成功：{error}</p>}
       </div>
+      <DialogActions>
+        {person.birthday ? (
+          <DialogButton variant="danger" disabled={busy} onClick={() => void save('')}>
+            去掉生日
+          </DialogButton>
+        ) : (
+          <DialogButton onClick={onClose}>取消</DialogButton>
+        )}
+        <DialogButton variant="primary" disabled={busy || future} onClick={() => void save(value)}>
+          {busy ? '保存中…' : '保存'}
+        </DialogButton>
+      </DialogActions>
     </Modal>
   )
 }
