@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Popover from '@/components/ui/Popover'
 import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
 
-// AddPhotosButton 是相册里工具栏右边的「添加照片」：弹出两个选择，从图库挑已有的照片，或者从电脑上传新的。
+// AddPhotosButton 是相册里工具栏右边的「添加照片」，样子和相册页的「新建相册」一样（实心主按钮）：弹出两个选择，从图库挑已有的照片，或者从电脑上传新的。
 // 刚建好相册时自动弹出（autoOpen），直接接着加照片。
 export default function AddPhotosButton({
   autoOpen,
@@ -36,7 +36,7 @@ export default function AddPhotosButton({
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-fg/[0.04] px-3.5 text-body font-medium whitespace-nowrap text-fg transition-colors hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-fg px-3.5 text-body font-medium whitespace-nowrap text-page transition-colors hover:bg-fg/85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ImagePlus className="size-4" strokeWidth={2} />
             添加照片

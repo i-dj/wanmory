@@ -122,6 +122,21 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		s.noteDevice(r.Context(), c.Value, r)
+		if IsDemo(u) { // 演示账号不能改密码、退出其他设备、删除东西（刚传的照片、刚建的相册除外），见 demo.go
+			blocked, del := demoBlocked(r)
+			if !blocked && (len(del.assets) > 0 || del.album != "") {
+				ok, err := s.recentlyMine(r.Context(), u.ID, del)
+				if err != nil {
+					httpx.InternalError(w, err)
+					return
+				}
+				blocked = !ok
+			}
+			if blocked {
+				httpx.Error(w, http.StatusForbidden, demoForbidden)
+				return
+			}
+		}
 		next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), u)))
 	})
 }

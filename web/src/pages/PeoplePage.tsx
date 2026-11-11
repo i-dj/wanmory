@@ -1,4 +1,5 @@
 import PageHeader from '@/components/layout/PageHeader'
+import { PEOPLE_GRID } from '@/components/ui/CoverCard'
 import { UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import DialogButton from '@/components/ui/DialogButton'
@@ -11,8 +12,8 @@ import { useCurrentUser } from '@/lib/session'
 
 const POLL_MS = 4000 // 还在识别时多久刷新一次进度和人物
 
-// PeoplePage 是人脸识别归出来的人物：一张张竖的照片卡片（封面是这个人拍得最好的一张），名字写在左下角
-// （点一下就能改，没名字的指上去出现「添加名字」），点卡片看这个人的所有照片。起了名字的排在前面。
+// PeoplePage 是人脸识别归出来的人物：一张张竖的大照片（封面是这个人拍得最好的一张），名字和照片张数写在照片下方
+// （名字点一下就能改，没名字的显示「添加名字」），点照片看这个人的所有照片。起了名字的排在前面。
 // 还在识别时上面显示进度，人物会陆续出现。起的名字和别人重了，会问是不是同一个人、要不要合并。
 // 同一个人被认成了几个（例如宝宝不同月龄）时，给他们起同一个名字就会问要不要合并
 export default function PeoplePage({
@@ -61,12 +62,9 @@ export default function PeoplePage({
         </div>
       )}
 
-      <ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-4">
+      <ul className={cx('mt-6', PEOPLE_GRID)}>
         {people?.map((p) => (
-          <li
-            key={p.id}
-            className="group relative aspect-3/4 overflow-hidden rounded-[14px] bg-line ring-accent ring-offset-2 ring-offset-page transition has-[a:focus-visible]:ring-2"
-          >
+          <li key={p.id} className="group">
             <a
               href={personPath(p.id)}
               onClick={(e) => {
@@ -74,7 +72,7 @@ export default function PeoplePage({
                 navigate(personPath(p.id))
               }}
               aria-label={p.name || '未命名的人'}
-              className="absolute inset-0 outline-none"
+              className="block aspect-3/4 overflow-hidden rounded-[16px] bg-line ring-accent ring-offset-2 ring-offset-page outline-none transition focus-visible:ring-2"
             >
               {p.cover ? (
                 <img
@@ -87,10 +85,12 @@ export default function PeoplePage({
               ) : (
                 <UserRound className="m-auto size-full p-8 text-muted" strokeWidth={1.2} />
               )}
-              {/* 下面压暗一点，白字的名字才看得清 */}
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/60 to-transparent" />
             </a>
-            <PersonName person={p} readOnly={guest} onRename={(name) => rename(p, name)} />
+            {/* 照片下方：名字（可以改）和照片张数 */}
+            <div className="mt-3 px-0.5">
+              <PersonName person={p} readOnly={guest} onRename={(name) => rename(p, name)} />
+              <div className="mt-0.5 truncate text-body text-muted tabular-nums">{p.assets.toLocaleString()} 项</div>
+            </div>
           </li>
         ))}
       </ul>
@@ -113,8 +113,8 @@ export default function PeoplePage({
   )
 }
 
-// PersonName 是卡片左下角的名字：点一下变成输入框，回车或点别处保存，Esc 放弃。
-// 没起名字时平常不显示，指到卡片上才出现「添加名字」
+// PersonName 是照片下方的名字：点一下变成输入框，回车或点别处保存，Esc 放弃。
+// 没起名字时显示灰色的「添加名字」
 function PersonName({
   person,
   readOnly,
@@ -128,10 +128,10 @@ function PersonName({
   const [name, setName] = useState(person.name)
   if (readOnly)
     return person.name ? (
-      <span className="absolute bottom-2.5 left-3 max-w-[calc(100%-1.5rem)] truncate text-heading font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">
-        {person.name}
-      </span>
-    ) : null
+      <div className="h-6 truncate text-[17px] font-semibold">{person.name}</div>
+    ) : (
+      <div className="h-6 text-[17px] text-muted">未命名</div>
+    )
   const save = async () => {
     setEditing(false)
     const value = name.trim()
@@ -155,7 +155,7 @@ function PersonName({
             setEditing(false)
           }
         }}
-        className="absolute inset-x-2 bottom-2 h-8 rounded-control bg-black/60 px-2 text-body font-semibold text-white outline-none placeholder:text-white/60"
+        className="-mx-1.5 block h-6 w-[calc(100%+0.75rem)] rounded-control bg-surface px-1.5 text-[17px] font-semibold ring-2 ring-accent/50 outline-none placeholder:text-muted"
       />
     )
   }
@@ -167,8 +167,8 @@ function PersonName({
         setEditing(true)
       }}
       className={cx(
-        'absolute bottom-2.5 left-3 max-w-[calc(100%-1.5rem)] truncate rounded-item text-left text-heading font-semibold text-white [text-shadow:0_1px_3px_rgb(0_0_0/0.6)] hover:underline',
-        !person.name && 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+        'block h-6 max-w-full truncate rounded-item text-left text-[17px] font-semibold hover:underline',
+        !person.name && 'font-normal text-muted',
       )}
     >
       {person.name || '添加名字'}
@@ -266,5 +266,5 @@ function statusLine(s: FaceStatus): string {
   if (!s.healthy && s.pending > 0) return `AI 服务连不上（${s.ai}），人脸识别暂停，连上后会自动继续`
   if (s.pending > 0) return `正在识别人脸：已看过 ${s.done.toLocaleString()} 张，还有 ${s.pending.toLocaleString()} 张`
   if (s.people === 0) return s.done > 0 ? `已看过 ${s.done.toLocaleString()} 张照片` : ''
-  return `${s.people.toLocaleString()} 个人`
+  return `已认出 ${s.people.toLocaleString()} 个人`
 }

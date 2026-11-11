@@ -2,6 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "server",
+      "runtimeExecutable": "make",
+      "runtimeArgs": [
+        "run"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "ml",
+      "runtimeExecutable": "make",
+      "runtimeArgs": [
+        "ml-run"
+      ],
+      "port": 3003
+    },
+    {
       "name": "web",
       "runtimeExecutable": "npx",
       "runtimeArgs": [

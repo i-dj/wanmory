@@ -5,95 +5,18 @@ import { assetPoints } from '@/lib/api'
 import { matchPoint, useFootprintFilter } from '@/lib/footprintFilter'
 import { type Region, regionAt, useMapsEnabled } from '@/lib/geo'
 import { attachBaseLayer } from '@/lib/mapSource'
-import { type City, focusBox, groupByCity, inCity, parseCitySpec } from '@/lib/places'
+import { type City, groupByCity, inCity, parseCitySpec } from '@/lib/places'
 import { clusterPoints, openPin, type Point, pinHtml } from '@/lib/pins'
 import { contains, loadWorldMap, type WorldMap } from '@/lib/worldMap'
+
+// AreaFootprint 是「足迹」里点开一个城市（一片）后，照片上面的那张地图（Leaflet）。
+// 「足迹」页本身的世界地图见 WorldFootprint
 
 interface PanelProps {
   points: Point[]
   cities: City[]
   online: boolean // 在线地图开着：才去查省、州的轮廓和地名
   navigate: (to: string) => void
-}
-
-// 上次看的位置：从某一片的照片返回、切换显示方式回来时还停在那里
-let lastView: { center: L.LatLng; zoom: number } | null = null
-
-// FootprintMap 是「足迹」的大地图，像 macOS「照片」的地图：底图是街道地图（设置里关了在线地图时是线条勾的
-// 世界地图），照片钉在拍的地方。一开始对准照片最多的那一片（美国、广东……）。卫星地球见 GlobeMap
-export default function FootprintMap({ points, cities, online, navigate }: PanelProps) {
-  const el = useRef<HTMLDivElement>(null)
-  const [map, setMap] = useState<L.Map | null>(null)
-  const go = useRef(navigate)
-  useEffect(() => {
-    go.current = navigate
-  })
-
-  useEffect(() => {
-    if (!el.current) return
-    const m = L.map(el.current, { zoomSnap: 0.5, worldCopyJump: true, minZoom: 2, maxZoom: 18 })
-    m.attributionControl.setPrefix(false)
-    const draw = pinPhotos(m, points, online, go)
-    m.on('zoomend', draw)
-    m.on('moveend', () => (lastView = { center: m.getCenter(), zoom: m.getZoom() }))
-    if (lastView) m.setView(lastView.center, lastView.zoom, { animate: false })
-    else {
-      {
-        const [south, west, north, east] = focusBox(points, cities)
-        m.fitBounds(
-          [
-            [south, west],
-            [north, east],
-          ],
-          { padding: [60, 60], animate: false, maxZoom: 12 },
-        )
-      }
-    }
-    draw()
-    setMap(m)
-    return () => {
-      setMap(null)
-      m.remove()
-    }
-  }, [points, cities, online])
-
-  // 底图：街道地图；没开在线地图时是简笔世界地图
-  const [world, setWorld] = useState<WorldMap | null>(null)
-  useEffect(() => {
-    if (online) return
-    let alive = true
-    void loadWorldMap().then((w) => alive && setWorld(w))
-    return () => {
-      alive = false
-    }
-  }, [online])
-  useEffect(() => {
-    if (!map || !isLive(map)) return
-    const c = map.getContainer()
-    if (online) {
-      c.classList.remove('sketch-map')
-      return attachBaseLayer(map) // 高德或 OpenStreetMap，见 lib/mapSource.ts
-    }
-    let base: L.Layer
-    if (world)
-      base = L.layerGroup([
-        L.geoJSON(world.graticule, { interactive: false, style: { className: 'sketch-grid' } }),
-        L.geoJSON(world.countries, {
-          interactive: false,
-          attribution: 'Natural Earth',
-          style: { className: 'sketch-land' },
-        }),
-        L.geoJSON(world.borders, { interactive: false, style: { className: 'sketch-border' } }),
-      ])
-    else return
-    base.addTo(map)
-    c.classList.add('sketch-map')
-    return () => {
-      base.remove()
-    }
-  }, [map, online, world])
-
-  return <div ref={el} className="map-frame isolate size-full overflow-hidden rounded-panel" />
 }
 
 // Panel 是一块地图：范围刚好装下这些照片和它们所在的省、州（都在广东就是一张广东地图），不能缩得比这更小。

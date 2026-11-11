@@ -2,7 +2,7 @@
 // 用 SSR 构建出的 render() 把每个页面 × 每种语言渲染成完整的 HTML：英语写回原位置，其他语言写到 dist/<语言>/ 下。
 // 这样搜索引擎（包括不执行 JavaScript 的爬虫）直接能读到每种语言的完整内容，浏览器里再 hydrate 接管。
 // 最后生成带 hreflang 的 sitemap.xml
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -13,6 +13,19 @@ const HTML_LANG = {
   en: 'en', zh: 'zh-CN', 'zh-tw': 'zh-TW', ja: 'ja', ko: 'ko', de: 'de', fr: 'fr', es: 'es', pt: 'pt-BR', ru: 'ru', it: 'it', vi: 'vi',
 }
 
+// 字体预加载：正文的西文字体（Plus Jakarta Sans）原本要等样式表解析完才开始下载，
+// 页面先用系统字体画出来，字体到了再换，刷新时字母、数字的形状和宽度会跳一下。
+// 在 <head> 里预加载，和样式表一起下载，第一次画出来就是正文字体。每种语言只预加载它用得到的字形
+const fonts = readdirSync(`${root}dist/assets`)
+const font = (name) => {
+  const file = fonts.find((f) => f.startsWith(`${name}-`) && f.endsWith('.woff2'))
+  if (!file) throw new Error(`dist/assets 里没有字体 ${name}`)
+  return `<link rel="preload" href="/assets/${file}" as="font" type="font/woff2" crossorigin />`
+}
+const FONT_PRELOADS = { vi: ['plus-jakarta-sans-vietnamese-wght-normal', 'plus-jakarta-sans-latin-ext-wght-normal'], ru: ['inter-cyrillic-wght-normal'] }
+const preloads = (locale) =>
+  ['plus-jakarta-sans-latin-wght-normal', ...(FONT_PRELOADS[locale] ?? [])].map((n) => `    ${font(n)}`).join('\n')
+
 for (const [page, path] of Object.entries(PAGES)) {
   const file = path === '/' ? 'index.html' : `${path.slice(1)}index.html`
   const template = readFileSync(`${root}dist/${file}`, 'utf8')
@@ -21,7 +34,7 @@ for (const [page, path] of Object.entries(PAGES)) {
   for (const locale of LOCALES) {
     const html = template
       .replace(/<html lang="[^"]*">/, `<html lang="${HTML_LANG[locale]}">`)
-      .replace('<!--head-->', renderHead(page, locale))
+      .replace('<!--head-->', `${renderHead(page, locale)}\n${preloads(locale)}`)
       .replace('<!--app-->', await render(page, locale))
     const out = `${root}dist/${locale === 'en' ? '' : `${locale}/`}${file}`
     mkdirSync(dirname(out), { recursive: true })

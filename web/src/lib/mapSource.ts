@@ -15,9 +15,6 @@ export const SETTING_MAP_SOURCE = 'maps.source'
 
 export const AMAP_ROAD_URL =
   'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
-export const AMAP_SATELLITE_URLS = [1, 2, 3, 4].map(
-  (s) => `https://webst0${s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}`,
-)
 export const AMAP_ATTRIBUTION = '© 高德地图'
 
 let source: Promise<MapSource> | null = null

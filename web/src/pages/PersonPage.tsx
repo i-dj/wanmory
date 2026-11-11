@@ -8,7 +8,7 @@ import PhotoToolbar from '@/components/photos/PhotoToolbar'
 import { useElementSize } from '@/hooks/useElementSize'
 import { usePersonProfile } from '@/hooks/usePersonProfile'
 import { useGridLayout } from '@/hooks/useGridLayout'
-import { assetThumbUrl, type Companion, faceThumbUrl, type Person, type PersonProfile } from '@/lib/api'
+import { assetThumbUrl, type Companion, facePortraitUrl, type Person, type PersonProfile } from '@/lib/api'
 import { type AgeGroup, groupByAge } from '@/lib/age'
 import { unlockAudio } from '@/lib/musicLibrary'
 import { pickFrames } from '@/lib/timelapse'
@@ -16,7 +16,8 @@ import { formatCoords, formatMonthSpan } from '@/lib/format'
 import { placeName, useMapsEnabled } from '@/lib/geo'
 import { groupByPlace, type PlaceGroup } from '@/lib/places'
 import { agePath, personName, type PersonTab, placePath, withPath } from '@/lib/views'
-import CoverCard from '@/components/ui/CoverCard'
+import CoverCard, { ALBUM_GRID, PEOPLE_GRID } from '@/components/ui/CoverCard'
+import { cx } from '@/lib/cx'
 import { useLookups } from '@/hooks/useLookups'
 
 // PersonPage 是人物页除了「照片」以外的几个标签：
@@ -24,7 +25,8 @@ import { useLookups } from '@/hooks/useLookups'
 //   足迹：去过的地方，地图上的图钉和一张张地点卡片；
 //   合影：常和他（她）一起出现的人。
 // 点哪一段、哪个地方、哪个人，都进到对应的那部分照片。
-// 顶上的工具栏和「照片」标签的一样（返回、日历、缩放），切换标签时不会跳；缩放滑块调卡片大小
+// 顶上的工具栏和「照片」标签的一样（返回、日历、缩放），切换标签时不会跳。
+// 卡片大小和别处一致：成长、合影和人物页一样（竖版照片），足迹的地点和相册页一样（方形封面）
 export default function PersonPage({
   person,
   tab,
@@ -41,8 +43,6 @@ export default function PersonPage({
   const content = useRef<HTMLDivElement>(null)
   const { width } = useElementSize(content)
   const layout = useGridLayout(width)
-  // 成长、合影的卡片和照片网格里的照片差不多大；足迹的卡片宽，每行少一张
-  const columns = Math.max(1, tab === 'places' ? layout.columns - 1 : layout.columns)
   // 成长延时：每个月一张对齐好的脸
   const frames = useMemo(() => (moments ? pickFrames(moments, person.birthday) : []), [moments, person.birthday])
   const [playing, setPlaying] = useState(false)
@@ -76,13 +76,13 @@ export default function PersonPage({
       <div ref={content} className="mt-6">
         {error && <p className="text-body text-danger">没有读到：{error}</p>}
         {profile && tab === 'growth' && (
-          <Growth person={person} moments={profile.moments} columns={columns} navigate={navigate} />
+          <Growth person={person} moments={profile.moments} navigate={navigate} />
         )}
         {profile && tab === 'places' && (
-          <Places person={person} moments={profile.moments} columns={columns} navigate={navigate} />
+          <Places person={person} moments={profile.moments} navigate={navigate} />
         )}
         {profile && tab === 'friends' && (
-          <Friends person={person} companions={profile.companions} columns={columns} navigate={navigate} />
+          <Friends person={person} companions={profile.companions} navigate={navigate} />
         )}
       </div>
 
@@ -96,12 +96,10 @@ export default function PersonPage({
 function Growth({
   person,
   moments,
-  columns,
   navigate,
 }: {
   person: Person
   moments: PersonProfile['moments']
-  columns: number
   navigate: (to: string) => void
 }) {
   const groups = useMemo(() => groupByAge(moments, person.birthday), [moments, person.birthday])
@@ -109,7 +107,7 @@ function Growth({
   // 没有拍摄时间的照片算不出当时多大，不放进来（不另外说明，简洁）
   return (
     <>
-      <ol className="grid gap-x-4 gap-y-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <ol className={PEOPLE_GRID}>
         {groups.map((g) => (
           <AgeCard
             key={g.key}
@@ -125,7 +123,7 @@ function Growth({
 function AgeCard({ group, onOpen }: { group: AgeGroup; onOpen: () => void }) {
   return (
     <li>
-      <CoverCard src={faceThumbUrl(group.best.face)} title={group.label} onClick={onOpen} />
+      <CoverCard src={facePortraitUrl(group.best.face)} aspect="portrait" title={group.label} onClick={onOpen} />
     </li>
   )
 }
@@ -135,12 +133,10 @@ function AgeCard({ group, onOpen }: { group: AgeGroup; onOpen: () => void }) {
 function Places({
   person,
   moments,
-  columns,
   navigate,
 }: {
   person: Person
   moments: PersonProfile['moments']
-  columns: number
   navigate: (to: string) => void
 }) {
   const places = useMemo(() => groupByPlace(moments), [moments])
@@ -174,15 +170,14 @@ function Places({
           <PlacesMap places={places} onPick={open} />
         </div>
       )}
-      <ul className="mt-6 grid gap-x-4 gap-y-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <ul className={cx('mt-6', ALBUM_GRID)}>
         {places.map((p) => (
           <li key={p.key}>
             <CoverCard
               src={assetThumbUrl(p.cover.asset)}
-              aspect="4/3"
               badge={p.home && '常在的地方'}
               title={names[p.key] ?? (mapsOn ? '' : formatCoords(p.lat, p.lon))}
-              subtitle={`${formatMonthSpan(p.first, p.last)} · ${p.days.toLocaleString()} 天 · ${p.moments.length.toLocaleString()} 张`}
+              subtitle={`${formatMonthSpan(p.first, p.last)} · ${p.days.toLocaleString()} 天 · ${p.moments.length.toLocaleString()} 项`}
               onClick={() => open(p)}
             />
           </li>
@@ -197,12 +192,10 @@ function Places({
 function Friends({
   person,
   companions,
-  columns,
   navigate,
 }: {
   person: Person
   companions: Companion[]
-  columns: number
   navigate: (to: string) => void
 }) {
   if (companions.length === 0) {
@@ -216,32 +209,16 @@ function Friends({
   return (
     <>
       <p className="text-body text-muted">常和{personName(person)}一起出现在照片里的人，点一下看合影。</p>
-      <ul className="mt-6 grid gap-x-4 gap-y-7" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <ul className={cx('mt-6', PEOPLE_GRID)}>
         {companions.map((c) => (
           <li key={c.id}>
-            <button
-              type="button"
+            <CoverCard
+              src={c.cover ? facePortraitUrl(c.cover) : ''}
+              aspect="portrait"
+              title={c.name || <span className="font-normal text-muted">未命名</span>}
+              subtitle={`一起 ${c.shared.toLocaleString()} 项`}
               onClick={() => navigate(withPath(person.id, c.id))}
-              className="group flex w-full cursor-pointer flex-col items-center text-center outline-none"
-            >
-              <span className="block aspect-square w-full max-w-40 overflow-hidden rounded-full bg-line ring-accent ring-offset-2 ring-offset-page transition group-focus-visible:ring-2">
-                {c.cover && (
-                  <img
-                    src={faceThumbUrl(c.cover)}
-                    alt=""
-                    loading="lazy"
-                    draggable={false}
-                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                )}
-              </span>
-              <span
-                className={c.name ? 'mt-2.5 max-w-full truncate text-body font-medium' : 'mt-2.5 text-body text-muted'}
-              >
-                {c.name || '未命名的人'}
-              </span>
-              <span className="text-caption text-muted tabular-nums">一起 {c.shared.toLocaleString()} 张</span>
-            </button>
+            />
           </li>
         ))}
       </ul>

@@ -1,6 +1,8 @@
 import PageHeader from '@/components/layout/PageHeader'
+import { ALBUM_GRID } from '@/components/ui/CoverCard'
 import { ImageIcon, Lock, Plus, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { cx } from '@/lib/cx'
 import AlbumMenu from '@/components/albums/AlbumMenu'
 import CoverPicker from '@/components/albums/CoverPicker'
 import PrivacyDialog from '@/components/albums/PrivacyDialog'
@@ -9,9 +11,9 @@ import { type Album, assetThumbUrl } from '@/lib/api'
 import { useCurrentUser } from '@/lib/session'
 import { albumPath } from '@/lib/views'
 
-// AlbumsPage 是「相册」：所有相册一张张带封面的卡片，和人物页一样竖着的，名字和张数压在封面下面。
+// AlbumsPage 是「相册」：所有相册一张张方形封面卡片，名字和张数写在封面下方。
 // 点卡片打开相册；鼠标移上去右上角出现「…」，在卡片上右键也是同一个菜单（修改封面、重命名 / 智能相册的条件、删除）。
-// 私有相册名字后面一把小锁；别人建的共享相册，张数后面写是谁建的。右上角「新建相册」
+// 私有相册封面左上角一把锁；别人建的共享相册，张数后面写建的人的名字。右上角「新建相册」
 export default function AlbumsPage({
   albums,
   navigate,
@@ -57,7 +59,7 @@ export default function AlbumsPage({
         </div>
       )}
 
-      <ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-4">
+      <ul className={cx('mt-6', ALBUM_GRID)}>
         {albums?.map((album) => (
           <li
             key={album.id}
@@ -66,7 +68,7 @@ export default function AlbumsPage({
               e.preventDefault()
               setContext({ id: album.id, x: e.clientX, y: e.clientY })
             }}
-            className="group relative aspect-3/4 overflow-hidden rounded-[14px] bg-line ring-accent ring-offset-2 ring-offset-page transition has-[a:focus-visible]:ring-2"
+            className="group relative"
           >
             <a
               href={albumPath(album.id)}
@@ -75,8 +77,10 @@ export default function AlbumsPage({
                 navigate(albumPath(album.id))
               }}
               aria-label={album.name}
-              className="absolute inset-0 outline-none"
+              className="block rounded-[16px] outline-none"
             >
+              {/* 封面 */}
+              <span className="relative block aspect-square overflow-hidden rounded-[16px] bg-line ring-accent ring-offset-2 ring-offset-page transition group-has-[a:focus-visible]:ring-2">
               {album.cover ? (
                 <img
                   src={assetThumbUrl(album.cover)}
@@ -88,23 +92,31 @@ export default function AlbumsPage({
               ) : (
                 <ImageIcon className="m-auto size-full p-10 text-muted" strokeWidth={1.2} />
               )}
-              {/* 下面压暗一点，白字的名字才看得清 */}
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/65 to-transparent" />
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-2.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                <span className="flex items-center gap-1">
-                  <span className="truncate text-heading font-semibold">{album.name}</span>
-                  {album.kind === 'smart' && (
-                    <Sparkles className="size-3.5 shrink-0" strokeWidth={2.2} aria-label="智能相册" />
-                  )}
-                  {album.private && <Lock className="size-3.5 shrink-0" strokeWidth={2.2} aria-label="仅自己" />}
+              {/* 私有相册：封面左上角一把锁 */}
+              {album.private && (
+                <span
+                  className="absolute top-2 left-2 flex size-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md"
+                  aria-label="仅自己可见"
+                >
+                  <Lock className="size-3.5" strokeWidth={2.2} />
                 </span>
-                <span className="block truncate text-caption text-white/85 tabular-nums">
+              )}
+              </span>
+              {/* 名字和张数在封面下方 */}
+              <span className="mt-3 block px-0.5">
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate text-[17px] font-semibold">{album.name}</span>
+                  {album.kind === 'smart' && (
+                    <Sparkles className="size-4 shrink-0 text-accent" strokeWidth={2} aria-label="智能相册" />
+                  )}
+                </span>
+                <span className="mt-0.5 block truncate text-body text-muted tabular-nums">
                   {album.count.toLocaleString()} 项
                   {album.owner && album.owner !== user.id && album.owner_name && ` · ${album.owner_name}`}
                 </span>
               </span>
             </a>
-            {/* 「…」在照片上：深色圆底，白色三个点 */}
+            {/* 「…」在封面右上角：深色圆底，白色三个点 */}
             {!guest && (
               <div className="absolute top-2 right-2 rounded-full bg-black/45 opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100 [&_button]:text-white [&_button:hover]:bg-white/20">
                 <AlbumMenu

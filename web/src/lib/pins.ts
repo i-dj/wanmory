@@ -1,4 +1,4 @@
-// 地图上的照片图钉：平面地图（Leaflet）和卫星地球（MapLibre）共用的聚合、样子和点开
+// 地图上的照片图钉：城市照片上面那张 Leaflet 地图（AreaFootprint）的聚合、样子和点开
 
 import { assetThumbUrl, type Point } from './api'
 import { formatCoords } from './format'

@@ -9,7 +9,7 @@ export interface Segment<T extends string> {
 }
 
 // Segmented 是一组分段按钮，简洁样子：没有底和边框，没选的只是灰字，选中的那段是一块淡淡的圆角底、字变亮。全站只有这一种样子。
-// 设置里的切换、连拍整理的「连拍和相似 / 重复」、足迹的「地图 / 卫星 / 网格」、日历的「年 / 月 / 日」都用它。
+// 设置里的切换、连拍整理的「连拍和相似 / 重复」、足迹的「地图 / 网格」、日历的「年 / 月 / 日」都用它。
 // stretch 时撑满一行、每段一样宽
 export default function Segmented<T extends string>({
   label,

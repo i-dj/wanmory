@@ -460,16 +460,48 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
   .theme-dark .map-frame .leaflet-tile-pane {
     filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.85) saturate(0.8);
   }
-  /* 卫星地球：背后是太空，浅色、深色模式都一样 */
-  .globe-map {
-    background: radial-gradient(circle at 50% 50%, #0d1830 0%, #03050b 70%);
+  /* 「足迹」的「地图」：平铺的世界地图（WorldFootprint）。浅色主题米白底、浅灰陆地，深色主题深蓝灰；去过的国家暖色 */
+  .world-flat {
+    --wf-sea: #f4efe9;
+    --wf-land: #e3ddd5;
+    --wf-land-line: #cfc7bd;
+    --wf-visited: #f3c9ae;
+    --wf-visited-line: #de9f7b;
+    --wf-name: #1e1814;
+    --wf-sub: #6b6259;
+    --wf-halo: #f4efe9;
+    background: var(--wf-sea);
   }
-  .globe-map .maplibregl-marker {
-    cursor: pointer;
+  .theme-dark .world-flat {
+    --wf-sea: #14171c;
+    --wf-land: #2b3038;
+    --wf-land-line: #424955;
+    --wf-visited: #4a3428;
+    --wf-visited-line: #7a5240;
+    --wf-name: #ffffff;
+    --wf-sub: #b9b2ac;
+    --wf-halo: #14171c;
   }
-  /* 卫星图是照片，深色模式下也不反色 */
-  .map-frame.satellite-map .leaflet-tile-pane {
-    filter: none !important;
+  .world-flat .land {
+    fill: var(--wf-land);
+    stroke: var(--wf-land-line);
+  }
+  .world-flat .land.visited {
+    fill: var(--wf-visited);
+    stroke: var(--wf-visited-line);
+  }
+  /* 地名：白字（浅色主题深字）外面一圈底色描边，压在陆地、国界上也看得清 */
+  .world-flat .name {
+    color: var(--wf-name);
+  }
+  .world-flat .sub {
+    color: var(--wf-sub);
+  }
+  .world-flat .label {
+    text-shadow:
+      0 0 3px var(--wf-halo),
+      0 0 3px var(--wf-halo),
+      0 0 6px var(--wf-halo);
   }
   .map-frame .leaflet-control-attribution {
     background: color-mix(in srgb, var(--color-surface) 70%, transparent);

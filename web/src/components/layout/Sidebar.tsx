@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   MapPinned,
+  Menu,
   Mountain,
   PanelLeft,
   PawPrint,
@@ -24,6 +25,7 @@ import {
   UsersRound,
   UtensilsCrossed,
   Video,
+  X,
 } from 'lucide-react'
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import type { AssetStats } from '@/lib/api'
@@ -63,6 +65,18 @@ export const ACCOUNT_PATH = '/account'
 const COLLAPSED_KEY = 'wanmory.sidebar.collapsed'
 const Rail = createContext(false) // 收起了：菜单项只画图标
 
+// useDesktop：是不是宽屏（Tailwind 的 md，768px 以上），宽屏是左边一栏，窄屏是顶上一条加 ☰
+const DESKTOP = window.matchMedia('(min-width: 48rem)')
+function useDesktop(): boolean {
+  const [desktop, setDesktop] = useState(DESKTOP.matches)
+  useEffect(() => {
+    const on = () => setDesktop(DESKTOP.matches)
+    DESKTOP.addEventListener('change', on)
+    return () => DESKTOP.removeEventListener('change', on)
+  }, [])
+  return desktop
+}
+
 function useCollapsed(): [boolean, (v: boolean) => void] {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -95,7 +109,33 @@ export default function Sidebar({
 }) {
   const { guest, signIn } = useCurrentUser()
   const [collapsed, setCollapsed] = useCollapsed()
+  const desktop = useDesktop()
+  const rail = collapsed && desktop // 窄屏上的下拉菜单总是展开的样子，不管宽屏上收没收起
   const navRef = useRef<HTMLElement>(null)
+  // 窄屏：顶上一条（标志、名字、☰），点 ☰ 从右边滑出整个菜单；点了菜单项、点外面、按 Esc、变成宽屏都收起。
+  // 打开时后面的页面不跟着滚
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+  useEffect(() => {
+    if (desktop) setOpen(false)
+  }, [desktop])
+  useEffect(() => {
+    if (!open) return
+    const { overflow } = document.documentElement.style
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.documentElement.style.overflow = overflow
+    }
+  }, [open])
+  const go = (to: string) => {
+    setOpen(false)
+    navigate(to)
+  }
   const viewItem = (view: View, icon: LucideIcon, count?: number) => (
     <NavItem
       key={view.path}
@@ -104,11 +144,8 @@ export default function Sidebar({
       icon={icon}
       count={count}
       active={path === view.path}
-      navigate={navigate}
+      navigate={go}
     />
-  )
-  const settings = (
-    <NavItem href={SETTINGS_PATH} label="设置" icon={Settings} active={path === SETTINGS_PATH} navigate={navigate} />
   )
 
   // 收起按钮（方框里一道竖线）。收起后不显示它，点标志就展开
@@ -129,15 +166,85 @@ export default function Sidebar({
     <aside
       // 宽屏上一直在左边（点进某个人、某个相册时也不收起，那一项保持亮着），切页面时照片区的宽度不变，照片不用重新排。
       // 收起时变成 64px 宽的图标栏：宽度一下子切过去，不做动画（动画时右边的照片每一帧都要重排，会卡）。
-      // 两种状态下标志、上传按钮、每个菜单图标的位置都一样（行高固定、左边距一样），切换时图标不动
+      // 两种状态下标志、上传按钮、每个菜单图标的位置都一样（行高固定、左边距一样），切换时图标不动。
+      // 窄屏上压在页面的顶栏（z-35）上面，下拉菜单才不会被它挡住；这里不加磨砂，不然下拉卡片自己的磨砂不起作用
       className={cx(
-        'sticky top-0 z-30 border-b border-divider bg-page/95 md:h-screen md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar',
+        'sticky top-0 z-40 border-b border-divider bg-page/95 md:z-30 md:h-screen md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar',
         collapsed ? 'md:w-16' : 'md:w-60',
       )}
     >
-      <Rail.Provider value={collapsed}>
-        <div className="flex h-full flex-col">
-          {/* 宽屏上顶部：标志和名字，旁边收起按钮，下面一个大的「上传照片 / 视频」。窄屏上菜单是顶上一排标签，上传在工具栏里。
+      <Rail.Provider value={rail}>
+        {/* 窄屏顶上一条，和官网一样：标志、名字和一句介绍，右边后台任务和 ☰ */}
+        <div className="flex h-13 items-center gap-3 px-4 md:hidden">
+          <a
+            href={LIBRARY.path}
+            onClick={(e) => {
+              e.preventDefault()
+              go(LIBRARY.path)
+            }}
+            aria-label="万象首页"
+            className="flex min-w-0 items-center gap-2.5"
+          >
+            <Logo className="size-8 shrink-0 text-fg" />
+            <span className="min-w-0 leading-tight">
+              <span className="flex items-center gap-2 text-[17px] font-bold">
+                万象
+                <span className="rounded bg-accent-soft px-1.5 py-px text-[10px] font-semibold tracking-wider whitespace-nowrap text-accent">
+                  OPEN EDITION
+                </span>
+              </span>
+              <span className="block truncate text-[10.5px] tracking-widest text-muted">WANMORY · 私有 AI 相册</span>
+            </span>
+          </a>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            {!guest && <TaskIndicator />}
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-label="打开菜单"
+              aria-expanded={open}
+              className="flex size-9 items-center justify-center rounded-lg text-fg/80 transition-colors hover:bg-fg/[0.06] hover:text-fg"
+            >
+              <Menu className="size-5" />
+            </button>
+          </div>
+        </div>
+        {/* 窄屏上菜单打开时，后面的页面压暗；点暗处收起 */}
+        <div
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+          className={cx(
+            'fixed inset-0 bg-black/45 transition-opacity duration-300 md:hidden',
+            open ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        />
+        {/* 菜单本体：宽屏上是左边一栏；窄屏上是从右边滑出来的抽屉（不占满整屏，左边露出压暗的页面），
+          关的时候往右滑回去。中间的菜单太长时上下滚，账号那一行一直在最底下 */}
+        <div
+          role={desktop ? undefined : 'dialog'}
+          aria-label={desktop ? undefined : '菜单'}
+          aria-hidden={desktop ? undefined : !open}
+          className={cx(
+            'flex flex-col md:h-full',
+            'max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:w-[min(82vw,300px)] max-md:rounded-l-[24px] max-md:bg-sidebar max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:shadow-[-12px_0_40px_rgba(0,0,0,0.35)]',
+            'max-md:transition-[translate,visibility] max-md:duration-300 max-md:ease-[cubic-bezier(0.32,0.72,0,1)]',
+            open ? 'max-md:translate-x-0' : 'max-md:invisible max-md:translate-x-full',
+          )}
+        >
+          {/* 抽屉顶上：标志和名字，右边关闭 */}
+          <div className="flex h-16 shrink-0 items-center gap-2.5 pr-3 pl-5 md:hidden">
+            <Logo className="size-8 shrink-0 text-fg" />
+            <span className="text-[17px] font-bold">万象</span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="关闭菜单"
+              className="ml-auto flex size-9 items-center justify-center rounded-full text-fg/70 transition-colors hover:bg-fg/[0.06] hover:text-fg"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+          {/* 宽屏上顶部：标志和名字，旁边收起按钮，下面一个大的「上传照片 / 视频」（窄屏上标志和名字在顶上那一条里）。
             收起时只有标志（点了展开），后台任务图标挪到底部头像上面 */}
           <div className="hidden h-20 shrink-0 items-center gap-3 pr-3 pl-3.5 md:flex">
             {collapsed ? (
@@ -156,7 +263,7 @@ export default function Sidebar({
                 <Logo className="size-9 shrink-0 text-fg" />
                 <div className="min-w-0 leading-tight">
                   <div className="text-[19px] font-bold tracking-[0.3em]">万象</div>
-                  <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
+                  <VersionLine guest={guest} onUpdate={() => go(`${SETTINGS_PATH}#update`)} />
                 </div>
                 <div className="ml-auto flex items-center">
                   {!guest && <TaskIndicator />}
@@ -165,51 +272,30 @@ export default function Sidebar({
               </>
             )}
           </div>
-          {/* 访客只能浏览：没有上传，换成「登录」 */}
-          <div className="hidden px-3 pb-6 md:block">
+          {/* 访客只能浏览：没有上传，换成「登录」。窄屏的抽屉里不放上传（工具栏里有），访客的「登录」还在 */}
+          <div className={cx('px-3 pb-4 md:block md:pb-6', !guest && 'hidden')}>
             {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
           </div>
           {/* 宽屏上菜单放不下时可以上下滚：系统滚动条藏起来，右边贴着菜单边缘画一条细的（OverlayScrollbar） */}
-          <div className="relative md:flex md:min-h-0 md:flex-1 md:flex-col">
+          <div className="relative flex min-h-0 flex-1 flex-col">
             <nav
               ref={navRef}
-              className={cx(
-                'flex gap-1 overflow-x-auto px-3 py-2 md:min-h-0 md:flex-1 md:flex-col md:gap-0.5 md:overflow-y-auto md:py-0',
-                'md:[scrollbar-width:none] md:px-3',
-              )}
+              className="flex min-h-0 flex-1 [scrollbar-width:none] flex-col gap-0.5 overflow-y-auto px-3"
             >
               {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频和 AI 自动分的类（截图、文档、证件收在「更多」里）；
               「整理」：最近添加、连拍、隐藏、删除 */}
               {viewItem(LIBRARY, Images)}
-              <NavItem
-                href={ALBUMS_PATH}
-                label="相册"
-                icon={BookImage}
-                active={path === ALBUMS_PATH}
-                navigate={navigate}
-              />
-              <NavItem
-                href={PEOPLE_PATH}
-                label="人物"
-                icon={UsersRound}
-                active={path === PEOPLE_PATH}
-                navigate={navigate}
-              />
-              <NavItem
-                href={PLACES_PATH}
-                label="足迹"
-                icon={MapPinned}
-                active={path === PLACES_PATH}
-                navigate={navigate}
-              />
-              <div className="hidden h-5 shrink-0 md:block" />
+              <NavItem href={ALBUMS_PATH} label="相册" icon={BookImage} active={path === ALBUMS_PATH} navigate={go} />
+              <NavItem href={PEOPLE_PATH} label="人物" icon={UsersRound} active={path === PEOPLE_PATH} navigate={go} />
+              <NavItem href={PLACES_PATH} label="足迹" icon={MapPinned} active={path === PLACES_PATH} navigate={go} />
+              <div className="h-4 shrink-0 md:h-5" />
               <SectionLabel>分类</SectionLabel>
               {viewItem(FAVORITES, Heart, stats?.favorites)}
-              <RatingRow path={path} stats={stats} navigate={navigate} />
+              <RatingRow path={path} stats={stats} navigate={go} />
               {viewItem(VIDEOS, Video)}
               {CATEGORY_VIEWS.filter((_, i) => !CATEGORIES[i].more).map((v) => viewItem(v, categoryIcon(v)))}
               <MoreCategories path={path} viewItem={viewItem} />
-              <div className="hidden h-5 shrink-0 md:block" />
+              <div className="h-4 shrink-0 md:h-5" />
               <SectionLabel>整理</SectionLabel>
               {viewItem(RECENT, Clock)}
               {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
@@ -220,24 +306,18 @@ export default function Sidebar({
                     label="连拍整理"
                     icon={Layers}
                     active={path === BURSTS_PATH}
-                    navigate={navigate}
+                    navigate={go}
                   />
                   {viewItem(HIDDEN, EyeOff)}
                   {viewItem(DELETED, Trash2)}
-                  {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
-                  <div className="md:hidden">{settings}</div>
                 </>
               )}
             </nav>
             <OverlayScrollbar target={navRef} className="hidden md:flex" />
           </div>
-          {!guest && stats?.disk && !collapsed && <StorageCard disk={stats.disk} />}
-          <div className={cx('hidden pt-1 pb-3 md:block', collapsed ? 'px-3' : 'px-2.5')}>
-            <ProfileCard
-              path={path}
-              onAccount={() => navigate(ACCOUNT_PATH)}
-              onSettings={() => navigate(SETTINGS_PATH)}
-            />
+          {!guest && stats?.disk && !rail && <StorageCard disk={stats.disk} />}
+          <div className={cx('pt-1 md:pb-3', rail ? 'px-3' : 'px-2.5')}>
+            <ProfileCard path={path} onAccount={() => go(ACCOUNT_PATH)} onSettings={() => go(SETTINGS_PATH)} />
           </div>
         </div>
       </Rail.Provider>
@@ -250,12 +330,12 @@ function SectionLabel({ children, action }: { children: ReactNode; action?: Reac
   // 两种状态一样高，下面的菜单项不上下跳
   if (useContext(Rail))
     return (
-      <div className="hidden h-7 shrink-0 items-center px-2 md:flex">
+      <div className="flex h-7 shrink-0 items-center px-2">
         <div className="h-px flex-1 bg-line" />
       </div>
     )
   return (
-    <div className="hidden h-7 shrink-0 items-center justify-between px-[11px] text-[12px] font-medium tracking-[0.02em] text-muted md:flex">
+    <div className="flex h-7 shrink-0 items-center justify-between px-[11px] text-[12px] font-medium tracking-[0.02em] text-muted">
       {children}
       {action}
     </div>
@@ -291,16 +371,14 @@ function NavItem({
       className={cx(
         // 宽屏上每一行高一些、圆角大一些，字 15px 中等粗细；选中的一行：浅色主题浅橙底橙字，深色主题浅灰底浅橙字（颜色变量 nav-active）
         // 宽屏上每行固定 36px 高、左边距 11px：收起后 64px 宽的栏里图标正好居中，和展开时同一个位置
-        'flex shrink-0 items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body whitespace-nowrap md:h-10 md:gap-3 md:rounded-[10px] md:px-[11px] md:py-0 md:text-nav md:font-medium',
+        'flex h-10 shrink-0 items-center gap-3 rounded-[10px] px-[11px] text-nav font-medium whitespace-nowrap',
         active ? 'bg-nav-active font-medium text-nav-active-fg' : 'text-nav-fg hover:bg-fg/[0.05]',
       )}
     >
       {leading ?? (Icon && <Icon className="size-[19px] shrink-0" strokeWidth={1.7} />)}
       <span className={cx('min-w-0 flex-1 truncate', rail && 'md:hidden')}>{label}</span>
       {!!count && !rail && (
-        <span
-          className={cx('hidden text-chip font-normal tabular-nums md:inline', active ? 'opacity-75' : 'text-muted')}
-        >
+        <span className={cx('text-chip font-normal tabular-nums', active ? 'opacity-75' : 'text-muted')}>
           {count.toLocaleString()}
         </span>
       )}
@@ -331,7 +409,7 @@ const categoryIcon = (v: View) => CATEGORY_ICONS[v.path.slice('/category/'.lengt
 const MORE_KEY = 'wanmory.sidebar.more' // 「更多」展开没有，记在这个浏览器里
 
 // MoreCategories 是「分类」最后的「更多」：点开显示截图、文档、证件（不常看，平时收着）。
-// 进到其中一类时自动展开一次，之后可以收起；窄屏上（顶部一排标签）一直展开
+// 进到其中一类时自动展开一次，之后可以收起
 function MoreCategories({
   path,
   viewItem,
@@ -371,7 +449,7 @@ function MoreCategories({
         aria-label={showing ? '收起' : '更多分类'}
         title={rail ? (showing ? '收起' : '更多分类') : undefined}
         className={cx(
-          'hidden h-10 shrink-0 items-center gap-3 rounded-[10px] px-[11px] text-nav font-medium text-nav-fg/70 hover:bg-fg/[0.05] hover:text-nav-fg md:flex',
+          'flex h-10 shrink-0 items-center gap-3 rounded-[10px] px-[11px] text-nav font-medium text-nav-fg/70 hover:bg-fg/[0.05] hover:text-nav-fg',
         )}
       >
         <ChevronDown
@@ -382,7 +460,7 @@ function MoreCategories({
       </button>
       {views.map((v) => {
         return (
-          <div key={v.path} className={cx(!showing && 'md:hidden')}>
+          <div key={v.path} className={cx(!showing && 'hidden')}>
             {viewItem(v, categoryIcon(v))}
           </div>
         )
@@ -417,7 +495,7 @@ function RatingRow({
           }}
           aria-label="星级"
           className={cx(
-            'hidden h-10 shrink-0 items-center rounded-[10px] px-[11px] md:flex',
+            'flex h-10 shrink-0 items-center rounded-[10px] px-[11px]',
             current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-nav-fg hover:bg-fg/[0.05]',
           )}
         >
@@ -428,12 +506,12 @@ function RatingRow({
   return (
     <div
       className={cx(
-        'flex shrink-0 items-center gap-2.5 rounded-control py-1 pr-1.5 pl-2.5 text-body whitespace-nowrap md:h-10 md:gap-3 md:rounded-[10px] md:py-0 md:pl-[11px] md:text-nav md:font-medium',
+        'flex h-10 shrink-0 items-center gap-3 rounded-[10px] pr-1.5 pl-[11px] text-nav font-medium whitespace-nowrap',
         current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-nav-fg',
       )}
     >
       <Star className="size-[19px] shrink-0" strokeWidth={1.7} />
-      <span className="hidden flex-1 md:block">星级</span>
+      <span className="flex-1">星级</span>
       <span className="flex" onMouseLeave={() => setHover(0)}>
         {[...RATINGS].reverse().map((view) => {
           const n = view.filter.rating ?? 0
@@ -620,7 +698,7 @@ function StorageCard({ disk }: { disk: { total: number; free: number } }) {
   const used = Math.max(0, disk.total - disk.free)
   const ratio = disk.total > 0 ? used / disk.total : 0
   return (
-    <div className="mx-3.5 mb-2 hidden rounded-xl border border-line/70 bg-well px-3.5 py-3 md:block">
+    <div className="mx-3.5 mb-2 rounded-xl border border-line/70 bg-well px-3.5 py-3">
       <div className="flex items-center justify-between text-caption text-muted">
         <span>存储空间</span>
         <span className="tabular-nums">{diskLabel(used, disk.total)}</span>
