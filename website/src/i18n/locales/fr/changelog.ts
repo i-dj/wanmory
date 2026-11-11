@@ -3,6 +3,10 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.1': [
+    "La carte de Lieux peut maintenant être zoomée et déplacée : zoom à la molette ou au pavé tactile, double-clic pour agrandir, glisser pour se déplacer, pincement à deux doigts sur téléphone, et des boutons en bas à droite pour agrandir, réduire ou afficher le monde entier ; vers l’échelle d’un pays, elle passe à une carte routière (les cartes en ligne doivent être activées) avec villes, routes et noms de lieux, et les épingles photo se divisent au fil du zoom jusqu’aux lieux de prise de vue ; au retour des photos, la carte reste là où vous étiez",
+    "Site web : le calendrier de la page des versions devient un calendrier mensuel indiquant les numéros de version de chaque jour, et un clic sur une version mène à ses notes ; correction des pages qui s’affichaient parfois sans mise en forme sur une connexion lente ou juste après une mise à jour du site",
+  ],
   'v0.3.0': [
     "Nouveau site web : accueil, architecture, installation et documentation, FAQ, versions et retours, en 12 langues ; il suit par défaut la langue de votre navigateur, et vous pouvez en changer en bas de page",
     "Scripts d’installation et de désinstallation en une commande (install.sh, uninstall.sh) : à l’installation, choisissez le port, le domaine, le mot de passe et l’emplacement de la base de données, le fuseau horaire, le répertoire des données et celui des photos ; vous décidez où se trouvent la base de données, les données et les modèles (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), et WANMORY_DOMAIN définit le domaine utilisé sur votre réseau local",

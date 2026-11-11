@@ -3,6 +3,10 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.1': [
+    "Die Karte unter „Orte“ lässt sich jetzt zoomen und verschieben: Zoomen mit Mausrad oder Trackpad, Doppelklick zum Vergrößern, Ziehen zum Verschieben, auf dem Smartphone mit zwei Fingern; unten rechts gibt es Schaltflächen zum Vergrößern, Verkleinern und für die ganze Welt. Ab etwa Landesgröße wechselt sie zu einer Straßenkarte (Online-Karten müssen aktiviert sein) mit Städten, Straßen und Ortsnamen, und die Foto-Stecknadeln teilen sich beim Zoomen immer weiter auf, bis hin zu einzelnen Aufnahmeorten; nach der Rückkehr aus den Fotos steht die Karte wieder an derselben Stelle",
+    "Website: Der Kalender auf der Versionsseite ist jetzt ein Monatskalender mit den Versionsnummern jedes Tages, ein Klick auf eine Version springt zu ihren Hinweisen; behoben, dass Seiten bei langsamer Verbindung oder direkt nach einem Website-Update gelegentlich ganz ohne Gestaltung luden",
+  ],
   'v0.3.0': [
     "Neue Website: Startseite, Architektur, Installation & Dokumentation, FAQ, Versionen und Feedback, in 12 Sprachen; standardmäßig in der Sprache Ihres Browsers, umschaltbar unten auf der Seite",
     "Installations- und Deinstallationsskript mit einem Befehl (install.sh, uninstall.sh): Bei der Installation lassen sich Port, Domain, Datenbankpasswort und -speicherort, Zeitzone, Datenverzeichnis und Fotoverzeichnis festlegen; wo Datenbank, Daten und Modelle liegen, bestimmen Sie selbst (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), und WANMORY_DOMAIN legt die Domain für den Zugriff im lokalen Netzwerk fest",

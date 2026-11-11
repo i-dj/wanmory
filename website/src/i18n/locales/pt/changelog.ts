@@ -3,6 +3,10 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.1': [
+    "O mapa de Lugares agora pode ser ampliado, reduzido e arrastado: zoom com a roda do mouse ou o trackpad, clique duplo para ampliar, arrastar para mover, pinça com dois dedos no celular, e botões no canto inferior direito para ampliar, reduzir ou ver o mundo todo; perto do nível de país ele muda para um mapa de ruas (os mapas on-line precisam estar ativados) com cidades, estradas e nomes de lugares, e os alfinetes de fotos vão se dividindo conforme você amplia, até cada local de foto; ao voltar das fotos, o mapa continua onde estava",
+    "Site: o calendário da página de versões agora é um calendário mensal com os números de versão de cada dia, e clicar numa versão leva às notas dela; corrigido o problema de páginas que às vezes carregavam sem estilo em conexões lentas ou logo após uma atualização do site",
+  ],
   'v0.3.0': [
     "Novo site: início, arquitetura, instalação e documentação, perguntas frequentes, versões e feedback, em 12 idiomas; por padrão segue o idioma do navegador, e você pode trocar no rodapé da página",
     "Scripts de instalação e desinstalação com um comando (install.sh, uninstall.sh): na instalação, defina a porta, o domínio, a senha e o local do banco de dados, o fuso horário, o diretório de dados e o de fotos; você escolhe onde ficam o banco de dados, os dados e os modelos (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), e WANMORY_DOMAIN define o domínio usado na sua rede local",

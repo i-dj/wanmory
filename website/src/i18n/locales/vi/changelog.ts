@@ -2,6 +2,10 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.3.1': [
+    "Bản đồ “Hành trình” giờ có thể phóng to, thu nhỏ và kéo: cuộn chuột hoặc dùng bàn di chuột để thu phóng, bấm đúp để phóng to, kéo để di chuyển, trên điện thoại dùng hai ngón tay; góc dưới bên phải có nút phóng to, thu nhỏ và xem toàn thế giới. Khi phóng tới cỡ một quốc gia, bản đồ chuyển sang bản đồ đường phố (cần bật bản đồ trực tuyến) với thành phố, đường sá và địa danh, còn các ghim ảnh tách nhỏ dần khi phóng to, tới từng nơi chụp; quay lại từ ảnh, bản đồ vẫn ở chỗ cũ",
+    "Trang web: lịch trên trang phiên bản giờ là lịch tháng, mỗi ngày ghi số phiên bản đã phát hành, bấm vào số phiên bản để tới ghi chú cập nhật; sửa lỗi đôi khi cả trang hiện không có định dạng khi mạng chậm hoặc ngay sau khi trang web cập nhật",
+  ],
   'v0.3.0': [
     "Trang web mới: trang chủ, kiến trúc, cài đặt và tài liệu, câu hỏi thường gặp, phiên bản và góp ý, có 12 ngôn ngữ; mặc định theo ngôn ngữ của trình duyệt, có thể đổi ở cuối trang",
     "Tập lệnh cài đặt và gỡ cài đặt bằng một lệnh (install.sh, uninstall.sh): khi cài có thể đặt cổng, tên miền, mật khẩu và vị trí cơ sở dữ liệu, múi giờ, thư mục dữ liệu và thư mục ảnh; bạn tự chọn nơi lưu cơ sở dữ liệu, dữ liệu và mô hình (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), còn WANMORY_DOMAIN đặt tên miền dùng trong mạng nội bộ",

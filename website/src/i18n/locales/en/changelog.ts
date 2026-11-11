@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.1': [
+    "The Places map can now be zoomed and dragged: zoom with the mouse wheel or trackpad, double-click to zoom in, drag to pan, pinch with two fingers on phones, and use the buttons at the bottom right to zoom in, zoom out or show the whole world; at around country level it switches to a street map (online maps must be on) with cities, roads and place names, and the photo pins keep splitting as you zoom, down to individual spots; coming back from the photos returns you to where you were",
+    "Website: the calendar on the releases page is now a month calendar with each day’s version numbers, and clicking a version jumps to its notes; fixed pages occasionally loading with no styling on slow networks or right after a site update",
+  ],
   'v0.3.0': [
     "A new website: home, architecture, setup & docs, FAQ, releases and feedback, in 12 languages; it follows your browser language by default, and you can switch at the bottom of the page",
     "One-command install and uninstall scripts (install.sh, uninstall.sh): set the port, domain, database password and location, time zone, data directory and photo directory during install; you can choose where the database, data and models live (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), and WANMORY_DOMAIN sets the domain used on your local network",
