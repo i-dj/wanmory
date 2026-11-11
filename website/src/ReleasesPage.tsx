@@ -1,11 +1,12 @@
-import { Fragment, useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { ArrowUpRight, ChevronRight, Wrench, Sparkles } from 'lucide-react'
 import { Container, Footer, GITHUB, Nav } from './components/Layout'
 import { isMinor, lineOf, releases as source, type Release } from './changelog'
 import { Rich, fill, useI18n, usePage } from './i18n'
+import { LOCALE_INFO } from './i18n/config'
 import type { ReleasesDict } from './i18n/locales/zh/releases'
 
-// 版本发布页：上面四个统计，中间一张发布日历（按周排的格子，颜色是版本线），下面按版本线筛选的版本列表，
+// 版本发布页：上面四个统计，中间一张发布日历（月历，每天写上发布的版本号，颜色是版本线），下面按版本线筛选的版本列表，
 // 每一行点开看完整的更新说明。数据来自 CHANGELOG.md（见 changelog.ts），所有内容都在预渲染的 HTML 里
 
 const DAY = 86400000
@@ -45,114 +46,130 @@ function Stats() {
   )
 }
 
-// 发布日历：像 GitHub 贡献图那样密排的格子，最新版本所在的那一周往前 53 周，一列一周、一行一天。
-// 有发布的日子按版本线上色：只发了一个版本颜色浅一点，多个版本更亮；同一天发了两条版本线的版本，格子斜着一分为二；
-// 新版本线的第一个版本（x.y.0）外面加一圈同色描边
-const WEEKS = 53
+// 发布日历：普通的月历，一行一周（周日到周六），每天的格子里写上那天发布的版本号，颜色是版本线；
+// 新版本线的第一个版本（x.y.0）是实心的，其他是浅底。显示有发布的月份，最多最近三个月，每个月都是完整的几周，
+// 月初、月底不属于这个月的日子空着。手机上格子小，版本号换成一个个小圆点
+const MAX_MONTHS = 3
+const MONTH_COLS = ['', '', 'lg:grid-cols-2', 'lg:grid-cols-3'] // 几个月并排（宽屏）
 
-function cellStyle(rs: Release[]): CSSProperties {
-  const cs = [...new Set(rs.map((r) => colorOf(r.version)))]
-  if (cs.length > 1) return { background: `linear-gradient(135deg, ${cs[0]} 50%, ${cs[1]} 50%)` }
-  return { background: cs[0], opacity: rs.length > 1 ? 1 : 0.62 }
-}
-
-function Heatmap() {
+function ReleaseCalendar() {
   const t = usePage<ReleasesDict>()
+  const { locale } = useI18n()
   const byDay = new Map<number, Release[]>()
   for (const r of releases) {
-    const t = parse(r.date)
-    byDay.set(t, [...(byDay.get(t) ?? []), r])
+    const d = parse(r.date)
+    byDay.set(d, [...(byDay.get(d) ?? []), r])
   }
-  const end = parse(releases[0].date)
-  const endSat = end + (6 - new Date(end).getUTCDay()) * DAY
-  const start = endSat - (WEEKS * 7 - 1) * DAY
-  const inRange = releases.filter((r) => parse(r.date) >= start)
-  const days = new Set(inRange.map((r) => r.date)).size
-  const weeks = Array.from({ length: WEEKS }, (_, w) => start + w * 7 * DAY)
-  // 每个月第一次出现的那一周写上月份
-  const monthOf = (w: number) => new Date(weeks[w] + 6 * DAY).getUTCMonth()
-  const label = (w: number) => (w === 0 || monthOf(w) !== monthOf(w - 1) ? t.months[monthOf(w)] : '')
+  // 最新版本所在的月往前，有发布的月份（最多三个）
+  const latest = new Date(parse(releases[0].date))
+  const months: Date[] = []
+  for (let k = 0; k < 24 && months.length < MAX_MONTHS; k++) {
+    const m = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() - k, 1))
+    const has = releases.some((r) => r.date.startsWith(m.toISOString().slice(0, 7)))
+    if (has || k === 0) months.push(m)
+  }
+  months.reverse()
+  const shown = releases.filter((r) => months.some((m) => r.date.startsWith(m.toISOString().slice(0, 7))))
+  const days = new Set(shown.map((r) => r.date)).size
+  const weekCount = months.reduce((n, m) => n + monthWeeks(m).length, 0)
+  const title = new Intl.DateTimeFormat(LOCALE_INFO[locale].html, { year: 'numeric', month: 'long', timeZone: 'UTC' })
 
   return (
     <div className="rounded-2xl border border-line bg-card p-5 sm:p-7">
       <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
         <h2 className="text-lg font-semibold text-fg">{t.calendar}</h2>
-        <p className="text-sm text-muted">{fill(t.calendarSummary, { weeks: WEEKS, days, n: inRange.length })}</p>
+        <p className="text-sm text-muted">{fill(t.calendarSummary, { weeks: weekCount, days, n: shown.length })}</p>
       </div>
-      <div className="mt-5 overflow-x-auto pb-1">
-        <div
-          className="grid min-w-[720px] gap-[3px] sm:gap-1"
-          style={{ gridTemplateColumns: `auto repeat(${WEEKS}, minmax(0, 1fr))` }}
-        >
-          {/* 第一行：月份 */}
-          <span />
-          {weeks.map((_, w) => (
-            <span key={`m${w}`} className="relative h-5">
-              <span className="absolute left-0 text-[11px] whitespace-nowrap text-muted">{label(w)}</span>
-            </span>
-          ))}
-          {/* 七行：周日到周六 */}
-          {t.weekdays.map((wd, d) => (
-            <Fragment key={`row${d}`}>
-              <span className="flex items-center pr-2 text-[11px] whitespace-nowrap text-muted">
-                {wd}
-              </span>
-              {weeks.map((ws, w) => {
-                const day = ws + d * DAY
-                const rs = byDay.get(day)
+      <div className={`mt-5 grid gap-6 ${MONTH_COLS[months.length]}`}>
+        {months.map((m) => (
+          <section key={m.getTime()} aria-label={title.format(m)}>
+            <h3 className="mb-2 text-sm font-semibold text-soft">{title.format(m)}</h3>
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+              {t.weekdays.map((wd) => (
+                <span key={wd} className="pb-1 text-center text-[11px] text-muted">
+                  {wd}
+                </span>
+              ))}
+              {monthWeeks(m).flat().map((day, k) => {
+                if (day === null) return <span key={k} />
+                const rs = byDay.get(day) ?? []
                 const date = new Date(day).toISOString().slice(0, 10)
-                if (day > end) return <span key={`${d}-${w}`} />
-                if (!rs) return <span key={`${d}-${w}`} title={date} className="aspect-square rounded-[3px] bg-white/[0.045]" />
-                const minor = rs.find((r) => isMinor(r.version))
                 return (
-                  <span
-                    key={`${d}-${w}`}
-                    title={`${date} · ${rs.map((r) => r.version).join(t.listSep)}`}
-                    className="aspect-square rounded-[3px]"
-                    style={{
-                      ...cellStyle(rs),
-                      ...(minor ? { outline: `2px solid ${colorOf(minor.version)}`, outlineOffset: '2px', opacity: 1 } : {}),
-                    }}
-                  />
+                  <div
+                    key={k}
+                    title={rs.length ? `${date} · ${rs.map((r) => r.version).join(t.listSep)}` : date}
+                    className={`flex min-h-12 flex-col gap-1 rounded-lg p-1.5 sm:min-h-16 sm:p-2 ${
+                      rs.length ? 'bg-white/[0.07] ring-1 ring-white/10' : 'bg-white/[0.03]'
+                    }`}
+                  >
+                    <span className={`text-[11px] leading-none tabular-nums ${rs.length ? 'font-semibold text-fg' : 'text-faint'}`}>
+                      {new Date(day).getUTCDate()}
+                    </span>
+                    {rs.length > 0 && (
+                      <>
+                        {/* 宽屏：版本号 */}
+                        <span className="hidden flex-wrap gap-1 sm:flex">
+                          {[...rs].reverse().map((r) => (
+                            <a
+                              key={r.version}
+                              href={`#${r.version}`}
+                              // 跳到下面这个版本的那一行，并把它展开
+                              onClick={() => document.getElementById(r.version)?.setAttribute('open', '')}
+                              className="rounded-[5px] px-1.5 text-[11px] leading-[18px] font-semibold tabular-nums transition hover:brightness-110"
+                              style={chipStyle(r.version)}
+                            >
+                              {r.version}
+                            </a>
+                          ))}
+                        </span>
+                        {/* 手机：一个版本一个圆点 */}
+                        <span className="flex flex-wrap gap-[3px] sm:hidden">
+                          {rs.map((r) => (
+                            <span key={r.version} className="size-1.5 rounded-full" style={{ background: colorOf(r.version) }} />
+                          ))}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 )
               })}
-            </Fragment>
-          ))}
-        </div>
+            </div>
+          </section>
+        ))}
       </div>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm text-muted">
-        <div className="flex flex-wrap gap-5">
-          {lines.map((l) => (
-            <span key={l} className="flex items-center gap-2">
-              <span className="size-3.5 rounded-[3px]" style={{ background: colorOf(`v${l.replace('.x', '.0')}`) }} />
-              {l}
-            </span>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-5">
-          <span className="flex items-center gap-2">
-            <span className="size-3.5 rounded-[3px] bg-accent outline-2 outline-offset-2 outline-accent" /> {t.newLine}
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted">
+        {lines.map((l) => (
+          <span key={l} className="flex items-center gap-2">
+            <span className="size-3 rounded-full" style={{ background: colorOf(`v${l.replace('.x', '.0')}`) }} />
+            {l}
           </span>
-          {lines.length > 1 && (
-            <span className="flex items-center gap-2">
-              <span
-                className="size-3.5 rounded-[3px]"
-                style={{ background: `linear-gradient(135deg, ${LINE_COLORS[0]} 50%, ${LINE_COLORS[1]} 50%)` }}
-              />
-              {t.twoLines}
-            </span>
-          )}
-          <span className="flex items-center gap-1.5">
-            {t.less}
-            <span className="size-3.5 rounded-[3px] bg-white/[0.045]" />
-            <span className="size-3.5 rounded-[3px] bg-accent opacity-60" />
-            <span className="size-3.5 rounded-[3px] bg-accent" />
-            {t.more}
+        ))}
+        <span className="flex items-center gap-2 sm:ml-auto">
+          <span className="rounded-[5px] px-1.5 text-[11px] leading-[18px] font-semibold" style={chipStyle('v0.3.0', LINE_COLORS[0])}>
+            x.y.0
           </span>
-        </div>
+          {t.newLine}
+        </span>
       </div>
     </div>
   )
+}
+
+// monthWeeks：这个月的每一周（周日到周六），不属于这个月的日子是 null
+function monthWeeks(m: Date): (number | null)[][] {
+  const first = m.getTime()
+  const y = m.getUTCFullYear()
+  const mo = m.getUTCMonth()
+  const last = Date.UTC(y, mo + 1, 0)
+  const weeks: (number | null)[][] = []
+  for (let ws = first - m.getUTCDay() * DAY; ws <= last; ws += 7 * DAY)
+    weeks.push(Array.from({ length: 7 }, (_, d) => ws + d * DAY).map((day) => (day < first || day > last ? null : day)))
+  return weeks
+}
+
+// chipStyle：版本号小标签。新版本线的第一个版本（x.y.0）实心、黑字，其他是版本线颜色的浅底、同色字
+function chipStyle(v: string, color = colorOf(v)): CSSProperties {
+  return isMinor(v) ? { background: color, color: '#141416' } : { background: `${color}26`, color }
 }
 
 function ReleaseRow({ r, latest }: { r: Release; latest: boolean }) {
@@ -166,7 +183,7 @@ function ReleaseRow({ r, latest }: { r: Release; latest: boolean }) {
   const fixes = r.notes.filter((n) => n.fix).length
   const features = r.notes.length - fixes
   return (
-    <details className="group rounded-2xl border border-line bg-card transition-colors open:border-line-strong hover:border-line-strong" open={latest}>
+    <details id={r.version} className="group scroll-mt-28 rounded-2xl border border-line bg-card transition-colors open:border-line-strong hover:border-line-strong" open={latest}>
       <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4 sm:gap-6 sm:px-6 [&::-webkit-details-marker]:hidden">
         <ChevronRight className="size-4 shrink-0 text-faint transition-transform group-open:rotate-90" />
         <span className="flex w-24 shrink-0 items-center gap-2 sm:w-28">
@@ -260,7 +277,7 @@ export default function ReleasesPage() {
 
             <div className="mt-8 space-y-6">
               <Stats />
-              <Heatmap />
+              <ReleaseCalendar />
             </div>
 
             <h2 className="mt-12 mb-4 text-lg font-semibold text-fg">
