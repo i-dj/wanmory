@@ -24,7 +24,7 @@ const MODES: { value: Mode; label: string }[] = [
 const MODE_KEY = 'wanmory.places.view' // 上次选的是地图还是网格
 
 // PlacesPage 是「足迹」，右上角在地图、网格之间切换。
-// 地图是一张平铺的世界地图，去过的国家暖色，每个城市钉一张照片、写上城市和国家（见 WorldFootprint）；
+// 地图是一张平铺的世界地图，去过的国家暖色，照片钉在拍的地方、写上城市和国家；放大后换成街道地图，钉子越分越细（见 WorldFootprint）；
 // 网格是每个城市一个相册（名字和去的月份，张数点进去再看），去过几个国家就按国家分组，只去过一个国家就按省（州）分组
 export default function PlacesPage({ navigate }: { navigate: (to: string) => void }) {
   const mapsOn = useMapsEnabled()
@@ -95,7 +95,7 @@ export default function PlacesPage({ navigate }: { navigate: (to: string) => voi
       )}
       {onMap && count > 0 && (
         <div className="mt-4 min-h-80 flex-1">
-          <WorldFootprint cities={merged} infos={infos} navigate={navigate} />
+          <WorldFootprint points={points!} cities={merged} infos={infos} online={mapsOn === true} navigate={navigate} />
         </div>
       )}
 

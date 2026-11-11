@@ -460,7 +460,8 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
   .theme-dark .map-frame .leaflet-tile-pane {
     filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.85) saturate(0.8);
   }
-  /* 「足迹」的「地图」：平铺的世界地图（WorldFootprint）。浅色主题米白底、浅灰陆地，深色主题深蓝灰；去过的国家暖色 */
+  /* 「足迹」的「地图」（WorldFootprint，Leaflet）。整个世界时是各国轮廓：浅色主题米白底、浅灰陆地，深色主题深蓝灰，
+     去过的国家暖色；放大后（.detail）街道地图渐渐显出来，轮廓淡掉，去过的国家留一层淡淡的暖色 */
   .world-flat {
     --wf-sea: #f4efe9;
     --wf-land: #e3ddd5;
@@ -470,7 +471,6 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
     --wf-name: #1e1814;
     --wf-sub: #6b6259;
     --wf-halo: #f4efe9;
-    background: var(--wf-sea);
   }
   .theme-dark .world-flat {
     --wf-sea: #14171c;
@@ -482,26 +482,145 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
     --wf-sub: #b9b2ac;
     --wf-halo: #14171c;
   }
+  .map-frame.world-flat {
+    background: var(--wf-sea) !important;
+  }
   .world-flat .land {
     fill: var(--wf-land);
     stroke: var(--wf-land-line);
+    transition:
+      fill-opacity 0.35s,
+      stroke-opacity 0.35s;
   }
   .world-flat .land.visited {
     fill: var(--wf-visited);
     stroke: var(--wf-visited-line);
   }
-  /* 地名：白字（浅色主题深字）外面一圈底色描边，压在陆地、国界上也看得清 */
-  .world-flat .name {
-    color: var(--wf-name);
+  .world-flat .leaflet-tile-pane {
+    opacity: 0;
+    transition: opacity 0.35s;
   }
-  .world-flat .sub {
-    color: var(--wf-sub);
+  .world-flat.detail .leaflet-tile-pane {
+    opacity: 1;
   }
-  .world-flat .label {
+  .world-flat.detail .land {
+    fill-opacity: 0;
+    stroke-opacity: 0;
+  }
+  .world-flat.detail .land.visited {
+    fill-opacity: 0.12;
+  }
+  /* 照片钉子：落点在标记的位置，白框照片在它上面；鼠标移上去框变成强调色 */
+  .world-flat .pin {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+    cursor: pointer;
+  }
+  .world-flat .pin .frame {
+    position: relative;
+    display: block;
+    padding: 2.5px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: background-color 0.15s;
+  }
+  /* leaflet.css 不在 Tailwind 的 layer 里，它给标记里的图片设的 width: auto 优先，得 !important */
+  .world-flat .pin .frame img {
+    display: block;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+  .world-flat .pin .count {
+    position: absolute;
+    top: -10px;
+    right: -12px;
+    min-width: 26px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .world-flat .pin .tip {
+    margin-top: -1px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #fff;
+    transition: border-color 0.15s;
+  }
+  .world-flat .pin .dot {
+    margin-top: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-accent);
+  }
+  .world-flat .pin:hover .frame {
+    background: var(--color-accent);
+  }
+  .world-flat .pin:hover .tip {
+    border-top-color: var(--color-accent);
+  }
+  /* 地名：白字（浅色主题深字）外面一圈底色光晕，压在陆地、街道上也看得清 */
+  .world-flat .pin .label {
+    position: absolute;
+    top: 0;
+    white-space: nowrap;
+    pointer-events: none;
     text-shadow:
       0 0 3px var(--wf-halo),
       0 0 3px var(--wf-halo),
       0 0 6px var(--wf-halo);
+  }
+  .world-flat .pin .label.r,
+  .world-flat .pin .label.hover {
+    left: 100%;
+    padding-left: 14px; /* 让开右上角的项数 */
+    text-align: left;
+  }
+  .world-flat .pin .label.l {
+    right: 100%;
+    padding-right: 8px;
+    text-align: right;
+  }
+  .world-flat .pin .label.b {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding-top: 2px;
+    text-align: center;
+  }
+  .world-flat .pin .label.hover {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .world-flat .pin:hover .label.hover {
+    opacity: 1;
+  }
+  .world-flat .pin .name {
+    display: block;
+    color: var(--wf-name);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+  .world-flat .pin .sub {
+    display: block;
+    color: var(--wf-sub);
+    font-size: 11.5px;
+    line-height: 16px;
   }
   .map-frame .leaflet-control-attribution {
     background: color-mix(in srgb, var(--color-surface) 70%, transparent);
