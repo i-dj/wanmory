@@ -22,6 +22,8 @@ import (
 	"github.com/wanmory/wanmory/server/internal/faces"
 	"github.com/wanmory/wanmory/server/internal/geo"
 	"github.com/wanmory/wanmory/server/internal/jobs"
+	"github.com/wanmory/wanmory/server/internal/mdns"
+	"github.com/wanmory/wanmory/server/internal/netaccess"
 	"github.com/wanmory/wanmory/server/internal/perf"
 	"github.com/wanmory/wanmory/server/internal/settings"
 	"github.com/wanmory/wanmory/server/internal/storage"
@@ -53,6 +55,14 @@ func main() {
 		if err := resetPassword(ctx, os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
+		}
+		return
+	}
+
+	// wanmory mdns：在局域网里报访问域名（Docker 里单独跑，见 mdns.go）
+	if len(os.Args) > 1 && os.Args[1] == "mdns" {
+		if err := runMDNS(ctx); err != nil {
+			log.Fatal(err)
 		}
 		return
 	}
@@ -99,6 +109,7 @@ func run(ctx context.Context) error {
 	exif := assets.NewExifPool(perfService.MaxWorkers())
 	defer exif.Close()
 	assetService := assets.NewService(conn, exif, uploadDir, cfg.ThumbsDir())
+	assetService.SetLibraryDir(cfg.LibraryDir) // 照片目录：挂载进来的照片定时扫描、原地导入
 	worker := jobs.NewWorker(conn, localWorkerName, perfService.MaxWorkers())
 	worker.SetLimit(perfService.Workers)
 	perfService.SetLocalActive(worker.Active)
@@ -153,6 +164,7 @@ func run(ctx context.Context) error {
 		categories = append(categories, assets.SearchCategory{Key: c.Key, Label: c.Label})
 	}
 	assetService.SetSearch(clipService.Search, categories, clipService.Model)
+	assetService.SetAesthetic(clipService.AestheticVector)
 	if n, err := clipService.Backfill(ctx); err != nil {
 		log.Printf("clip: 给已有照片排语义向量、文字识别任务失败: %v", err)
 	} else if n > 0 {
@@ -173,13 +185,35 @@ func run(ctx context.Context) error {
 	})
 	go geoService.Run(ctx)
 	go assetService.RunHiddenSync(ctx) // 私有智能相册「同时隐藏」跟上条件
+	go assetService.RunLibrary(ctx)    // 照片目录：启动后扫一遍，之后每 15 分钟扫一遍
 
 	// 家庭账号：没登录的 /api 请求一律拦下（见 internal/auth）
 	authService := auth.NewService(conn)
+	authService.SetAvatarDir(filepath.Join(cfg.DataDir, "avatars"))
 	authService.SetGuest(func(ctx context.Context) bool { // 访客模式：没登录也能只读浏览共享的照片
 		v, err := settings.GetOr(ctx, settingsStore, auth.SettingGuest, "on")
 		return err == nil && v == "on"
 	})
+
+	// 访问域名（设置里改，.local 结尾）：局域网里报这个名字。
+	// Docker 里相册在内部网络，收不到局域网组播，由单独的 mdns 服务报名字（WANMORY_MDNS=off 关掉这里的）
+	netService := netaccess.New(cfg.Addr, func(ctx context.Context) string {
+		// 以前存的不是 .local 结尾的（那时还允许）不能用，先用默认的，设置页上会提示改
+		domain, _ := settings.GetOr(ctx, settingsStore, netaccess.SettingDomain, netaccess.InitialDomain())
+		if d, err := netaccess.CheckDomain(domain); err == nil {
+			return d
+		}
+		return netaccess.DefaultDomain
+	})
+	go netService.Run(ctx)
+	auth.AddPublic(netaccess.PublicPaths...)
+	if os.Getenv("WANMORY_MDNS") != "off" {
+		go func() {
+			if err := mdns.Run(ctx, netService.Domain); err != nil {
+				log.Printf("mdns: 没能在局域网里报名字: %v", err)
+			}
+		}()
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -200,6 +234,7 @@ func run(ctx context.Context) error {
 	assetService.Routes(mux)
 	faceService.Routes(mux)
 	geoService.Routes(mux)
+	netService.Routes(mux)
 	tusDir := filepath.Join(cfg.DataDir, "tus") // 还没传完的分片上传
 	uploads, err := assetService.UploadHandler(tusDir)
 	if err != nil {

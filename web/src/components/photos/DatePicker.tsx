@@ -112,7 +112,7 @@ export default function DatePicker({
       {open && (
         <div
           className={cx(
-            'absolute top-full z-40 mt-2 w-75 rounded-panel border border-line bg-surface p-3 shadow-xl',
+            'popover-card glass-menu absolute top-full z-40 mt-2 w-75 rounded-panel p-3',
             align === 'end' ? 'right-0' : 'left-0', // 日历在工具栏右边时往左展开
           )}
         >

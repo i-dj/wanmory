@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/wanmory/wanmory/server/internal/httpx"
+	"github.com/wanmory/wanmory/server/internal/ipgeo"
 )
 
 // 「我的账号」页用的接口（只管自己的账号）：
@@ -27,6 +28,7 @@ type Device struct {
 	IP        string     `json:"ip"`
 	LastSeen  *time.Time `json:"last_seen"`
 	Current   bool       `json:"current"`
+	Location  string     `json:"location"` // IP 大概在哪（ipgeo），查不到是空的
 }
 
 func (s *Service) accountRoutes(mux *http.ServeMux) {
@@ -111,6 +113,7 @@ func (s *Service) account(w http.ResponseWriter, r *http.Request) {
 			httpx.InternalError(w, err)
 			return
 		}
+		d.Location = ipgeo.Lookup(d.IP)
 		devices = append(devices, d)
 	}
 	if err := rows.Err(); err != nil {

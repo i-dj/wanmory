@@ -9,6 +9,8 @@
      text-body     14px  标准字号：正文、按钮、菜单、输入框、侧边栏
      text-caption  12px  说明文字、提示、数量
      text-micro    11px  照片上的小角标、日历里的数字、时间线年份
+     text-nav      15px  左边菜单的菜单项（行高 22px，中等粗细）
+     text-chip     13px  标签、胶囊按钮（行高 18px）
 
    圆角（从小到大，外面的容器圆角大、里面的元素圆角小）
      rounded-item     6px   菜单里的一行、小标签
@@ -30,6 +32,10 @@
   --text-caption--line-height: 1.4;
   --text-micro: 11px;
   --text-micro--line-height: 1.35;
+  --text-nav: 15px; /* 左边菜单的菜单项 */
+  --text-nav--line-height: 22px;
+  --text-chip: 13px; /* 标签、胶囊按钮上的字 */
+  --text-chip--line-height: 18px;
 
   --radius-item: 6px;
   --radius-control: 8px;
@@ -46,19 +52,22 @@
   --color-muted: #6b7280;
   --color-line: #ece6df;
   --color-line-strong: #dcd3c9;
+  --color-divider: #ece6df; /* 页面骨架的分隔线：左边菜单的右边、顶栏下面（比卡片的边框暗、不抢眼） */
   --color-accent: #cc632e;
   --color-accent-soft: #fdeadf;
   --color-select: #cc632e; /* 选中照片的边框和拖选框，和强调色一样 */
   --color-on-accent: #ffffff; /* 强调色底上的字和图标：浅色模式白字，深色模式强调色亮，用黑字 */
   --color-nav-active: #ffe5d5; /* 左边菜单选中的那一行：浅色主题浅橙底橙字，深色主题中性灰底白字 */
   --color-nav-active-fg: #cc632e;
+  --color-nav-fg: #3d3530; /* 左边菜单没选中的菜单项（字和图标） */
   --color-danger: #dc2626;
   --color-ok: #16a34a;
-  --color-warn: #d97706;
+  --color-warn: #cc632e; /* 提醒（AI 暂停这类）也用强调色，全站只有一种橙色 */
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
-  /* 标题用的宋体：页面大标题、人名、回忆卡片、分组日期、菜单顶上的「万象」。用系统自带的（macOS、iPad 是宋体-简），不另外下载字体 */
-  --font-serif: 'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', 'Noto Serif CJK SC', STSong, serif;
+  /* 界面字体：英文、数字用 Plus Jakarta Sans（缺的字用 Inter），中文用系统的苹方 / 微软雅黑。两个英文字体打包在程序里（main.tsx） */
+  --font-sans:
+    'Plus Jakarta Sans Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
 }
 
 @layer base {
@@ -67,23 +76,26 @@
   :root.theme-dark,
   .theme-dark {
     color-scheme: dark;
-    --color-page: #1f1f1f;
-    --color-sidebar: #191919;
+    --color-page: #131315;
+    --color-sidebar: #101012;
     --color-surface: #2a2a2a;
     --color-fg: #ffffff;
     --color-muted: #a0a0a0;
     --color-line: #333333;
     --color-line-strong: #4d4d4d;
-    --color-well: #262626;
-    --color-accent: #f08a54;
+    --color-divider: #222225;
+    --color-well: #1b1b1e;
+    /* 深色主题全站只有一种橙色：强调色、选中照片的框、提醒、菜单选中的那一行，都是菜单「图库」字的颜色 */
+    --color-accent: #f6a77c;
     --color-accent-soft: #4a2e20;
-    --color-select: #f08a54;
+    --color-select: #f6a77c;
     --color-on-accent: #000000;
-    --color-nav-active: rgb(255 255 255 / 0.08);
-    --color-nav-active-fg: #ffffff;
+    --color-nav-active: rgb(255 255 255 / 0.1);
+    --color-nav-active-fg: #f6a77c; /* 选中的一行：浅灰底、浅橙字和图标 */
+    --color-nav-fg: #e8ddd6; /* 没选中的：带一点暖的浅灰 */
     --color-danger: #ff99a4;
     --color-ok: #6ccb5f;
-    --color-warn: #fcd34d;
+    --color-warn: #f6a77c;
   }
 
   :root {
@@ -192,15 +204,30 @@
    注意：对话框外面那层压暗的背景不能带 backdrop-filter（会让卡片自己的磨砂失灵），要模糊就单独垫一层，见 Modal、AlertHost。
    底部浮动的选择栏（.selection-bar）是浅色磨砂，样式在文件后面 */
 @layer components {
+  /* 菜单、下拉、提示气泡、删除确认这些弹出的小卡片：和底部操作栏（.frost）同一种透明磨砂——
+     半透明的斜向渐变底，背后的内容模糊着透出来，一圈细亮边、顶上一道高光 */
   .glass-menu {
-    background: var(--color-surface);
-    border: 1px solid var(--color-line); /* 和输入框、按钮同一种边框，四边一样粗 */
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-surface) 78%, transparent),
+      color-mix(in srgb, var(--color-surface) 55%, transparent)
+    );
+    backdrop-filter: blur(28px) saturate(1.9);
+    -webkit-backdrop-filter: blur(28px) saturate(1.9);
+    border: 1px solid rgb(255 255 255 / 0.65);
+  }
+  .theme-dark .glass-menu {
+    border-color: rgb(255 255 255 / 0.1);
   }
   .glass-dialog {
     position: relative;
-    background: color-mix(in srgb, var(--color-surface) 74%, transparent);
-    backdrop-filter: blur(32px) saturate(1.8);
-    -webkit-backdrop-filter: blur(32px) saturate(1.8);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-surface) 80%, transparent),
+      color-mix(in srgb, var(--color-surface) 60%, transparent)
+    );
+    backdrop-filter: blur(32px) saturate(1.9);
+    -webkit-backdrop-filter: blur(32px) saturate(1.9);
     border: 1px solid rgb(255 255 255 / 0.7);
     box-shadow:
       0 24px 60px rgba(30, 24, 20, 0.22),
@@ -214,9 +241,16 @@
   }
   /* 菜单、下拉列表、提示气泡：再加柔和的投影；长到要滚动时滚动条细一点、颜色淡一点。对话框的投影各自写 */
   .glass-menu {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    box-shadow:
+      0 12px 32px rgba(30, 24, 20, 0.16),
+      inset 0 1px 0 rgb(255 255 255 / 0.6);
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--color-fg) 22%, transparent) transparent;
+  }
+  .theme-dark .glass-menu {
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 }
 
@@ -533,9 +567,7 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
     left: 7px;
     bottom: 4px;
     color: white;
-    font:
-      700 15px/1.2 system-ui,
-      sans-serif;
+    font: 700 15px/1.2 var(--font-sans);
     text-shadow: 0 1px 3px rgb(0 0 0 / 0.8);
   }
   .place-pin::after {
@@ -559,9 +591,7 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
     border: 2px solid #1c1c1e;
     background: var(--color-accent);
     color: white;
-    font:
-      600 11px/18px system-ui,
-      sans-serif;
+    font: 600 11px/18px var(--font-sans);
     text-align: center;
   }
   .map-dot {
@@ -696,6 +726,22 @@ main[data-enter='b'] header.glass-bar ~ :not(.page-title) {
 }
 @media (prefers-reduced-motion: reduce) {
   .selection-bar {
+    animation: none;
+  }
+}
+
+/* 图库精选轮播：换张时左下角的文字淡入、略微上移 */
+@keyframes caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.caption-in {
+  animation: caption-in 600ms 150ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .caption-in {
     animation: none;
   }
 }

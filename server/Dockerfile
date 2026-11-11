@@ -36,11 +36,17 @@ RUN apt-get update \
 
 # 不用 root 运行；/data 先建好并改归属，挂载命名卷时会继承这个权限
 RUN useradd --system --uid 1000 --create-home wanmory \
- && mkdir -p /data && chown wanmory:wanmory /data
+ && mkdir -p /data /photos && chown wanmory:wanmory /data /photos
 COPY --from=build /out/wanmory /usr/local/bin/wanmory
+# IP 地址库（ip2region，离线查 IP 大概在哪，登录日志用）：IPv4 约 11 MB、IPv6 约 37 MB，构建时下载最新的
+ADD --chmod=644 https://raw.githubusercontent.com/lionsoul2014/ip2region/master/data/ip2region_v4.xdb \
+    https://raw.githubusercontent.com/lionsoul2014/ip2region/master/data/ip2region_v6.xdb \
+    /usr/share/wanmory/ipdb/
 
 USER wanmory
+# /photos 是照片目录：把 NAS、移动硬盘上已有的照片挂载到它下面（可以挂多个、可以只读），相册定时扫描导入
 ENV WANMORY_DATA_DIR=/data \
+    WANMORY_LIBRARY_DIR=/photos \
     WANMORY_ADDR=:8080
 VOLUME /data
 EXPOSE 8080

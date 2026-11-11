@@ -1,4 +1,4 @@
-.PHONY: dev build server run run-docker purge ml ml-run web web-dev live
+.PHONY: dev build server run run-docker purge ml ml-run web web-dev live ipdb
 
 DEV_DATABASE_URL ?= postgres://wanmory:wanmory_dev_pw@127.0.0.1:5432/wanmory
 
@@ -35,6 +35,14 @@ ml:
 ml-run:
 	cd ml && WANMORY_FACE_MODEL_PRELOAD=1 uv run --extra torch python -m wanmory_ml
 
+# 下载 IP 地址库（ip2region，登录日志里按 IP 显示大概在哪）到 data/ipdb，已经有了就跳过。Docker 镜像里自带，不用这一步
+IPDB_URL := https://raw.githubusercontent.com/lionsoul2014/ip2region/master/data
+ipdb:
+	@mkdir -p data/ipdb
+	@for f in ip2region_v4.xdb ip2region_v6.xdb; do \
+		[ -s data/ipdb/$$f ] || { echo "下载 $$f…"; curl -fSL --progress-bar -o data/ipdb/$$f.tmp $(IPDB_URL)/$$f && mv data/ipdb/$$f.tmp data/ipdb/$$f; }; \
+	done
+
 # 打包前端，复制到后端的 webui/dist，下次编译后端时嵌进程序
 web:
 	cd web && npm install && npm run build
@@ -49,7 +57,7 @@ web-dev:
 # 单独启动的 AI 服务（make ml-run，设置里选「远程」、填 http://127.0.0.1:3003 时用它）、前端开发服务器（make web-dev）。
 # 打开 http://localhost:5173，改前端保存后页面马上更新。
 # 每行输出前面标着是谁的（[server] [ai] [web]），Ctrl+C 全部一起停（数据库和 Docker 里的 AI 服务留着）
-live:
+live: ipdb
 	@docker compose -f docker/docker-compose.dev.yml up -d --wait postgres
 	@docker compose -f docker/docker-compose.dev.yml up -d ml
 	@trap 'kill 0' INT TERM EXIT; \

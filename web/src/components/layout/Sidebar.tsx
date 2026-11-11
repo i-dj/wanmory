@@ -52,6 +52,7 @@ import {
   type View,
 } from '@/lib/views'
 import Tooltip from '@/components/ui/Tooltip'
+import OverlayScrollbar from '@/components/ui/OverlayScrollbar'
 
 export const SETTINGS_PATH = '/settings'
 export const ACCOUNT_PATH = '/account'
@@ -94,6 +95,7 @@ export default function Sidebar({
 }) {
   const { guest, signIn } = useCurrentUser()
   const [collapsed, setCollapsed] = useCollapsed()
+  const navRef = useRef<HTMLElement>(null)
   const viewItem = (view: View, icon: LucideIcon, count?: number) => (
     <NavItem
       key={view.path}
@@ -126,18 +128,19 @@ export default function Sidebar({
   return (
     <aside
       // 宽屏上一直在左边（点进某个人、某个相册时也不收起，那一项保持亮着），切页面时照片区的宽度不变，照片不用重新排。
-      // 收起时变成 64px 宽的图标栏（只改宽度，不用 transform，不影响里面 fixed 的东西）
+      // 收起时变成 64px 宽的图标栏：宽度一下子切过去，不做动画（动画时右边的照片每一帧都要重排，会卡）。
+      // 两种状态下标志、上传按钮、每个菜单图标的位置都一样（行高固定、左边距一样），切换时图标不动
       className={cx(
-        'sticky top-0 z-30 border-b border-line bg-page/95 md:h-screen md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar md:transition-[width] md:duration-200',
+        'sticky top-0 z-30 border-b border-divider bg-page/95 md:h-screen md:shrink-0 md:border-r md:border-b-0 md:bg-sidebar',
         collapsed ? 'md:w-16' : 'md:w-60',
       )}
     >
       <Rail.Provider value={collapsed}>
         <div className="flex h-full flex-col">
           {/* 宽屏上顶部：标志和名字，旁边收起按钮，下面一个大的「上传照片 / 视频」。窄屏上菜单是顶上一排标签，上传在工具栏里。
-            收起时一列：标志（点了展开）、后台任务 */}
-          {collapsed ? (
-            <div className="hidden flex-col items-center gap-2 pt-5 pb-4 md:flex">
+            收起时只有标志（点了展开），后台任务图标挪到底部头像上面 */}
+          <div className="hidden h-20 shrink-0 items-center gap-3 pr-3 pl-3.5 md:flex">
+            {collapsed ? (
               <Tooltip label="展开菜单" side="right">
                 <button
                   type="button"
@@ -148,82 +151,86 @@ export default function Sidebar({
                   <Logo className="size-9 text-fg" />
                 </button>
               </Tooltip>
-              {!guest && <TaskIndicator />}
-            </div>
-          ) : (
-            <div className="hidden items-center gap-3 pt-5 pr-3 pb-6 pl-5 md:flex">
-              <Logo className="size-9 shrink-0 text-fg" />
-              <div className="min-w-0 leading-tight">
-                <div className="text-[19px] font-bold tracking-[0.3em]">万象</div>
-                <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
-              </div>
-              <div className="ml-auto flex items-center">
-                {!guest && <TaskIndicator />}
-                {collapse}
-              </div>
-            </div>
-          )}
-          {/* 访客只能浏览：没有上传，换成「登录」 */}
-          <div className={cx('hidden pb-6 md:block', collapsed ? 'px-3' : 'px-3.5')}>
-            {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
-          </div>
-          <nav
-            className={cx(
-              'flex gap-1 overflow-x-auto px-3 py-2 md:flex-1 md:flex-col md:gap-0.5 md:overflow-y-auto md:py-0',
-              collapsed ? 'md:[scrollbar-width:none] md:px-3' : 'md:px-3.5',
-            )}
-          >
-            {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频和 AI 自动分的类（截图、文档、证件收在「更多」里）；
-              「整理」：最近添加、连拍、隐藏、删除 */}
-            {viewItem(LIBRARY, Images)}
-            <NavItem
-              href={ALBUMS_PATH}
-              label="相册"
-              icon={BookImage}
-              active={path === ALBUMS_PATH}
-              navigate={navigate}
-            />
-            <NavItem
-              href={PEOPLE_PATH}
-              label="人物"
-              icon={UsersRound}
-              active={path === PEOPLE_PATH}
-              navigate={navigate}
-            />
-            <NavItem
-              href={PLACES_PATH}
-              label="足迹"
-              icon={MapPinned}
-              active={path === PLACES_PATH}
-              navigate={navigate}
-            />
-            <div className="hidden h-5 shrink-0 md:block" />
-            <SectionLabel>分类</SectionLabel>
-            {viewItem(FAVORITES, Heart, stats?.favorites)}
-            <RatingRow path={path} stats={stats} navigate={navigate} />
-            {viewItem(VIDEOS, Video)}
-            {CATEGORY_VIEWS.filter((_, i) => !CATEGORIES[i].more).map((v) => viewItem(v, categoryIcon(v)))}
-            <MoreCategories path={path} viewItem={viewItem} />
-            <div className="hidden h-5 shrink-0 md:block" />
-            <SectionLabel>整理</SectionLabel>
-            {viewItem(RECENT, Clock)}
-            {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
-            {!guest && (
+            ) : (
               <>
-                <NavItem
-                  href={BURSTS_PATH}
-                  label="连拍整理"
-                  icon={Layers}
-                  active={path === BURSTS_PATH}
-                  navigate={navigate}
-                />
-                {viewItem(HIDDEN, EyeOff)}
-                {viewItem(DELETED, Trash2)}
-                {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
-                <div className="md:hidden">{settings}</div>
+                <Logo className="size-9 shrink-0 text-fg" />
+                <div className="min-w-0 leading-tight">
+                  <div className="text-[19px] font-bold tracking-[0.3em]">万象</div>
+                  <VersionLine guest={guest} onUpdate={() => navigate(`${SETTINGS_PATH}#update`)} />
+                </div>
+                <div className="ml-auto flex items-center">
+                  {!guest && <TaskIndicator />}
+                  {collapse}
+                </div>
               </>
             )}
-          </nav>
+          </div>
+          {/* 访客只能浏览：没有上传，换成「登录」 */}
+          <div className="hidden px-3 pb-6 md:block">
+            {guest ? <SidebarSignIn onClick={signIn} /> : <SidebarUpload onFiles={onUpload} />}
+          </div>
+          {/* 宽屏上菜单放不下时可以上下滚：系统滚动条藏起来，右边贴着菜单边缘画一条细的（OverlayScrollbar） */}
+          <div className="relative md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <nav
+              ref={navRef}
+              className={cx(
+                'flex gap-1 overflow-x-auto px-3 py-2 md:min-h-0 md:flex-1 md:flex-col md:gap-0.5 md:overflow-y-auto md:py-0',
+                'md:[scrollbar-width:none] md:px-3',
+              )}
+            >
+              {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频和 AI 自动分的类（截图、文档、证件收在「更多」里）；
+              「整理」：最近添加、连拍、隐藏、删除 */}
+              {viewItem(LIBRARY, Images)}
+              <NavItem
+                href={ALBUMS_PATH}
+                label="相册"
+                icon={BookImage}
+                active={path === ALBUMS_PATH}
+                navigate={navigate}
+              />
+              <NavItem
+                href={PEOPLE_PATH}
+                label="人物"
+                icon={UsersRound}
+                active={path === PEOPLE_PATH}
+                navigate={navigate}
+              />
+              <NavItem
+                href={PLACES_PATH}
+                label="足迹"
+                icon={MapPinned}
+                active={path === PLACES_PATH}
+                navigate={navigate}
+              />
+              <div className="hidden h-5 shrink-0 md:block" />
+              <SectionLabel>分类</SectionLabel>
+              {viewItem(FAVORITES, Heart, stats?.favorites)}
+              <RatingRow path={path} stats={stats} navigate={navigate} />
+              {viewItem(VIDEOS, Video)}
+              {CATEGORY_VIEWS.filter((_, i) => !CATEGORIES[i].more).map((v) => viewItem(v, categoryIcon(v)))}
+              <MoreCategories path={path} viewItem={viewItem} />
+              <div className="hidden h-5 shrink-0 md:block" />
+              <SectionLabel>整理</SectionLabel>
+              {viewItem(RECENT, Clock)}
+              {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
+              {!guest && (
+                <>
+                  <NavItem
+                    href={BURSTS_PATH}
+                    label="连拍整理"
+                    icon={Layers}
+                    active={path === BURSTS_PATH}
+                    navigate={navigate}
+                  />
+                  {viewItem(HIDDEN, EyeOff)}
+                  {viewItem(DELETED, Trash2)}
+                  {/* 窄屏上「设置」放在标签的最后；宽屏上放在侧边栏底部 */}
+                  <div className="md:hidden">{settings}</div>
+                </>
+              )}
+            </nav>
+            <OverlayScrollbar target={navRef} className="hidden md:flex" />
+          </div>
           {!guest && stats?.disk && !collapsed && <StorageCard disk={stats.disk} />}
           <div className={cx('hidden pt-1 pb-3 md:block', collapsed ? 'px-3' : 'px-2.5')}>
             <ProfileCard
@@ -240,9 +247,15 @@ export default function Sidebar({
 
 function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
   // 收起时不写字，一道细线隔开
-  if (useContext(Rail)) return <div className="mx-2 mb-2 hidden h-px bg-line md:block" />
+  // 两种状态一样高，下面的菜单项不上下跳
+  if (useContext(Rail))
+    return (
+      <div className="hidden h-7 shrink-0 items-center px-2 md:flex">
+        <div className="h-px flex-1 bg-line" />
+      </div>
+    )
   return (
-    <div className="hidden items-center justify-between px-3 pb-2 text-micro font-medium tracking-wider text-muted md:flex">
+    <div className="hidden h-7 shrink-0 items-center justify-between px-[11px] text-[12px] font-medium tracking-[0.02em] text-muted md:flex">
       {children}
       {action}
     </div>
@@ -276,19 +289,20 @@ function NavItem({
       }}
       aria-current={active ? 'page' : undefined}
       className={cx(
-        // 宽屏上每一行高一些、圆角大一些；选中的一行：浅色主题浅蓝底蓝字，深色主题中性灰底白字（颜色变量 nav-active）
-        'flex shrink-0 items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:px-3 md:py-2',
-        rail && 'md:justify-center md:px-0',
-        active ? 'bg-nav-active font-medium text-nav-active-fg' : 'text-fg/80 hover:bg-fg/[0.04] hover:text-fg',
+        // 宽屏上每一行高一些、圆角大一些，字 15px 中等粗细；选中的一行：浅色主题浅橙底橙字，深色主题浅灰底浅橙字（颜色变量 nav-active）
+        // 宽屏上每行固定 36px 高、左边距 11px：收起后 64px 宽的栏里图标正好居中，和展开时同一个位置
+        'flex shrink-0 items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body whitespace-nowrap md:h-10 md:gap-3 md:rounded-[10px] md:px-[11px] md:py-0 md:text-nav md:font-medium',
+        active ? 'bg-nav-active font-medium text-nav-active-fg' : 'text-nav-fg hover:bg-fg/[0.05]',
       )}
     >
-      {leading ??
-        (Icon && (
-          <Icon className={cx('size-4.5 shrink-0', active ? 'text-nav-active-fg' : 'text-fg/75')} strokeWidth={1.8} />
-        ))}
+      {leading ?? (Icon && <Icon className="size-[19px] shrink-0" strokeWidth={1.7} />)}
       <span className={cx('min-w-0 flex-1 truncate', rail && 'md:hidden')}>{label}</span>
       {!!count && !rail && (
-        <span className="hidden text-caption text-muted tabular-nums md:inline">{count.toLocaleString()}</span>
+        <span
+          className={cx('hidden text-chip font-normal tabular-nums md:inline', active ? 'opacity-75' : 'text-muted')}
+        >
+          {count.toLocaleString()}
+        </span>
       )}
     </a>
   )
@@ -357,13 +371,12 @@ function MoreCategories({
         aria-label={showing ? '收起' : '更多分类'}
         title={rail ? (showing ? '收起' : '更多分类') : undefined}
         className={cx(
-          'hidden shrink-0 items-center gap-3 rounded-[10px] px-3 py-2 text-body text-fg/60 hover:bg-fg/[0.04] hover:text-fg md:flex',
-          rail && 'justify-center px-0',
+          'hidden h-10 shrink-0 items-center gap-3 rounded-[10px] px-[11px] text-nav font-medium text-nav-fg/70 hover:bg-fg/[0.05] hover:text-nav-fg md:flex',
         )}
       >
         <ChevronDown
-          className={cx('size-4.5 shrink-0 transition-transform', !showing && '-rotate-90')}
-          strokeWidth={1.8}
+          className={cx('size-[19px] shrink-0 transition-transform', !showing && '-rotate-90')}
+          strokeWidth={1.7}
         />
         {!rail && <span>{showing ? '收起' : '更多'}</span>}
       </button>
@@ -404,23 +417,23 @@ function RatingRow({
           }}
           aria-label="星级"
           className={cx(
-            'hidden shrink-0 items-center justify-center rounded-[10px] py-2 md:flex',
-            current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-fg/75 hover:bg-fg/[0.04] hover:text-fg',
+            'hidden h-10 shrink-0 items-center rounded-[10px] px-[11px] md:flex',
+            current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-nav-fg hover:bg-fg/[0.05]',
           )}
         >
-          <Star className="size-4.5" strokeWidth={1.8} />
+          <Star className="size-[19px]" strokeWidth={1.7} />
         </a>
       </Tooltip>
     )
   return (
     <div
       className={cx(
-        'flex shrink-0 items-center gap-2.5 rounded-control py-1 pr-1.5 pl-2.5 text-body whitespace-nowrap md:gap-3 md:rounded-[10px] md:py-1.5 md:pl-3',
-        current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-fg/80',
+        'flex shrink-0 items-center gap-2.5 rounded-control py-1 pr-1.5 pl-2.5 text-body whitespace-nowrap md:h-10 md:gap-3 md:rounded-[10px] md:py-0 md:pl-[11px] md:text-nav md:font-medium',
+        current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-nav-fg',
       )}
     >
-      <Star className={cx('size-4.5 shrink-0', current ? 'text-nav-active-fg' : 'text-fg/75')} strokeWidth={1.8} />
-      <span className={cx('hidden flex-1 md:block', current > 0 && 'font-medium')}>星级</span>
+      <Star className="size-[19px] shrink-0" strokeWidth={1.7} />
+      <span className="hidden flex-1 md:block">星级</span>
       <span className="flex" onMouseLeave={() => setHover(0)}>
         {[...RATINGS].reverse().map((view) => {
           const n = view.filter.rating ?? 0
@@ -524,10 +537,11 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
   }
   const onAccountPage = path === ACCOUNT_PATH
   const onSettingsPage = path === SETTINGS_PATH
-  // 收起时一列：头像（去我的账号），管理员下面多一个齿轮；退出登录在「我的账号」里
+  // 收起时一列：后台任务（有任务时）、齿轮（管理员）、头像（去我的账号）；退出登录在「我的账号」里
   if (rail)
     return (
       <div className="flex flex-col items-center gap-1.5 py-1.5">
+        <TaskIndicator side="right" />
         {user.is_admin && (
           <Tooltip label="系统设置" side="right">
             <button

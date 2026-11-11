@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+/* 官网沿用相册网页的深色主题：近黑底、带一点暖的浅灰字，全站只有一种暖橙强调色 #f6a77c。
+   颜色都在这里定义成变量，组件里只用 bg-page、text-muted、text-accent 这些名字 */
+@theme {
+  --color-page: #131315;
+  --color-card: #18181b; /* 卡片、面板：全站统一这一个底色，压暗一点，和页面底色只差一档 */
+  --color-well: #232327; /* 卡片里再嵌的一层（标签、胶囊） */
+  --color-fg: #ffffff;
+  --color-soft: #e8ddd6; /* 带一点暖的浅灰，正文 */
+  --color-muted: #a0a0a0;
+  --color-faint: #6f6f74;
+  --color-line: #2a2a2e;
+  --color-line-strong: #3a3a3f;
+  --color-accent: #f6a77c;
+  --color-accent-soft: #4a2e20;
+  --color-ok: #6ccb5f;
+  --color-dot: #e5383b; /* 标志里的红点 */
+
+  --font-sans:
+    'Plus Jakarta Sans Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+  }
+  body {
+    @apply bg-page font-sans text-soft antialiased;
+    /* 背景光晕会伸出屏幕边缘，裁掉，手机上不出现横向滚动 */
+    overflow-x: clip;
+  }
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* 弹出层：半透明磨砂玻璃，和相册网页的菜单、浮层一样 */
+  .glass {
+    background: rgb(30 30 33 / 0.72);
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border: 1px solid rgb(255 255 255 / 0.08);
+  }
+}
+
+@keyframes progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.animate-progress {
+  transform-origin: left;
+  animation: progress linear forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade {
+  animation: fade-in 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+  .animate-progress,
+  .animate-fade {
+    animation: none;
+  }
+}
+
+/* 分享地图上从家里连到城市的虚线，一直往前流 */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.dash-flow {
+  stroke-dasharray: 5 7;
+  animation: dash-flow 1.1s linear infinite;
+}
+/* 城市点外面一圈慢慢闪 */
+@keyframes pulse-ring {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-flow,
+  .pulse {
+    animation: none;
+  }
+}
+
+/* 滚动条：细、圆角、半透明，和深色界面融在一起；鼠标移上去稍微亮一点 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.16) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.16) padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.3);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* 侧边目录：平时不显示滚动条，鼠标移进来才出现 */
+.scroll-on-hover {
+  scrollbar-color: transparent transparent;
+}
+.scroll-on-hover:hover {
+  scrollbar-color: rgb(255 255 255 / 0.16) transparent;
+}

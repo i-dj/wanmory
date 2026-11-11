@@ -227,13 +227,39 @@ make web       # 打包前端，复制到 server/internal/webui/dist
 make run       # 后端 + 网页都在 http://localhost:8080，启动时自动执行数据库迁移
 ```
 
-前端页面嵌在 Go 程序里，由后端直接提供，部署时不需要 Node。平时开发用 `make live`：一条命令启动数据库（已经在跑就跳过）、后端、AI 服务和前端开发服务器，打开 http://localhost:5173，改完页面马上更新，`/api` 转发给 8080 的后端；每行输出前面标着来自哪个（`[server]` `[ai]` `[web]`），Ctrl+C 全部一起停（也可以分开跑 `make run`、`make ml-run`、`make web-dev`）；提交前端代码前在 `web/` 里跑 `npm run typecheck` 和 `npm run format`（Prettier，顺带给 Tailwind 类名排序）；改完再 `make web` 并重启后端，8080 上才会是新页面。
+前端页面嵌在 Go 程序里，由后端直接提供，部署时不需要 Node。平时开发用 `make live`：一条命令启动数据库（已经在跑就跳过）、后端、AI 服务和前端开发服务器（第一次还会下载约 48 MB 的 IP 地址库到 `data/ipdb`，登录日志按 IP 显示大概位置用，数据来自 [ip2region](https://github.com/lionsoul2014/ip2region)，Apache-2.0；Docker 镜像里自带），打开 http://localhost:5173，改完页面马上更新，`/api` 转发给 8080 的后端；每行输出前面标着来自哪个（`[server]` `[ai]` `[web]`），Ctrl+C 全部一起停（也可以分开跑 `make run`、`make ml-run`、`make web-dev`）；提交前端代码前在 `web/` 里跑 `npm run typecheck` 和 `npm run format`（Prettier，顺带给 Tailwind 类名排序）；改完再 `make web` 并重启后端，8080 上才会是新页面。
 
 上传的照片和生成的缩略图放在项目下的 `data/`（已加入 .gitignore）。
 
 人脸识别、智能搜索和自动分类要另外运行 AI 服务：`make ml-run`（在本机跑，Mac 上人脸用 CoreML、CLIP 用 MPS 加速；第一次会下载约 340 MB 的人脸模型和约 3.8 GB 的 Chinese-CLIP ViT-H/14 到 `~/.cache/wanmory/models`，CLIP 在后台下载、加载，期间人脸识别照常工作，搜索会提示稍后再试）。有显卡（Mac 的 MPS、NVIDIA 的 CUDA）时 CLIP 用半精度运行，占约 1.9 GB 内存；只有 CPU 时用全精度，约 4 GB。用 `WANMORY_CLIP_MODEL` 换成小一些的 `chinese-clip-vit-l-14`、`chinese-clip-vit-b-16`（后端和 AI 服务要设成一样的）。后端默认连 `http://127.0.0.1:3003`，用 `WANMORY_ML_URL` 改成别的地址；AI 服务设置了 `WANMORY_ML_TOKEN` 时后端也要设置同样的值。图片是随请求用 HTTP 发过去的，AI 服务放在哪台机器上都行。AI 服务没启动时人脸任务留在队列里，启动后自动接着做；已有的照片在后端启动时自动补排。
 
 不想在本机装这些工具，可以用 `make run-docker` 在容器里跑后端（和 `make run` 二选一，都占 8080 端口），本机只需要 Docker。
+
+## 挂载已有的照片目录
+
+NAS、移动硬盘、电脑上已经有很多照片，不用一张张上传：把目录挂载进相册的照片目录（Docker 里是 `/photos`，本机开发是 `data/library`），相册每 15 分钟扫一遍，新的照片和视频**原地导入**（不复制、不移动），然后和上传的一样读拍摄信息、生成缩略图、做 AI 识别（人脸、分类、语义搜索、文字识别）。
+
+在 `docker-compose.yml` 的 `server` 下面加几行，每个目录挂到 `/photos` 下面的一个子目录：
+
+```yaml
+    volumes:
+      - ./data:/data
+      - /mnt/nas/photos:/photos/nas:ro        # 结尾 :ro 是只读
+      - /media/usb/相机照片:/photos/usb:ro
+      - /home/me/Pictures:/photos/pictures     # 不加 :ro 是可读写
+```
+
+改完运行 `docker compose up -d`，最多等 15 分钟（重启后 20 秒左右扫第一遍）就会出现在图库里。
+
+- **可以挂多个目录**，以后再挂新的目录也一样，扫到就自动导入、自动 AI 处理。
+- **只读挂载（`:ro`）更安全**：相册不会往这些目录里写任何东西；在相册里删除照片只是放进「最近删除」，永久删除时原文件也留着，只是相册里不再显示，以后也不会再被扫进来。可读写挂载的目录，永久删除会连原文件一起删掉。
+- 内容完全一样的照片只算一张（已经上传过的、两个目录里重复的都只保留一份）。
+- 不扫隐藏目录和 NAS 自己的缩略图、回收站（`.xxx`、`@eaDir`、`#recycle` 等）。
+- 从照片目录导入的照片不属于哪个成员，只有管理员能删除。
+
+## 访问域名
+
+在「系统设置 → 访问域名」里改，默认 `wanmory.local`，必须以 `.local` 结尾。相册自己在局域网里报这个名字（mDNS，Docker 里是 `docker-compose.yml` 的 `mdns` 服务），Mac、iPhone、iPad、Windows 10 以后不用设置路由器就能打开 `http://wanmory.local:8080`；部分安卓手机不支持，用 IP 打开。
 
 ## 部署注意
 

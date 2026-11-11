@@ -13,7 +13,7 @@ import PersonTabs from './PersonTabs'
 const SHOWN_COMPANIONS = 4 // 「常和 Ta 一起」最多叠几个头像，多的写「+3」
 
 // PersonHero 是人物页标题的位置，照片、成长、足迹、合影四个标签上一模一样：一张白色卡片（细边框，不加渐变和投影），
-// 上半部分左边圆头像，旁边宋体的名字，名字下面是年龄和生日（后面「设置生日 / 修改生日」，点了弹出对话框），
+// 上半部分左边圆头像，旁边粗体的名字，名字下面是年龄和生日（后面「设置生日 / 修改生日」，点了弹出对话框），
 // 右边「常和 Ta 一起」叠着几个人的头像；下半部分一条细线隔开，四格统计：照片、视频、跨越几年、去过几个地方。
 // 卡片下面一排带下划线的标签
 export default function PersonHero({
@@ -41,7 +41,7 @@ export default function PersonHero({
             {person.cover && <img src={facePortraitUrl(person.cover)} alt="" className="size-full object-cover" />}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate font-serif text-[28px] leading-tight font-bold md:text-[34px]">
+            <div className="truncate text-[26px] leading-tight font-bold tracking-tight md:text-[30px]">
               {personName(person)}
             </div>
             <SubLine
@@ -115,11 +115,11 @@ function SubLine({
   )
 }
 
-// Stat 是下面四格统计里的一格：宋体的大数字，下面灰色的小字，格子之间细线隔开。还没读到时数字位置先占着
+// Stat 是下面四格统计里的一格：粗体的大数字，下面灰色的小字，格子之间细线隔开。还没读到时数字位置先占着
 function Stat({ value, label }: { value: number | string | undefined; label: string }) {
   return (
     <div className="border-line/60 px-5 py-4 not-first:border-l max-sm:nth-3:border-l-0 max-sm:nth-[n+3]:border-t md:px-7">
-      <dd className="h-7 font-serif text-[22px] leading-7 font-bold tabular-nums">
+      <dd className="h-7 text-[22px] leading-7 font-bold tracking-tight tabular-nums">
         {value === undefined ? '' : typeof value === 'number' ? value.toLocaleString() : value}
       </dd>
       <dt className="mt-0.5 text-caption text-muted">{label}</dt>

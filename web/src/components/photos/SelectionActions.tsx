@@ -30,6 +30,7 @@ import {
   type Person,
 } from '@/lib/api'
 import { cx } from '@/lib/cx'
+import { useCurrentUser } from '@/lib/session'
 import DeleteConfirm from './DeleteConfirm'
 
 export type Scope = 'normal' | 'hidden' | 'deleted'
@@ -138,6 +139,9 @@ export function DeleteButton({
   const close = useCallback(() => setOpen(false), [])
   const anchor = useRef<HTMLDivElement>(null)
   useDismiss(anchor, open, close)
+  // 成员只能删除自己传的照片，管理员能删任何人的（服务器也会检查）：选了别人的，点了只说明为什么不能删
+  const { user } = useCurrentUser()
+  const blocked = !user.is_admin && total === undefined && assets.some((a) => a.uploaded_by !== user.id)
   return (
     <div ref={anchor} className="relative">
       {label ? (
@@ -165,6 +169,7 @@ export function DeleteButton({
           total={total}
           permanent={permanent}
           align={label ? 'end' : 'center'}
+          blocked={blocked}
           onConfirm={onConfirm}
           onClose={close}
         />

@@ -5,7 +5,7 @@ import { MenuItem, ToolbarButton } from '@/components/ui/Popover'
 import { useElementSize } from '@/hooks/useElementSize'
 import { useIdleChrome } from '@/hooks/useIdleChrome'
 import { unlockAudio } from '@/lib/musicLibrary'
-import { type Album, type Asset, originalUrl, previewUrl, thumbnailUrl } from '@/lib/api'
+import { type Album, type Asset, largeUrl, originalUrl, previewUrl, thumbnailUrl } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { viewerDate } from '@/lib/format'
 import Filmstrip from './Filmstrip'
@@ -173,11 +173,14 @@ export default function PhotoViewer({
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
-  // 快到已加载的末尾时接着加载；预先加载前后两张的预览图，换照片时马上出来
+  // 快到已加载的末尾时接着加载；预先加载前后两张的预览图和清晰大图，换照片时马上出来
   useEffect(() => {
     onLoadMore(index + LOAD_AHEAD)
     for (const a of [assets[index + 1], assets[index - 1]]) {
-      if (a?.type === 'image' && a.has_thumbnail) new Image().src = previewUrl(a)
+      if (a?.type === 'image' && a.has_thumbnail) {
+        new Image().src = previewUrl(a)
+        new Image().src = largeUrl(a)
+      }
     }
   }, [index, assets, onLoadMore])
 
@@ -374,7 +377,7 @@ export default function PhotoViewer({
 const overlayOpen = () =>
   !!document.querySelector('[role="menu"], #delete-title') || document.querySelectorAll('[role="dialog"]').length > 1
 
-// SideArrow 是照片左右两边的大箭头，半透明圆底，亮暗照片上都看得清
+// SideArrow 是照片左右两边的箭头，和首页 AI 精选的一样：半透明毛玻璃圆底加一圈细白边，亮暗照片上都看得清
 function SideArrow({ side, className, onClick }: { side: 'left' | 'right'; className: string; onClick: () => void }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight
   return (
@@ -384,20 +387,22 @@ function SideArrow({ side, className, onClick }: { side: 'left' | 'right'; class
       data-chrome
       onClick={onClick}
       className={cx(
-        'absolute top-1/2 z-10 flex size-12 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition duration-300 hover:bg-black/45 active:scale-95',
-        side === 'left' ? 'left-3' : 'right-3',
+        'absolute top-1/2 z-10 grid size-12 -translate-y-1/2 cursor-pointer place-items-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition duration-300 hover:bg-black/50 active:scale-95',
+        side === 'left' ? 'left-4 md:left-6' : 'right-4 md:right-6',
         className,
       )}
     >
-      <Icon className="size-7" strokeWidth={2.4} />
+      <Icon className="size-5" strokeWidth={2} />
     </button>
   )
 }
 
 // PhotoLayers 是一张照片的几层图：先铺缩略图（网格里看过，一般在缓存里，马上就有），
-// 1440 像素的预览图加载好后盖上去；放大时再盖上原图看细节。换照片时整个重建，加载状态跟着清零
+// 1440 像素的预览图加载好后盖上去，再盖上 2560 像素的清晰大图（大屏、Retina 屏上预览图会糊，大图第一次看时服务器才生成）；
+// 放大时再盖上原图看细节。换照片时整个重建，加载状态跟着清零
 function PhotoLayers({ asset, hires, onRatio }: { asset: Asset; hires: boolean; onRatio: (ratio: number) => void }) {
   const [previewLoaded, setPreviewLoaded] = useState(false)
+  const [largeLoaded, setLargeLoaded] = useState(false)
   const [hiresLoaded, setHiresLoaded] = useState(false)
   const [wantHires, setWantHires] = useState(false) // 放大过一次就留着原图，缩回去再放大不用重新加载
   if (hires && !wantHires) setWantHires(true)
@@ -419,6 +424,15 @@ function PhotoLayers({ asset, hires, onRatio }: { asset: Asset; hires: boolean; 
         }}
         className={cx(layer, !previewLoaded && 'opacity-0')}
       />
+      {previewLoaded && asset.type === 'image' && (
+        <img
+          src={largeUrl(asset)}
+          alt=""
+          draggable={false}
+          onLoad={() => setLargeLoaded(true)}
+          className={cx(layer, !largeLoaded && 'opacity-0')}
+        />
+      )}
       {wantHires && (
         <img
           src={originalUrl(asset)}

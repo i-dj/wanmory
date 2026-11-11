@@ -8,7 +8,7 @@ export interface Segment<T extends string> {
   title?: string // 鼠标移上去的提示，例如为什么不能点
 }
 
-// Segmented 是一组分段按钮：细边框的底，选中的那段是淡淡的一块加细边（深浅主题都看得清）。全站只有这一种样子。
+// Segmented 是一组分段按钮，简洁样子：没有底和边框，没选的只是灰字，选中的那段是一块淡淡的圆角底、字变亮。全站只有这一种样子。
 // 设置里的切换、连拍整理的「连拍和相似 / 重复」、足迹的「地图 / 卫星 / 网格」、日历的「年 / 月 / 日」都用它。
 // stretch 时撑满一行、每段一样宽
 export default function Segmented<T extends string>({
@@ -29,15 +29,15 @@ export default function Segmented<T extends string>({
       role="tablist"
       aria-label={label}
       className={cx(
-        'rounded-lg border border-line bg-fg/[0.02] p-1 text-body',
+        'gap-1 text-body',
         stretch ? 'flex' : 'inline-flex shrink-0 self-center',
       )}
     >
       {segments.map((s) => {
         const className = cx(
-          'rounded-md px-3 py-1 text-center transition-colors',
+          'rounded-lg px-3 py-1.5 text-center transition-colors',
           stretch && 'flex-1',
-          s.value === value ? 'bg-fg/[0.08] font-medium text-fg ring-1 ring-fg/10' : 'text-muted',
+          s.value === value ? 'bg-fg/[0.08] font-medium text-fg' : 'text-muted',
           s.disabled ? 'cursor-not-allowed opacity-40' : s.value !== value && 'hover:text-fg',
         )
         const props = {

@@ -18,7 +18,7 @@ import {
   testAIEndpoint,
 } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { askConfirm, showAlert, showError } from '@/lib/dialog'
+import { askConfirm } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
 import { versionLabel } from '@/lib/version'
 import SettingsCard from './SettingsCard'
@@ -41,6 +41,11 @@ export default function AISettings() {
   const [busy, setBusy] = useState(false)
   const [testing, setTesting] = useState(false)
   const [tested, setTested] = useState<TestResult | null>(null)
+  // 出错不弹提示，写在出错的那一块的底栏：运行方式（endpoint）、计算设备（device）、模型档位（models）
+  const [errors, setErrors] = useState<Partial<Record<Card, string>>>({})
+  const fail = (card: Card, e: unknown) =>
+    setErrors((m) => ({ ...m, [card]: e instanceof Error ? e.message : String(e) }))
+  const clear = (card: Card) => setErrors(({ [card]: _, ...rest }) => rest)
 
   const load = useCallback(async () => {
     try {
@@ -48,7 +53,7 @@ export default function AISettings() {
       setStatus(s)
       return s
     } catch (e) {
-      showError('没有读到 AI 服务的状态', e)
+      fail('endpoint', e)
       return null
     }
   }, [])
@@ -80,18 +85,19 @@ export default function AISettings() {
   // 改了地址、令牌或者运行方式，上次测试的结果就不算了
   useEffect(() => setTested(null), [mode, url, token])
 
-  const run = async (action: () => Promise<AIStatus>, failed: string) => {
+  const run = async (action: () => Promise<AIStatus>, card: Card) => {
     setBusy(true)
+    clear(card)
     try {
       setStatus(await action())
     } catch (e) {
-      showError(failed, e)
+      fail(card, e)
     } finally {
       setBusy(false)
     }
   }
 
-  // 保存前看要换到的服务通不通：已知连不上的先问一句（连上之前 AI 处理都会暂停）；新填的地址保存后连不上也提示
+  // 保存前看要换到的服务通不通：已知连不上的先问一句（连上之前 AI 处理都会暂停）；保存后连不上，底栏的状态会写出来
   const saveEndpoint = async () => {
     if (!status) return
     const known = mode === 'builtin' || (url === status.endpoint.remote_url && token === '')
@@ -107,18 +113,16 @@ export default function AISettings() {
     await run(async () => {
       const s = await setAIEndpoint(mode, url, token)
       setToken('')
-      if (!s.connected && !down) {
-        showAlert('服务不可用', '已保存，但连不上这个地址的 AI 服务。连上之前 AI 处理会暂停。', 'warn')
-      }
       return s
-    }, '地址没有保存成功')
+    }, 'endpoint')
   }
   const test = async () => {
     setTesting(true)
+    clear('endpoint')
     try {
       setTested(await testAIEndpoint(mode, url, token))
     } catch (e) {
-      showError('没有测试成功', e)
+      fail('endpoint', e)
     } finally {
       setTesting(false)
     }
@@ -148,7 +152,7 @@ export default function AISettings() {
             message: tier === status?.tier ? '以后不再跟着 AI 服务器的硬件自动换。' : reprocess,
             confirmLabel: '换档',
           })
-    if (ok) await run(() => setAITier(tier), '没有换成功')
+    if (ok) await run(() => setAITier(tier), 'models')
   }
   // 换计算设备：已经加载的模型要卸掉、按新设备重新加载，先问一句
   const switchDevice = async (d: AIDevice) => {
@@ -163,7 +167,7 @@ export default function AISettings() {
         : '切换后将重新加载模型，正在进行的 AI 处理会稍等片刻再继续。',
       confirmLabel: retier ? '切换并重新计算' : '切换',
     })
-    if (ok) await run(() => setAIDevice(d), '没有切换成功')
+    if (ok) await run(() => setAIDevice(d), 'device')
   }
   const removeModel = async (m: AIModel) => {
     const ok = await askConfirm(`删除「${m.label}」？`, {
@@ -171,7 +175,7 @@ export default function AISettings() {
       confirmLabel: '删除',
       danger: true,
     })
-    if (ok) await run(() => deleteAIModel(m.id), '没有删除成功')
+    if (ok) await run(() => deleteAIModel(m.id), 'models')
   }
   const rec = status ? recommendation(status) : null
 
@@ -179,6 +183,7 @@ export default function AISettings() {
     <>
       <SettingsCard
         title="AI 运行方式"
+        description="将 AI 部署到性能更强的主机上，有助于加快 AI 计算。"
         action={
           <Segmented<Mode>
             label="运行方式"
@@ -190,7 +195,12 @@ export default function AISettings() {
             ]}
           />
         }
-        footer={status && <Connection status={status} mode={mode} tested={tested} />}
+        footer={
+          <>
+            {status && <Connection status={status} mode={mode} tested={tested} />}
+            <CardError text={errors.endpoint} />
+          </>
+        }
         footerActions={
           admin && (
             <>
@@ -250,7 +260,14 @@ export default function AISettings() {
               />
             )
           }
-          footer={gpu?.available && '切换后将重新加载模型。'}
+          footer={
+            (gpu?.available || errors.device) && (
+              <>
+                {gpu?.available && '切换后将重新加载模型。'}
+                <CardError text={errors.device} />
+              </>
+            )
+          }
         />
       )}
 
@@ -286,6 +303,7 @@ export default function AISettings() {
                   {status.models.storage.mounted === false && '（在容器里，重建容器后要重新下载）'}
                 </span>
               )}
+              <CardError text={errors.models} />
             </>
           }
         >
@@ -306,13 +324,20 @@ export default function AISettings() {
             inUse={inUse}
             admin={admin}
             busy={busy}
-            onDownload={(m) => run(() => downloadAIModel(m.id), '没有开始下载')}
+            onDownload={(m) => run(() => downloadAIModel(m.id), 'models')}
             onDelete={removeModel}
           />
         </SettingsCard>
       )}
     </>
   )
+}
+
+type Card = 'endpoint' | 'device' | 'models'
+
+// CardError 是卡片底栏里的一行红字（操作没成功的原因），没有就不显示
+function CardError({ text }: { text?: string }) {
+  return text ? <span className="block text-caption text-danger">{text}</span> : null
 }
 
 // Connection 是运行方式底栏的状态：测过就显示测试的结果，否则显示选中的那个服务现在通不通、多快、什么版本

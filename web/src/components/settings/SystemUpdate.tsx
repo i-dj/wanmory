@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Modal'
 import { type Release, aiStatus } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { showError } from '@/lib/dialog'
 import { refreshUpdate, useUpdate, useVersion, versionLabel } from '@/lib/version'
 import SettingsCard from './SettingsCard'
 
@@ -27,6 +26,7 @@ export default function SystemUpdate() {
   const [aiVersion, setAIVersion] = useState<string | null | undefined>(undefined) // undefined 还在问，null 连不上
   const [checking, setChecking] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState('') // 检查、复制没成功的原因，写在底栏
   const [showAll, setShowAll] = useState(false) // 跳了很多版时先只列最新的 SHOWN 个
 
   useEffect(() => {
@@ -46,10 +46,11 @@ export default function SystemUpdate() {
 
   const check = async () => {
     setChecking(true)
+    setError('')
     try {
       await refreshUpdate(true)
     } catch (e) {
-      showError('没有检查成功', e)
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setChecking(false)
     }
@@ -60,7 +61,7 @@ export default function SystemUpdate() {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      showError('没有复制成功', new Error('手动选中命令复制吧'))
+      setError('没有复制成功，手动选中命令复制吧')
     }
   }
 
@@ -72,8 +73,8 @@ export default function SystemUpdate() {
       id="update"
       title="系统更新"
       footer={
-        update?.error ? (
-          <span className="text-danger">{update.error}</span>
+        error || update?.error ? (
+          <span className="text-danger">{error || update?.error}</span>
         ) : update?.checked_at ? (
           `上次检查：${ago(update.checked_at)}`
         ) : null

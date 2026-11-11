@@ -31,11 +31,14 @@ func (s *Service) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/logout", s.logout)
 	mux.HandleFunc("PUT /api/auth/password", s.changePassword)
 	mux.HandleFunc("PUT /api/auth/avatar", s.setAvatar)
+	mux.HandleFunc("PUT /api/auth/avatar/image", s.uploadAvatar)
+	mux.HandleFunc("GET /api/users/{id}/avatar", s.serveAvatar)
 	s.accountRoutes(mux)
 	mux.HandleFunc("GET /api/users", s.listUsers)
 	mux.HandleFunc("POST /api/users", s.admin(s.addUser))
 	mux.HandleFunc("DELETE /api/users/{id}", s.admin(s.deleteUser))
 	mux.HandleFunc("PUT /api/users/{id}/password", s.admin(s.resetPassword))
+	mux.HandleFunc("GET /api/auth/logins", s.admin(s.logins))
 }
 
 // public 是不用登录也能访问的接口
@@ -45,6 +48,13 @@ var public = map[string]bool{
 	"/api/version":    true, // 菜单顶上显示版本号
 	"/api/auth/setup": true,
 	"/api/auth/login": true,
+}
+
+// AddPublic 加几个不用登录也能用的接口（别的包的，例如下载 HTTPS 的 CA 证书）。启动时调，之后不再改
+func AddPublic(paths ...string) {
+	for _, p := range paths {
+		public[p] = true
+	}
 }
 
 // guestPaths 是访客（没登录、访客模式开着）能读的接口，只有 GET。读服务器目录、设置、AI 服务、相册的私有设置、
@@ -71,6 +81,9 @@ func guestAllowed(r *http.Request) bool {
 		if p == g {
 			return true
 		}
+	}
+	if strings.HasPrefix(p, "/api/users/") && strings.HasSuffix(p, "/avatar") { // 成员的头像图片
+		return true
 	}
 	for _, g := range guestPrefixes {
 		if strings.HasPrefix(p, g) && !strings.HasSuffix(p, "/privacy") {
@@ -193,9 +206,13 @@ func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, pas
 		ttl = shortTTL
 	}
 	u, token, err := s.Login(r.Context(), name, password, ttl)
+	if errors.Is(err, ErrBadLogin) {
+		s.noteLogin(r.Context(), r, name, false)
+	}
 	if s.fail(w, err) {
 		return
 	}
+	s.noteLogin(r.Context(), r, u.Name, true)
 	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
@@ -251,11 +268,16 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 func (s *Service) setAvatar(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		AssetID *uuid.UUID `json:"asset_id"`
+		Cartoon string     `json:"cartoon"` // 卡通头像的名字，见 avatar.go
 	}
 	if !decode(w, r, &req) {
 		return
 	}
 	u := UserFrom(r.Context())
+	if req.Cartoon != "" {
+		s.setCartoon(w, r, u, req.Cartoon)
+		return
+	}
 	if err := s.SetAvatar(r.Context(), u.ID, req.AssetID); errors.Is(err, ErrNotFound) {
 		httpx.Error(w, http.StatusBadRequest, "这张照片不能当头像")
 		return
@@ -264,7 +286,7 @@ func (s *Service) setAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	updated := *u
-	updated.Avatar = req.AssetID
+	updated.Avatar, updated.AvatarStyle = req.AssetID, ""
 	httpx.JSON(w, http.StatusOK, map[string]any{"user": updated})
 }
 
@@ -277,12 +299,16 @@ func (s *Service) listUsers(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, list)
 }
 
+// addUser：POST /api/users，{"name", "password", "admin"}，admin 为 true 时新成员也是管理员
 func (s *Service) addUser(w http.ResponseWriter, r *http.Request) {
-	var c credentials
+	var c struct {
+		credentials
+		Admin bool `json:"admin"`
+	}
 	if !decode(w, r, &c) {
 		return
 	}
-	u, err := s.AddUser(r.Context(), c.Name, c.Password)
+	u, err := s.AddUser(r.Context(), c.Name, c.Password, c.Admin)
 	if s.fail(w, err) {
 		return
 	}
@@ -302,6 +328,7 @@ func (s *Service) deleteUser(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, s.DeleteUser(r.Context(), id)) {
 		return
 	}
+	s.removeAvatarFile(id)
 	w.WriteHeader(http.StatusNoContent)
 }
 

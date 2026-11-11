@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { cx } from '@/lib/cx'
 
-// SettingsCard 是设置页的一块：小圆角卡片，细边框，底色只比页面亮一点点（不抢眼）。
+// SettingsCard 是设置页的一块：小圆角卡片，细边框，底色只比页面亮一点点（和页面几乎一样，不抢眼）。
 //   上面：粗一点的标题，下面灰色的说明；右边可以放控件（action，例如分段按钮）；
 //   中间：children（输入框、表格、列表……），和标题之间一条细线；
 //   最下面一行（footer）：细线隔开，底色和页面一样（比卡片上面暗一点）：左边小字提示或状态，右边按钮（footerActions，例如「测试连接」「保存」）。
@@ -28,7 +28,7 @@ export default function SettingsCard({
   return (
     <section
       id={id}
-      className="scroll-mt-24 overflow-hidden rounded-lg border border-line bg-[color-mix(in_srgb,var(--color-surface)_40%,var(--color-page))]"
+      className="scroll-mt-24 overflow-hidden rounded-lg border border-line bg-[color-mix(in_srgb,var(--color-surface)_25%,var(--color-page))]"
     >
       <div className="flex flex-col gap-4 px-5 pt-5 pb-5 sm:flex-row sm:items-start md:px-6 md:pt-6">
         <div className="min-w-0 flex-1">

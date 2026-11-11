@@ -1,9 +1,13 @@
-# 用户部署用：在放这个文件的目录里运行 docker compose up -d，浏览器打开 http://<这台机器的地址>:8080。
+# 用户部署用：在放这个文件的目录里运行 docker compose up -d，浏览器打开 http://<这台机器的地址>:8080，
+# 或者在局域网里直接打开 http://wanmory.local:8080（访问域名在网页「系统设置」里改）。
 # 照片、缩略图存在旁边的 data/，AI 模型存在 models/，数据库在 Docker 的卷 pgdata 里，重建容器都不会丢。
+# 这三个位置都可以在 .env 里改：WANMORY_DATA_DIR、WANMORY_MODELS_DIR、WANMORY_DB_DIR（填目录路径就存到那个目录，不填用数据卷 pgdata）。
 # 镜像默认从 ghcr.io 拉，同时有 amd64（PC、NAS、N100）和 arm64（树莓派）的，自动选对的；
 # 国内拉不动时在 .env 里设 WANMORY_REGISTRY 换成国内的镜像仓库地址。
 # 可以在同一目录的 .env 文件里改：WANMORY_DB_PASSWORD（数据库密码）、WANMORY_PORT（端口，默认 8080）、
-# WANMORY_TZ（照片没写时区时按哪个时区，默认 Asia/Shanghai）、WANMORY_VERSION（镜像版本，默认 latest）
+# WANMORY_TZ（照片没写时区时按哪个时区，默认 Asia/Shanghai）、WANMORY_VERSION（镜像版本，默认 latest）、
+# WANMORY_DOMAIN（局域网访问域名，默认 wanmory.local，网页「系统设置」里改过以后以设置为准）。
+# 也可以用官网的安装脚本一步步生成：curl -fsSL https://wanmory.com/install.sh | bash
 services:
   # 数据库：PostgreSQL + pgvector（语义搜索、人脸的向量），只在 Docker 内部网络里，不对外开端口
   postgres:
@@ -13,7 +17,7 @@ services:
       POSTGRES_PASSWORD: ${WANMORY_DB_PASSWORD:-wanmory}
       POSTGRES_DB: wanmory
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${WANMORY_DB_DIR:-pgdata}:/var/lib/postgresql/data # 不设 WANMORY_DB_DIR 时用数据卷 pgdata；设成目录路径（要在本机磁盘上，不要用网络共享）就存在那里
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "wanmory", "-d", "wanmory"]
       interval: 5s
@@ -28,13 +32,35 @@ services:
       DATABASE_URL: postgres://wanmory:${WANMORY_DB_PASSWORD:-wanmory}@postgres:5432/wanmory
       WANMORY_ML_URL: http://ml:3003 # 内置 AI 服务（下面的 ml）。单独启动的 AI 服务在网页「设置 → AI 服务」里选「远程」、填地址
       TZ: ${WANMORY_TZ:-Asia/Shanghai}
+      WANMORY_MDNS: "off" # 局域网里报域名由下面的 mdns 服务做（这里在 Docker 内部网络，收不到局域网的组播）
+      WANMORY_HTTP_PUBLIC_PORT: ${WANMORY_PORT:-8080} # 网页上显示的网址用映射出去的端口
+      WANMORY_DOMAIN: ${WANMORY_DOMAIN:-wanmory.local} # 局域网访问域名的初始值
     ports:
       - "${WANMORY_PORT:-8080}:8080"
     volumes:
-      - ./data:/data # 上传的照片（data/upload）和缩略图（data/thumbs）
+      - ${WANMORY_DATA_DIR:-./data}:/data # 上传的照片（upload/）和缩略图、预览图（thumbs/）
+      # 已有的照片目录（NAS、移动硬盘……）挂到 /photos 下面，每个目录一行，可以挂多个；结尾加 :ro 是只读，
+      # 相册就改不了、删不掉里面的文件。相册每 15 分钟扫一遍，新照片自动导入、生成缩略图、AI 识别。去掉行首的 # 生效：
+      # - /mnt/nas/photos:/photos/nas:ro
+      # - /media/usb/相机照片:/photos/usb:ro
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  # 在局域网里报访问域名（默认 wanmory.local，Mac、iPhone、Windows 不用设置路由器就能用名字打开相册）。
+  # 和相册程序是同一个镜像，只做这一件事；要用主机网络才收得到局域网的组播。隔一会儿问相册程序现在的域名
+  mdns:
+    image: ${WANMORY_REGISTRY:-ghcr.io/i-dj}/wanmory-server:${WANMORY_VERSION:-latest}
+    command: ["mdns"]
+    network_mode: host
+    environment:
+      WANMORY_URL: http://127.0.0.1:${WANMORY_PORT:-8080}
+      WANMORY_DOMAIN: ${WANMORY_DOMAIN:-wanmory.local} # 连不上相册程序时先报这个名字
+    healthcheck:
+      disable: true
+    depends_on:
+      - server
     restart: unless-stopped
 
   # 内置 AI 服务：只在 Docker 内部网络里，不对外开端口，只有上面的相册程序连它。
@@ -43,7 +69,7 @@ services:
   ml:
     image: ${WANMORY_REGISTRY:-ghcr.io/i-dj}/wanmory-ml:${WANMORY_VERSION:-latest}
     volumes:
-      - ./models:/models
+      - ${WANMORY_MODELS_DIR:-./models}:/models
     environment:
       WANMORY_MODEL_DIR: /models
       WANMORY_AUTO_DOWNLOAD: "0"

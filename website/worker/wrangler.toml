@@ -1,0 +1,15 @@
+# 官网「提交问题」的服务端：接收网页表单，校验人机验证和频率，用保存在这里的 GitHub 令牌创建 Issue。
+# 部署步骤见 worker/README.md。令牌等密钥用 wrangler secret put 设置，不要写在这个文件里
+name = "wanmory-feedback"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+[vars]
+GITHUB_REPO = "i-dj/wanmory"                                    # Issue 提交到哪个仓库
+ALLOWED_ORIGINS = "https://wanmory.com,http://localhost:5180"   # 允许哪些网页调用，逗号分隔
+RATE_LIMIT_PER_HOUR = "5"                                       # 同一个 IP 每小时最多提交几次
+
+# 频率限制用的 KV（可选，不绑定就不限频）。先 npx wrangler kv namespace create RATE，把输出的 id 填到下面再去掉注释
+# [[kv_namespaces]]
+# binding = "RATE"
+# id = "<KV 命名空间 ID>"

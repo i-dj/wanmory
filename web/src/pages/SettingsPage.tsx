@@ -1,8 +1,9 @@
 import PageHeader, { HeaderTitle } from '@/components/layout/PageHeader'
 import { useCallback, useEffect, useState } from 'react'
-import { listSettings, resetSetting, saveSetting, type SettingItem } from '@/lib/api'
+import { listSettings, type NetStatus, netStatus, resetSetting, saveSetting, type SettingItem } from '@/lib/api'
 import ChoicePicker from '@/components/settings/ChoicePicker'
 import DirPicker from '@/components/settings/DirPicker'
+import TextSettingDialog from '@/components/settings/TextSettingDialog'
 import { Button } from '@/components/ui/Modal'
 import { forgetMapsSetting } from '@/lib/geo'
 import { forgetMapSource } from '@/lib/mapSource'
@@ -10,14 +11,16 @@ import AccountSettings from '@/components/settings/AccountSettings'
 import AISettings from '@/components/settings/AISettings'
 import PerformanceSettings from '@/components/settings/PerformanceSettings'
 import SystemUpdate from '@/components/settings/SystemUpdate'
-import { askConfirm, showAlert } from '@/lib/dialog'
+import { askConfirm } from '@/lib/dialog'
 import { cx } from '@/lib/cx'
 import SettingsCard from '@/components/settings/SettingsCard'
 
 export default function SettingsPage() {
   const [items, setItems] = useState<SettingItem[] | null>(null)
   const [error, setError] = useState('')
+  const [itemErrors, setItemErrors] = useState<Record<string, string>>({}) // 恢复默认失败时写在那一块的底栏
   const [editing, setEditing] = useState<SettingItem | null>(null)
+  const [net, setNet] = useState<NetStatus | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -28,17 +31,26 @@ export default function SettingsPage() {
     }
   }, [])
 
+  // 访问域名改了以后服务器几秒内才切过去（隔 5 秒看一次设置），过一会儿再读一次
+  const loadNet = useCallback(() => {
+    void netStatus()
+      .then(setNet)
+      .catch(() => {})
+  }, [])
   useEffect(() => {
     load()
-  }, [load])
+    loadNet()
+  }, [load, loadNet])
 
+  // 保存成功不弹提示：窗口关掉、卡片上的值变了就是好了；出错时抛给弹出的窗口，写在按钮上面
   const save = async (item: SettingItem, value: unknown) => {
-    await saveSetting(item.key, value) // 出错时抛给弹出框显示
+    await saveSetting(item.key, value)
     forgetMapsSetting() // 大图信息栏下次重新读「在线地图」
     forgetMapSource() // 地图下次重新读「地图来源」
     setEditing(null)
-    showAlert(`已保存「${item.label}」`)
+    setItemErrors(({ [item.key]: _, ...rest }) => rest)
     load()
+    if (item.key.startsWith('net.')) setTimeout(loadNet, 6000)
   }
 
   const reset = async (item: SettingItem) => {
@@ -47,10 +59,11 @@ export default function SettingsPage() {
       await resetSetting(item.key)
       forgetMapsSetting()
       forgetMapSource()
-      showAlert(`「${item.label}」已恢复默认`)
+      setItemErrors(({ [item.key]: _, ...rest }) => rest)
       load()
+      if (item.key.startsWith('net.')) setTimeout(loadNet, 6000)
     } catch (e) {
-      setError((e as Error).message)
+      setItemErrors((m) => ({ ...m, [item.key]: (e as Error).message }))
     }
   }
 
@@ -74,6 +87,8 @@ export default function SettingsPage() {
             footer={
               <span className={cx('break-all text-fg', item.kind === 'path' && 'font-mono')}>
                 <SettingValue item={item} />
+                <NetNote item={item} net={net} />
+                {itemErrors[item.key] && <span className="block text-caption text-danger">{itemErrors[item.key]}</span>}
               </span>
             }
             footerActions={
@@ -97,6 +112,15 @@ export default function SettingsPage() {
           onConfirm={(path) => save(editing, path)}
         />
       )}
+      {editing?.kind === 'text' && (
+        <TextSettingDialog
+          title={editing.label}
+          value={String(editing.value)}
+          placeholder={String(editing.default)}
+          onCancel={() => setEditing(null)}
+          onConfirm={(value) => save(editing, value)}
+        />
+      )}
       {editing?.kind === 'choice' && (
         <ChoicePicker
           title={editing.label}
@@ -107,6 +131,26 @@ export default function SettingsPage() {
         />
       )}
     </section>
+  )
+}
+
+// NetNote 跟在访问域名后面：现在用什么网址打开
+function NetNote({ item, net }: { item: SettingItem; net: NetStatus | null }) {
+  if (!net || item.key !== 'net.domain') return null
+  // 以前存的域名不是 .local 结尾（那时还允许），服务器没用它
+  if (net.domain !== item.value)
+    return (
+      <span className="block text-caption text-danger">
+        「{String(item.value)}」不是 .local 结尾，现在用的是 {net.domain}，请修改或恢复默认
+      </span>
+    )
+  return (
+    <span className="block text-caption text-muted">
+      打开{' '}
+      <a href={net.url} target="_blank" rel="noreferrer" className="font-mono text-accent hover:underline">
+        {net.url}
+      </a>
+    </span>
   )
 }
 
@@ -126,5 +170,6 @@ function SettingValue({ item }: { item: SettingItem }) {
       </span>
     )
   }
+  if (item.kind === 'text') return <span className="font-mono text-body">{String(item.value)}</span>
   return <span className="font-mono text-body">{JSON.stringify(item.value)}</span>
 }

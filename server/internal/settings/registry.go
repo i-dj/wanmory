@@ -14,6 +14,7 @@ type Kind string
 const (
 	KindPath   Kind = "path"   // 服务器上的目录，弹出目录选择框
 	KindChoice Kind = "choice" // 几个选项里选一个
+	KindText   Kind = "text"   // 一行文字（例如访问域名），Validate 检查格式
 )
 
 type Choice struct {

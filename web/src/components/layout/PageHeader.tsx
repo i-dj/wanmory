@@ -7,7 +7,7 @@ import Tooltip from '@/components/ui/Tooltip'
 // PageHeader 是每一页顶上那一块（图库、相册、人物、足迹、连拍整理、设置都用它），各页高度、位置一样，切换页面时不跳：
 //   固定栏（68px 高，滚动时停在顶上，半透明磨砂，底下一条细线）：左边搜索框（center，不给时是全局搜索，给 false 时没有），
 //     右边按钮（right，例如日历、排序那一组和「幻灯片」）；
-//   下面是标题块（跟着页面滚走）：宋体大标题，后面可以跟 titleAction（例如「显示全部」），下一行是说明（subtitle，
+//   下面是标题块（跟着页面滚走）：粗体大标题，后面可以跟 titleAction（例如「显示全部」），下一行是说明（subtitle，
 //     例如照片数量，没有时也占着），右边是 aside（例如「已选 3 项」）。
 // hero 代替标题块，例如人物页的头像和名字；hideTitle 时标题只留给读屏（写在页面别处，例如相册顶上的大图），有 aside 时那一行还在。
 // ref 指向固定栏：照片网格据此算被挡住的高度
@@ -38,7 +38,7 @@ export default function PageHeader({
     <>
       <header
         ref={ref}
-        className="glass-bar sticky top-13 z-35 -mx-4 border-b border-line/70 px-4 md:top-0 md:-mx-8 md:px-8"
+        className="glass-bar sticky top-13 z-35 -mx-4 border-b border-divider px-4 md:top-0 md:-mx-8 md:px-8"
       >
         <div className="flex h-17 items-center gap-4">
           {leading}
@@ -57,7 +57,7 @@ export default function PageHeader({
           <div className={cx('min-w-0 flex-1', hideTitle && 'sr-only')}>
             {/* 标题太长（搜索的条件）时截断 */}
             <div className="flex h-11 min-w-0 items-center gap-3">
-              <h1 className="truncate font-serif text-[30px] leading-tight font-bold md:text-[36px]">{title}</h1>
+              <h1 className="truncate text-[28px] leading-tight font-bold tracking-tight md:text-[32px]">{title}</h1>
               {titleAction}
             </div>
             <p className="mt-1.5 h-5 truncate text-body text-muted">{subtitle || ' '}</p>

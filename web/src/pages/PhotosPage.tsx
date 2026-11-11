@@ -9,6 +9,7 @@ import DropOverlay from '@/components/photos/DropOverlay'
 import BatchEditDialog from '@/components/photos/BatchEditDialog'
 import { DEFAULT_SORT, FilterMenu, type SortBy, type SortChoice, SortMenu } from '@/components/photos/ViewMenus'
 import { AreaFootprint } from '@/components/photos/FootprintMap'
+import HighlightsCarousel from '@/components/photos/HighlightsCarousel'
 import MemoriesStrip from '@/components/photos/MemoriesStrip'
 import PhotoGrid, { type GridHandle, type VisibleRange } from '@/components/photos/PhotoGrid'
 import PhotoInfoCard from '@/components/photos/PhotoInfoCard'
@@ -49,6 +50,7 @@ import {
   type AssetSummary,
   downloadAssets,
   type Filter,
+  highlights,
   type MediaKind,
   removeFromAlbum,
   isSynced,
@@ -234,6 +236,7 @@ export default function PhotosPage({
     uploadRef.current = addFiles
   }, [uploadRef, addFiles])
   const [viewing, setViewing] = useState<string | null>(null) // 大图查看器是从哪张打开的
+  const [viewerList, setViewerList] = useState<Asset[] | null>(null) // 从精选轮播打开时只在精选里前后翻，不然是网格里的照片
   const viewerCurrent = useRef<string | null>(null) // 查看器里现在看的是哪张
   const setViewerCurrent = useCallback((id: string) => {
     viewerCurrent.current = id
@@ -385,8 +388,9 @@ export default function PhotosPage({
 
   // 大图查看器：按网格里的顺序前后翻；关闭时停在的那张要是不在窗口里，网格滚过去
   const ordered = useMemo(() => sections.flatMap((s) => s.assets), [sections])
-  const openViewer = useCallback((asset: Asset) => {
+  const openViewer = useCallback((asset: Asset, list: Asset[] | null = null) => {
     viewerCurrent.current = asset.id
+    setViewerList(list)
     setViewing(asset.id)
   }, [])
   const closeViewer = useCallback(
@@ -550,7 +554,20 @@ export default function PhotosPage({
         </SelectionBar>
       )}
       {view.path === LIBRARY.path && !picking && !range.value && (
-        <MemoriesStrip navigate={navigate} filter={{ kinds: filter.kinds, uploaders: filter.uploaders }} />
+        <>
+          <HighlightsCarousel
+            filter={{ kinds: filter.kinds, uploaders: filter.uploaders }}
+            onOpen={(list, i) => openViewer(list[i], list)}
+            onPlay={() => {
+              unlockAudio() // 必须在这次点击里同步解锁声音，见 PhotoViewer
+              highlights({ kinds: filter.kinds, uploaders: filter.uploaders }, 100, true).then(
+                (list) => list.length > 0 && setSlideshow({ only: list, start: 0 }),
+                (e) => showError('没有读到精选照片', e),
+              )
+            }}
+          />
+          <MemoriesStrip navigate={navigate} filter={{ kinds: filter.kinds, uploaders: filter.uploaders }} />
+        </>
       )}
       {album && heroAsset && (
         <AlbumHero album={album} asset={heroAsset} summary={status.summary ? pageSubtitle(view, status.summary) : ''} />
@@ -581,7 +598,9 @@ export default function PhotosPage({
         selected={selection.selected}
         onVisibleChange={setVisible}
         // 给相册挑照片时单击是选上 / 取消，不打开大图
-        onOpen={picking ? (asset) => selection.click(asset, { toggle: true, range: false }) : openViewer}
+        onOpen={
+          picking ? (asset) => selection.click(asset, { toggle: true, range: false }) : (asset) => openViewer(asset)
+        }
         onInfo={setInfo}
         onChanged={onChanged}
         onSelect={guest ? undefined : selection.click}
@@ -642,10 +661,10 @@ export default function PhotosPage({
         )}
       {viewing && (
         <PhotoViewer
-          assets={ordered}
+          assets={viewerList ?? ordered}
           startId={viewing}
-          total={status.summary ? status.summary.photos + status.summary.videos : null}
-          onLoadMore={loadViewerMore}
+          total={viewerList ? viewerList.length : status.summary ? status.summary.photos + status.summary.videos : null}
+          onLoadMore={viewerList ? () => {} : loadViewerMore}
           albums={albums}
           onChanged={onChanged}
           onOpenAlbum={(target) => {

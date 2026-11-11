@@ -50,7 +50,9 @@ export default function AlbumHero({
               </>
             )}
           </p>
-          <h2 className="mt-1 truncate font-serif text-[28px] leading-tight font-bold md:text-[36px]">{album.name}</h2>
+          <h2 className="mt-1 truncate text-[28px] leading-tight font-bold tracking-tight md:text-[34px]">
+            {album.name}
+          </h2>
           <p className="mt-1 truncate text-body text-white/85 tabular-nums">{summary || ' '}</p>
         </div>
       </div>

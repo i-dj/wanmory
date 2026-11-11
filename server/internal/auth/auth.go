@@ -43,15 +43,19 @@ var (
 
 // User 是一个家庭成员
 type User struct {
-	ID        uuid.UUID  `json:"id"`
-	Name      string     `json:"name"`
-	IsAdmin   bool       `json:"is_admin"`
-	Avatar    *uuid.UUID `json:"avatar"` // 头像用的照片；没选是 null，网页显示名字的第一个字
-	CreatedAt time.Time  `json:"created_at"`
+	ID      uuid.UUID  `json:"id"`
+	Name    string     `json:"name"`
+	IsAdmin bool       `json:"is_admin"`
+	Avatar  *uuid.UUID `json:"avatar"` // 头像用的照片；没选是 null，网页显示名字的第一个字
+	// AvatarStyle 是另外两种头像：'cartoon:fox' 卡通头像，'file:<时间>' 上传裁好的图片（GET /api/users/{id}/avatar）。
+	// 不为空时比 Avatar 优先
+	AvatarStyle string    `json:"avatar_style"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type Service struct {
-	db *sql.DB
+	db        *sql.DB
+	avatarDir string // 上传的头像存在哪（SetAvatarDir），见 avatar.go
 	// guest 是访客模式开着没有（设置里的 auth.guest）：开着时没登录的人也能只读浏览，见 Middleware
 	guest func(ctx context.Context) bool
 }
@@ -119,8 +123,8 @@ func (s *Service) Login(ctx context.Context, name, password string, ttl time.Dur
 	var u User
 	var hash string
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, is_admin, avatar_id, created_at, password_hash FROM users WHERE lower(name) = lower($1)`,
-		strings.TrimSpace(name)).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.CreatedAt, &hash)
+		SELECT id, name, is_admin, avatar_id, avatar_style, created_at, password_hash FROM users WHERE lower(name) = lower($1)`,
+		strings.TrimSpace(name)).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt, &hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		// 名字不存在也照样算一次哈希，回答所用的时间看不出名字有没有
 		_, _ = hashPassword(password)
@@ -159,8 +163,8 @@ func (s *Service) UserBySession(ctx context.Context, token string) (*User, error
 	sum := sha256.Sum256([]byte(token))
 	var u User
 	err := s.db.QueryRowContext(ctx, `
-		SELECT u.id, u.name, u.is_admin, u.avatar_id, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id
-		WHERE s.token_hash = $1 AND s.expires_at > now()`, sum[:]).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.CreatedAt)
+		SELECT u.id, u.name, u.is_admin, u.avatar_id, u.avatar_style, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id
+		WHERE s.token_hash = $1 AND s.expires_at > now()`, sum[:]).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -179,7 +183,7 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 
 // Users 是所有家庭成员，管理员在前，再按加入的先后
 func (s *Service) Users(ctx context.Context) ([]User, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, name, is_admin, avatar_id, created_at FROM users ORDER BY is_admin DESC, created_at`)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, name, is_admin, avatar_id, avatar_style, created_at FROM users ORDER BY is_admin DESC, created_at`)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +191,7 @@ func (s *Service) Users(ctx context.Context) ([]User, error) {
 	list := []User{}
 	for rows.Next() {
 		var u User
-		if err := rows.Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		list = append(list, u)
@@ -196,7 +200,8 @@ func (s *Service) Users(ctx context.Context) ([]User, error) {
 }
 
 // AddUser 管理员加一个家庭成员
-func (s *Service) AddUser(ctx context.Context, name, password string) (*User, error) {
+// admin 时新成员也是管理员（能管成员、改系统设置）
+func (s *Service) AddUser(ctx context.Context, name, password string, admin bool) (*User, error) {
 	name, err := checkUser(name, password)
 	if err != nil {
 		return nil, err
@@ -205,9 +210,9 @@ func (s *Service) AddUser(ctx context.Context, name, password string) (*User, er
 	if err != nil {
 		return nil, err
 	}
-	u := &User{Name: name}
+	u := &User{Name: name, IsAdmin: admin}
 	err = s.db.QueryRowContext(ctx, `
-		INSERT INTO users (name, password_hash) VALUES ($1, $2) RETURNING id, created_at`, name, hash).
+		INSERT INTO users (name, password_hash, is_admin) VALUES ($1, $2, $3) RETURNING id, created_at`, name, hash, admin).
 		Scan(&u.ID, &u.CreatedAt)
 	if err != nil && strings.Contains(err.Error(), "users_name_idx") {
 		return nil, ErrNameTaken
@@ -280,7 +285,10 @@ func (s *Service) SetAvatar(ctx context.Context, id uuid.UUID, asset *uuid.UUID)
 			return ErrNotFound
 		}
 	}
-	_, err := s.db.ExecContext(ctx, `UPDATE users SET avatar_id = $2 WHERE id = $1`, id, asset)
+	_, err := s.db.ExecContext(ctx, `UPDATE users SET avatar_id = $2, avatar_style = '' WHERE id = $1`, id, asset)
+	if err == nil {
+		s.removeAvatarFile(id)
+	}
 	return err
 }
 

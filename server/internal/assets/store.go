@@ -19,8 +19,10 @@ import (
 )
 
 type Store struct {
-	db       *sql.DB
-	searcher Searcher // 按意思搜照片（CLIP），没有设置时搜索词不起作用
+	db         *sql.DB
+	searcher   Searcher  // 按意思搜照片（CLIP），没有设置时搜索词不起作用
+	aesthetic  Aesthetic // 精选轮播排先后用的「好照片」方向（CLIP），见 highlights.go
+	libraryDir string    // 照片目录，永久删除时认得出只读挂载里删不掉的原文件
 }
 
 // Searcher 按意思搜照片，返回搜到的照片 ID（见 clip 包）
@@ -725,9 +727,29 @@ type Patch struct {
 // ErrNotYours 是要隐藏别人传的照片：隐藏的照片别人都看不到，只能隐藏自己传的
 var ErrNotYours = errors.New("只能隐藏自己上传的照片")
 
+// ErrNotYourDelete 是成员要删除（或恢复、永久删除）别人传的照片：只有管理员能删任何人的
+var ErrNotYourDelete = errors.New("只能删除自己上传的内容。如需删除，请联系管理员。")
+
+// othersCount 是 ids 里有几张不是 user 传的
+func (s *Store) othersCount(ctx context.Context, user uuid.UUID, ids []uuid.UUID) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT count(*) FROM assets WHERE id = ANY($1::uuid[]) AND uploaded_by IS DISTINCT FROM $2`,
+		uuidStrings(ids), user).Scan(&n)
+	return n, err
+}
+
 // UpdateMany 批量修改照片，返回实际改到的张数。删除过的照片只能恢复，不能改别的。
-// user 是谁在改：隐藏只能隐藏他自己传的（有别人的就整批不改，返回 ErrNotYours），取消隐藏只改他自己隐藏的
-func (s *Store) UpdateMany(ctx context.Context, user uuid.UUID, ids []uuid.UUID, p Patch) (int64, error) {
+// user 是谁在改：隐藏只能隐藏他自己传的（有别人的就整批不改，返回 ErrNotYours），取消隐藏只改他自己隐藏的；
+// 删除、恢复也只能是自己传的，管理员（admin）可以删任何人的（有别人的就整批不改，返回 ErrNotYourDelete）
+func (s *Store) UpdateMany(ctx context.Context, user uuid.UUID, admin bool, ids []uuid.UUID, p Patch) (int64, error) {
+	if p.Deleted != nil && !admin {
+		if n, err := s.othersCount(ctx, user, ids); err != nil {
+			return 0, err
+		} else if n > 0 {
+			return 0, ErrNotYourDelete
+		}
+	}
 	if p.Hidden != nil && *p.Hidden {
 		var others int
 		if err := s.db.QueryRowContext(ctx, `

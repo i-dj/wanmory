@@ -10,6 +10,7 @@ import (
 	"github.com/wanmory/wanmory/server/internal/assets"
 	"github.com/wanmory/wanmory/server/internal/auth"
 	"github.com/wanmory/wanmory/server/internal/config"
+	"github.com/wanmory/wanmory/server/internal/netaccess"
 	"github.com/wanmory/wanmory/server/internal/settings"
 	"github.com/wanmory/wanmory/server/internal/storage"
 )
@@ -77,6 +78,25 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 			{Value: "auto", Label: "自动", Hint: "中国大陆用高德，其他地区用 OpenStreetMap"},
 			{Value: "amap", Label: "高德", Hint: "全部用高德，人在国内、OpenStreetMap 打不开时选它"},
 			{Value: "osm", Label: "OpenStreetMap", Hint: "全部用 OpenStreetMap，海外地图更详细"},
+		},
+	})
+
+	r.Register(settings.Def{
+		Key:         netaccess.SettingDomain,
+		Label:       "访问域名",
+		Description: "在局域网里访问相册的网址，必须以 .local 结尾，也可以通过 IP 来访问。",
+		Kind:        settings.KindText,
+		Default:     netaccess.InitialDomain(),
+		Validate: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var v string
+			if err := json.Unmarshal(raw, &v); err != nil {
+				return nil, fmt.Errorf("%w：应该是域名", settings.ErrInvalid)
+			}
+			d, err := netaccess.CheckDomain(v)
+			if err != nil {
+				return nil, fmt.Errorf("%w：%v", settings.ErrInvalid, err)
+			}
+			return d, nil
 		},
 	})
 

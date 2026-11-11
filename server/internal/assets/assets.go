@@ -14,6 +14,7 @@ import (
 const SettingUploadDir = "storage.upload_dir"
 
 type Service struct {
+	libraryDir string // 照片目录（挂载进来的 NAS、移动硬盘），见 library.go
 	db         *sql.DB
 	store      *Store
 	exif       *exiftool.Pool
@@ -30,6 +31,7 @@ func NewExifPool(size int) *exiftool.Pool {
 	return exiftool.NewPool(size, "-json", "-n", "-api", "QuickTimeUTC", "-api", "LargeFileSupport=1")
 }
 
+// （照片目录见 library.go 的 SetLibraryDir）
 func NewService(db *sql.DB, exif *exiftool.Pool, uploadDir func(ctx context.Context) (string, error), thumbsDir string) *Service {
 	return &Service{db: db, store: NewStore(db), exif: exif, uploadDir: uploadDir, thumbsDir: thumbsDir,
 		hiddenKick: make(chan struct{}, 1)}
@@ -43,6 +45,8 @@ func (s *Service) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/assets/summary", s.summary)
 	mux.HandleFunc("GET /api/assets/dates", s.dates)
 	mux.HandleFunc("GET /api/assets/points", s.points)
+	mux.HandleFunc("GET /api/assets/highlights", s.highlights)
+	mux.HandleFunc("POST /api/assets/highlights/skip", s.skipHighlight)
 	mux.HandleFunc("GET /api/bursts", s.bursts)
 	mux.HandleFunc("GET /api/search/options", s.searchOptions)
 	mux.HandleFunc("POST /api/bursts/review", s.reviewBursts)
@@ -65,6 +69,7 @@ func (s *Service) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/assets/{id}/details", s.details)
 	mux.HandleFunc("GET /api/assets/{id}/thumbnail", s.serveFile(fileThumbnail))
 	mux.HandleFunc("GET /api/assets/{id}/preview", s.serveFile(filePreview))
+	mux.HandleFunc("GET /api/assets/{id}/large", s.serveLarge)
 	mux.HandleFunc("GET /api/assets/{id}/original", s.serveFile(fileOriginal))
 }
 

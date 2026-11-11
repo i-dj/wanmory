@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,7 +25,10 @@ type PurgeResult struct {
 	Assets  int
 	Removed int
 	Missing int
+	Kept    int // 照片目录（只读挂载）里删不掉、留着的原文件
 	Failed  []string
+
+	store *Store // 用来认照片目录里的文件（PurgeDeleted 时有）
 }
 
 func Summarize(ctx context.Context, db *sql.DB) (PurgeSummary, error) {
@@ -37,6 +41,7 @@ func Summarize(ctx context.Context, db *sql.DB) (PurgeSummary, error) {
 
 // PurgeAll 删除所有照片记录、任务和向量（设置保留），再删除这些照片的原始文件、缩略图和预览图。
 // 只删除数据库里记录过的文件，不会整个删除上传目录：上传目录可能是用户自己的文件夹。
+// 照片目录（挂载进来的 NAS、移动硬盘）里的原文件不删，下次扫描会重新导入
 func PurgeAll(ctx context.Context, db *sql.DB) (PurgeResult, error) {
 	var res PurgeResult
 	files, err := purgeRows(ctx, db, &res)
@@ -61,6 +66,8 @@ func removeFiles(files []string, res *PurgeResult) {
 			dirs[filepath.Dir(f)] = true
 		case errors.Is(err, fs.ErrNotExist):
 			res.Missing++
+		case res.store != nil && res.store.inLibraryReadOnly(f, err):
+			res.Kept++ // 只读挂载的照片目录里的原文件：留着，相册里不再显示
 		default:
 			res.Failed = append(res.Failed, f)
 		}
@@ -74,7 +81,8 @@ func removeFiles(files []string, res *PurgeResult) {
 
 // PurgeDeleted 永久删除「最近删除」里的照片：ids 为空时是全部，不为空时只删这些（不在「最近删除」里的跳过）。
 // 先在一个事务里删掉数据库记录（相册里的、任务、语义向量跟着级联删除），提交后再删原始文件、缩略图和预览图。
-func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID) (PurgeResult, error) {
+// owner 不为空时只删这个人传的（成员清空自己的「最近删除」）
+func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID, owner *uuid.UUID) (PurgeResult, error) {
 	var res PurgeResult
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -84,8 +92,12 @@ func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID) (PurgeResult,
 	query := `DELETE FROM assets WHERE deleted_at IS NOT NULL`
 	args := []any{}
 	if len(ids) > 0 {
-		query += ` AND id = ANY($1::uuid[])`
 		args = append(args, uuidStrings(ids))
+		query += fmt.Sprintf(` AND id = ANY($%d::uuid[])`, len(args))
+	}
+	if owner != nil {
+		args = append(args, *owner)
+		query += fmt.Sprintf(` AND uploaded_by = $%d`, len(args))
 	}
 	rows, err := tx.QueryContext(ctx, query+` RETURNING original_path, thumbnail_path, preview_path`, args...)
 	if err != nil {
@@ -106,6 +118,7 @@ func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID) (PurgeResult,
 				files = append(files, *p)
 			}
 		}
+		files = withLarge(files, preview)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
@@ -114,6 +127,7 @@ func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID) (PurgeResult,
 	if err := tx.Commit(); err != nil {
 		return res, err
 	}
+	res.store = s
 	removeFiles(files, &res)
 	return res, nil
 }
@@ -130,7 +144,10 @@ func purgeRows(ctx context.Context, db *sql.DB, res *PurgeResult) ([]string, err
 	if _, err := tx.ExecContext(ctx, `LOCK TABLE assets IN EXCLUSIVE MODE`); err != nil {
 		return nil, err
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT original_path, thumbnail_path, preview_path FROM assets`)
+	rows, err := tx.QueryContext(ctx, `
+		SELECT original_path, thumbnail_path, preview_path,
+		       EXISTS (SELECT 1 FROM library_files l WHERE l.path = original_path)
+		FROM assets`)
 	if err != nil {
 		return nil, err
 	}
@@ -138,17 +155,21 @@ func purgeRows(ctx context.Context, db *sql.DB, res *PurgeResult) ([]string, err
 	for rows.Next() {
 		var orig string
 		var thumb, preview *string
-		if err := rows.Scan(&orig, &thumb, &preview); err != nil {
+		var inLibrary bool
+		if err := rows.Scan(&orig, &thumb, &preview, &inLibrary); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		res.Assets++
-		files = append(files, orig)
+		if !inLibrary {
+			files = append(files, orig)
+		}
 		for _, p := range []*string{thumb, preview} {
 			if p != nil {
 				files = append(files, *p)
 			}
 		}
+		files = withLarge(files, preview)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {

@@ -104,9 +104,14 @@ func imageDerivatives(ctx context.Context, a *Asset, thumb, preview string) erro
 	return nil
 }
 
-// plainJPEGDerivatives 强制用普通 JPEG 解码器读原图，存成 libvips 自己的 .v 临时文件
-// （不压缩、保留方向和色彩配置等元数据），再从它生成缩略图和预览图。
+// plainJPEGDerivatives 强制用普通 JPEG 解码器读原图，再从它生成缩略图和预览图。
 func plainJPEGDerivatives(ctx context.Context, src, thumb, preview string) error {
+	return withPlainJPEG(ctx, src, func(plain string) error { return makeDerivatives(ctx, plain, thumb, preview) })
+}
+
+// withPlainJPEG 用普通 JPEG 解码器读原图，存成 libvips 自己的 .v 临时文件（不压缩、保留方向和色彩配置等元数据），
+// 交给 use 处理，用完删掉。iPhone 带 HDR 增益图的 JPEG 直接交给 libvips 会失败，见 imageDerivatives
+func withPlainJPEG(ctx context.Context, src string, use func(plain string) error) error {
 	f, err := os.CreateTemp("", "wanmory-plain-*.v")
 	if err != nil {
 		return err
@@ -117,7 +122,7 @@ func plainJPEGDerivatives(ctx context.Context, src, thumb, preview string) error
 	if out, err := exec.CommandContext(ctx, "vips", "jpegload", src, f.Name()).CombinedOutput(); err != nil {
 		return fmt.Errorf("vips jpegload: %v: %s", err, strings.TrimSpace(string(out)))
 	}
-	return makeDerivatives(ctx, f.Name(), thumb, preview)
+	return use(f.Name())
 }
 
 // oneLine 把多行的错误信息压成一行，方便写进日志。

@@ -328,14 +328,14 @@ function firstRowBelow(rows: Row[], y: number, from = 0): number {
   return lo
 }
 
-// SectionTitle 是分组标题：日期用宋体大字，后面的星期（或年份）灰色小字，例如「11月8日 周日」
+// SectionTitle 是分组标题：日期用粗体大字，后面的星期（或年份）灰色小字，例如「11月8日 周日」
 function SectionTitle({ title }: { title: string }) {
   const space = title.lastIndexOf(' ')
   const main = space > 0 ? title.slice(0, space) : title
   const rest = space > 0 ? title.slice(space + 1) : ''
   return (
     <span className="flex items-baseline gap-2">
-      <span className="font-serif text-[22px] leading-tight font-bold">{main}</span>
+      <span className="text-[20px] leading-tight font-bold tracking-tight">{main}</span>
       {rest && <span className="text-body text-muted">{rest}</span>}
     </span>
   )

@@ -32,7 +32,7 @@ const IDLE_MS = 15000
 
 // TaskIndicator 是菜单顶上的任务图标：后台有任务没做完时出现（转圈；AI 暂停时是暂停图标），
 // 点开看每类任务做到哪了、AI 为什么暂停。没有任务时不显示
-export default function TaskIndicator() {
+export default function TaskIndicator({ side = 'bottom' }: { side?: 'bottom' | 'right' }) {
   const [jobs, setJobs] = useState<ActiveJobs[]>([])
   const [perf, setPerf] = useState<PerfStatus | null>(null)
   const [open, setOpen] = useState(false)
@@ -96,9 +96,9 @@ export default function TaskIndicator() {
   const Icon = done ? CircleCheck : paused ? CirclePause : LoaderCircle
 
   return (
-    <div className="ml-auto">
+    <div>
       <Tooltip
-        side="bottom"
+        side={side}
         label={open ? '' : paused ? `AI 暂停：${perf.ai_paused}` : `后台任务：还剩 ${remaining.toLocaleString()} 张`}
       >
         <button

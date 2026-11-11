@@ -25,6 +25,7 @@ export interface Asset {
   created_at: string
   has_thumbnail: boolean
   beauty: number | null // 好不好看（0–1，CLIP 算的），还没算过是 null
+  subject?: { x: number; y: number; w: number; h: number } // 人脸都在哪个框里（占宽高的比例），只有精选轮播的照片有
   sort_time: string // 时间线上的位置：拍摄时间，没有就用文件修改时间
   favorite: boolean
   favorited_at: string | null // 什么时候收藏的，没收藏是 null
@@ -211,6 +212,13 @@ export interface DateCount {
   count: number
 }
 
+// highlights 是图库顶上轮播的精选照片：最好看的几张横图（CLIP 打的 beauty，收藏、星级加分），同一天只取一张
+// slideshow 时是「播放精选」用的：竖图也要，按拍摄时间排（最多 100 张）
+export const highlights = (filter: Filter, limit = 8, slideshow = false) =>
+  getJSON<Asset[]>(`/api/assets/highlights?limit=${limit}${slideshow ? '&for=slideshow' : ''}&${filterQuery(filter)}`)
+// skipHighlight：这张以后不放进精选轮播
+export const skipHighlight = (id: string) => send<void>('POST', '/api/assets/highlights/skip', { id })
+
 export const assetDates = (filter: Filter, unit: DateUnit) =>
   getJSON<DateCount[]>(
     `/api/assets/dates?unit=${unit}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}&${filterQuery(filter)}`,
@@ -246,6 +254,8 @@ export interface AssetStats {
 export const assetStats = () => getJSON<AssetStats>('/api/assets/stats')
 export const thumbnailUrl = (a: Asset) => `/api/assets/${a.id}/thumbnail`
 export const previewUrl = (a: Asset) => `/api/assets/${a.id}/preview`
+// largeUrl 是 2560 像素的大图，只给精选轮播用（第一次要时服务器才生成）
+export const largeUrl = (a: Asset) => `/api/assets/${a.id}/large`
 
 const UPLOAD_CHUNK_SIZE = 16 * 1024 * 1024 // 每片 16 MB，过反向代理（例如有 100 MB 上限的）也没问题
 const RETRY_DELAYS = [0, 1000, 3000, 5000, 10000, 20000, 30000] // 毫秒；全部用完才算失败
@@ -359,7 +369,7 @@ export interface SettingItem {
   key: string
   label: string
   description: string
-  kind: 'path' | 'choice'
+  kind: 'path' | 'choice' | 'text'
   choices?: Choice[]
   value: unknown
   default: unknown
@@ -393,6 +403,8 @@ export interface User {
   name: string
   is_admin: boolean
   avatar: string | null // 头像用的照片 ID；没选是 null，显示名字的第一个字
+  // 另外两种头像，比 avatar 优先：'cartoon:fox' 卡通头像，'file:<时间>' 上传裁好的图片；空字符串是没有
+  avatar_style?: string
   created_at: string
 }
 // guest：访客模式开着（没登录也能只读浏览共享的照片，见 server/internal/auth 的 guestPaths）
@@ -412,7 +424,20 @@ export interface Device {
   ip: string // 最近一次从哪个 IP 用的
   last_seen: string | null // 最近一次用的时间
   current: boolean // 就是现在这台
+  location: string // IP 大概在哪（「广东 深圳 · 电信」「局域网」），查不到是空的
 }
+
+// LoginEvent 是系统设置里登录日志的一条（只有管理员能看），最近的在前
+export interface LoginEvent {
+  time: string
+  user_id: string | null // 名字对得上的成员；乱填的名字是 null
+  name: string
+  ok: boolean // 成功；false 是密码不对（或者没有这个人）
+  ip: string
+  user_agent: string
+  location: string
+}
+export const loginEvents = (limit = 200) => getJSON<LoginEvent[]>(`/api/auth/logins?limit=${limit}`)
 export interface Account {
   user: User
   uploaded: number
@@ -424,13 +449,36 @@ export const renameMe = (name: string) => send<{ user: User }>('PUT', '/api/auth
 export const logoutOthers = () => send<void>('DELETE', '/api/auth/sessions')
 export const setAvatar = (assetId: string | null) =>
   send<{ user: User }>('PUT', '/api/auth/avatar', { asset_id: assetId })
+export const setCartoonAvatar = (cartoon: string) => send<{ user: User }>('PUT', '/api/auth/avatar', { cartoon })
+// uploadAvatar 传裁好的头像图片（网页上裁成正方形、缩到 512 像素的 JPEG）
+export async function uploadAvatar(image: Blob): Promise<{ user: User }> {
+  const res = await fetch('/api/auth/avatar/image', {
+    method: 'PUT',
+    body: image,
+    headers: { 'Content-Type': image.type },
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `上传失败（${res.status}）`)
+  return res.json()
+}
+// avatarFileUrl 是上传的头像图片的地址（带上传时间，换了头像地址就变）
+export const avatarFileUrl = (userId: string, style: string) =>
+  `/api/users/${userId}/avatar?v=${encodeURIComponent(style.slice('file:'.length))}`
 export const listUsers = () => getJSON<User[]>('/api/users')
-export const addUser = (name: string, password: string) => send<User>('POST', '/api/users', { name, password })
+// admin 时新成员也是管理员（能管成员、改系统设置）
+export const addUser = (name: string, password: string, admin = false) =>
+  send<User>('POST', '/api/users', { name, password, admin })
 export const deleteUser = (id: string) => send<void>('DELETE', `/api/users/${id}`)
 export const resetPassword = (id: string, password: string) =>
   send<void>('PUT', `/api/users/${id}/password`, { password })
 
 export const listSettings = () => getJSON<SettingItem[]>('/api/settings')
+
+// NetStatus 是访问域名现在的状态（设置页显示网址用）
+export interface NetStatus {
+  domain: string
+  url: string // 浏览器里打开的网址，例如 http://wanmory.local:8080
+}
+export const netStatus = () => getJSON<NetStatus>('/api/net')
 export const saveSetting = (key: string, value: unknown) =>
   send<unknown>('PUT', `/api/settings/${encodeURIComponent(key)}`, value)
 export const resetSetting = (key: string) => send<void>('DELETE', `/api/settings/${encodeURIComponent(key)}`)

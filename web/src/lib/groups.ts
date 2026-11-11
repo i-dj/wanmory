@@ -27,7 +27,7 @@ export function groupByDay(assets: Asset[], dayOf: (a: Asset) => string, now = n
 const MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
 
 // groupByMonth 把按拍摄时间排好的照片（新到旧、旧到新都行）按月分组，标题是「十一月 2026」
-// （网格里月份用宋体大字、年份灰色小字，见 PhotoGrid 的 SectionTitle）。用拍摄地的钟表时间，没有就用时间线上的时间
+// （网格里月份用粗体大字、年份灰色小字，见 PhotoGrid 的 SectionTitle）。用拍摄地的钟表时间，没有就用时间线上的时间
 export function groupByMonth(assets: Asset[]): Section[] {
   const sections: Section[] = []
   for (const asset of assets) {

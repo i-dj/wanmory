@@ -5,9 +5,11 @@ go 1.26.0
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261110072001-92e6a788d17c
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/tus/tusd/v2 v2.10.1
 	golang.org/x/exp v0.0.0-20261011100332-faecfb24eb49
+	golang.org/x/net v0.62.0
 	golang.org/x/term v0.47.0
 )
 

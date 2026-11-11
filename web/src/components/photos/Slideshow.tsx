@@ -14,11 +14,12 @@ import {
   VolumeX,
   X,
 } from 'lucide-react'
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Tooltip from '@/components/ui/Tooltip'
 import { useIdleChrome } from '@/hooks/useIdleChrome'
 import { usePersisted } from '@/hooks/usePersisted'
-import { type Asset, originalUrl, previewUrl } from '@/lib/api'
+import { type Asset, largeUrl, originalUrl, previewUrl } from '@/lib/api'
+import { viewerDate } from '@/lib/format'
 import { cx } from '@/lib/cx'
 import { type BackdropMode, BACKDROP_LABELS, fillsScreen, paintFrame } from '@/lib/slideBackdrop'
 import { canUseWebGL, GL_EFFECT_NAMES, GL_EFFECTS, type GLEffect, GLSlideshow } from '@/lib/glSlideshow'
@@ -147,6 +148,7 @@ interface Layer {
   index: number
   effect: string // 进来时用的效果：WebGL 转场或 CSS 转场的名字
   leaving: Effect | null // 被下一张替换时，按下一张的效果离开（只有 CSS 转场用）
+  image?: HTMLImageElement // 加载好的画面：几张竖图拼在一起的那一张；没有时 Slide、GLStage 自己按 index 加载
 }
 
 // Slideshow 是全屏幻灯片，样子照着 macOS「照片」：从当前照片开始自动播放（视频会带声音放完，那时背景音乐淡出），
@@ -177,9 +179,18 @@ export default function Slideshow({
   const [playing, setPlaying] = useState(true)
   const [optionsOpen, setOptionsOpen] = useState(false)
   const running = playing && !optionsOpen // 开着选项时先停住
-  // 照片和视频都放（音频文件不放）；还没生成预览图的跳过
-  const playable = useCallback((i: number) => assets[i]?.type !== 'audio' && !!assets[i]?.has_thumbnail, [assets])
-  const first = playable(startIndex) ? startIndex : findNext(startIndex, assets.length, playable)
+  // 几张挨着的竖图拼成一页并排放（像苹果「照片」的回忆）：groups 是从哪张开始、拼哪几张
+  const groups = useMemo(() => portraitGroups(assets), [assets])
+  // 照片和视频都放（音频文件不放）；还没生成预览图的跳过；拼进前一页的竖图不单独放
+  const playable = useCallback(
+    (i: number) => assets[i]?.type !== 'audio' && !!assets[i]?.has_thumbnail && !groups.inside.has(i),
+    [assets, groups],
+  )
+  const first = playable(startIndex)
+    ? startIndex
+    : groups.inside.has(startIndex)
+      ? groups.startOf(startIndex)
+      : findNext(startIndex, assets.length, playable)
   const [layers, setLayers] = useState<Layer[]>([{ key: 0, index: first, effect: 'dissolve', leaving: null }])
   const current = layers[layers.length - 1]
   const index = current.index
@@ -202,21 +213,44 @@ export default function Slideshow({
     async (i: number) => {
       if (busy.current || i < 0) return
       busy.current = true
-      const img = new Image()
-      img.src = previewUrl(assets[i])
-      await img.decode().catch(() => {})
+      const members = groups.at.get(i)
+      let img: HTMLImageElement
+      if (members) img = await composeGroup(members.map((k) => assets[k]))
+      else {
+        img = new Image()
+        img.src = slideUrl(assets[i])
+        await img.decode().catch(() => {})
+      }
       busy.current = false
+      // 顺手把下一张的清晰大图要过来（第一次看时服务器要现生成），播到它时不用等
+      const after = assets[(i + 1) % assets.length]
+      if (after?.type === 'image') new Image().src = largeUrl(after)
       setLayers((list) => {
         const top = list[list.length - 1]
         const effect =
           effectChoice !== 'random' && names.includes(effectChoice) ? effectChoice : pick(names, top.effect)
-        const next = { key: top.key + 1, index: i, effect, leaving: null }
+        const next = { key: top.key + 1, index: i, effect, leaving: null, image: members ? img : undefined }
         if (gl) return [next] // WebGL 在一块画布上自己做转场，只要知道现在是哪张
         return [{ ...top, leaving: effect as Effect }, next] // 只留上一张做离开动画，更早的直接去掉
       })
     },
-    [assets, effectChoice, gl, names],
+    [assets, effectChoice, gl, names, groups],
   )
+  // 第一页就是拼起来的竖图时，拼好后换上
+  useEffect(() => {
+    const members = groups.at.get(first)
+    if (!members) return
+    let alive = true
+    void composeGroup(members.map((k) => assets[k])).then((image) => {
+      if (alive)
+        setLayers((list) => list.map((l) => (l.index === first && !l.image ? { ...l, key: l.key + 1, image } : l)))
+    })
+    return () => {
+      alive = false
+    }
+    // 只在打开时看一次第一页
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const forward = useCallback(
     () => show(findNext(index, assets.length, playable)),
     [show, index, assets.length, playable],
@@ -364,6 +398,7 @@ export default function Slideshow({
         <GLStage
           slideKey={current.key}
           asset={assets[index]}
+          image={current.image}
           effect={current.effect as GLEffect}
           hold={slideMs + GL_EFFECTS[current.effect as GLEffect]?.ms * 2 || slideMs}
           running={running}
@@ -376,6 +411,7 @@ export default function Slideshow({
           <Slide
             key={l.key}
             asset={assets[l.index]}
+            image={l.image}
             effect={l.effect as Effect}
             leaving={l.leaving}
             hold={slideMs + (EFFECTS[l.effect as Effect]?.ms ?? 1500) * 2}
@@ -408,6 +444,8 @@ export default function Slideshow({
           fade,
         )}
       />
+
+      {currentAsset && <SlideCaption asset={currentAsset} index={index} total={assets.length} className={fade} />}
 
       <div data-chrome className={cx('absolute top-4 left-4 z-20 flex items-center gap-3', fade)}>
         <Tooltip label="退出（Esc）" side="bottom">
@@ -462,7 +500,14 @@ export default function Slideshow({
         data-chrome
         className={cx('absolute bottom-5 left-1/2 z-20 w-[min(36rem,calc(100vw-20rem))] -translate-x-1/2', fade)}
       >
-        <Filmstrip assets={assets} index={index} onPick={(i) => playable(i) && void show(i)} />
+        <Filmstrip
+          assets={assets}
+          index={index}
+          onPick={(i) => {
+            const j = groups.inside.has(i) ? groups.startOf(i) : i // 点到拼在一起的竖图，放它们那一页
+            if (playable(j)) void show(j)
+          }}
+        />
       </div>
 
       <div data-chrome className={cx('absolute right-5 bottom-5 z-20 flex items-center gap-3', fade)}>
@@ -700,12 +745,14 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
 // 照片慢慢推拉。进来、离开的动画都在这里放
 function Slide({
   asset,
+  image,
   effect,
   leaving,
   hold,
   background,
 }: {
   asset: Asset
+  image?: HTMLImageElement // 已经拼好的画面（几张竖图并排），有就直接用
   effect: Effect
   leaving: Effect | null
   hold: number
@@ -722,15 +769,18 @@ function Slide({
     const scale = Math.min(devicePixelRatio, 2560 / Math.max(innerWidth, innerHeight))
     el.width = Math.round(innerWidth * scale)
     el.height = Math.round(innerHeight * scale)
-    const img = new Image()
+    const img = image ?? new Image()
     const paint = () => {
       const ctx = el.getContext('2d')
       if (ctx) paintFrame(ctx, img, el.width, el.height, background)
     }
-    img.onload = paint
-    img.src = previewUrl(asset)
-    if (img.complete) paint()
-  }, [asset, background])
+    if (image) paint()
+    else {
+      img.onload = paint
+      img.src = slideUrl(asset)
+      if (img.complete) paint()
+    }
+  }, [asset, image, background])
 
   useLayoutEffect(() => {
     const e = EFFECTS[effect] ?? EFFECTS.dissolve // WebGL 中途失败退回来时，名字可能是 WebGL 转场的
@@ -764,6 +814,7 @@ function Slide({
 function GLStage({
   slideKey,
   asset,
+  image,
   effect,
   hold,
   running,
@@ -773,6 +824,7 @@ function GLStage({
 }: {
   slideKey: number
   asset: Asset
+  image?: HTMLImageElement // 已经拼好的画面（几张竖图并排），有就直接用
   effect: GLEffect
   hold: number
   running: boolean
@@ -808,12 +860,12 @@ function GLStage({
   }, [onFail])
 
   // 换了一张：图已经在 Slideshow 里加载、解码过，这里从缓存拿，马上就有
-  const latest = useRef({ asset, effect, hold, background, still })
-  latest.current = { asset, effect, hold, background, still }
+  const latest = useRef({ asset, image, effect, hold, background, still })
+  latest.current = { asset, image, effect, hold, background, still }
   useEffect(() => {
-    const { asset, effect, hold, background, still } = latest.current
-    const img = new Image()
-    img.src = previewUrl(asset)
+    const { asset, image, effect, hold, background, still } = latest.current
+    const img = image ?? new Image()
+    if (!image) img.src = slideUrl(asset)
     let alive = true
     void img
       .decode()
@@ -960,4 +1012,122 @@ function findPrev(from: number, total: number, ok: (i: number) => boolean) {
     if (ok(i)) return i
   }
   return -1
+}
+
+// slideUrl 是幻灯片放的图：照片用 2560 像素的清晰大图（全屏放，1440 的预览图会糊），视频用预览图（第一帧）
+const slideUrl = (a: Asset) => (a.type === 'image' ? largeUrl(a) : previewUrl(a))
+
+// SlideCaption 是鼠标动一下、按钮出来时顶上正中的拍摄时间和第几张，和大图查看器顶栏中间一样
+function SlideCaption({
+  asset,
+  index,
+  total,
+  className,
+}: {
+  asset: Asset
+  index: number
+  total: number
+  className: string
+}) {
+  const { date, time } = viewerDate(asset)
+  return (
+    <div
+      className={cx('pointer-events-none absolute inset-x-0 top-4 z-20 mx-auto max-w-[50vw] text-center', className)}
+    >
+      <h2 className="truncate text-body font-semibold text-white text-shadow-sm">{date}</h2>
+      <p className="truncate text-caption text-white/75 tabular-nums text-shadow-sm">
+        {time} · 第 {(index + 1).toLocaleString()} 张，共 {total.toLocaleString()} 张
+      </p>
+    </div>
+  )
+}
+
+// ---- 竖图拼在一起 ----
+// 横着的屏幕上，一张竖图单独放两边全是空的。连续两三张竖图就拼成一页并排放，不再一张一张地放那么单调。
+// 拼两张还是三张按第一张的 ID 定（看起来随机，但同一组照片每次都一样，加载更多时不会突然变）
+
+// isPortrait 是能拼的竖图：照片（不是视频、动图），高比宽大一截
+const isPortrait = (a: Asset | undefined) =>
+  !!a &&
+  a.type === 'image' &&
+  a.mime_type !== 'image/gif' &&
+  a.has_thumbnail &&
+  !!a.width &&
+  !!a.height &&
+  a.height > a.width * 1.15
+
+function hash(s: string) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+// portraitGroups 找出要拼在一起的竖图：at 是「第一张 → 这一页的几张」，inside 是拼进前面那页、不单独放的
+function portraitGroups(assets: Asset[]) {
+  const at = new Map<number, number[]>()
+  const inside = new Set<number>()
+  const owner = new Map<number, number>()
+  const landscape = typeof window !== 'undefined' && window.innerWidth > window.innerHeight * 1.2
+  if (landscape) {
+    for (let i = 0; i < assets.length; ) {
+      if (!isPortrait(assets[i])) {
+        i++
+        continue
+      }
+      let run = 1
+      while (run < 3 && isPortrait(assets[i + run])) run++
+      const want = hash(assets[i].id) % 3 === 0 ? 3 : 2 // 大约三分之一拼三张，其余拼两张
+      const n = Math.min(run, want)
+      if (n >= 2) {
+        const members = Array.from({ length: n }, (_, k) => i + k)
+        at.set(i, members)
+        for (const k of members.slice(1)) {
+          inside.add(k)
+          owner.set(k, i)
+        }
+      }
+      i += Math.max(n, 1)
+    }
+  }
+  return { at, inside, startOf: (i: number) => owner.get(i) ?? i }
+}
+
+// composeGroup 把几张竖图并排画成一张和屏幕一样比例的图（中间细细的黑缝），每张裁成同样宽、铺满上下，
+// 偏上一点裁（人像的头不容易被切掉）。画好转成图片，交给转场和推拉，和一张照片一样用
+async function composeGroup(list: Asset[]): Promise<HTMLImageElement> {
+  const imgs = await Promise.all(
+    list.map(async (a) => {
+      const img = new Image()
+      img.src = slideUrl(a)
+      await img.decode().catch(() => {})
+      return img
+    }),
+  )
+  const scale = Math.min(devicePixelRatio, 2560 / Math.max(innerWidth, innerHeight))
+  const W = Math.round(innerWidth * scale)
+  const H = Math.round(innerHeight * scale)
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, W, H)
+  ctx.imageSmoothingQuality = 'high'
+  const gap = Math.round(W * 0.006)
+  const pw = (W - gap * (imgs.length - 1)) / imgs.length
+  imgs.forEach((img, k) => {
+    const iw = img.naturalWidth || 1
+    const ih = img.naturalHeight || 1
+    const s = Math.max(pw / iw, H / ih) // 铺满这一格
+    const sw = pw / s
+    const sh = H / s
+    const sx = (iw - sw) / 2
+    const sy = (ih - sh) * 0.35
+    ctx.drawImage(img, sx, sy, sw, sh, k * (pw + gap), 0, pw, H)
+  })
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.92))
+  const out = new Image()
+  out.src = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/jpeg', 0.9)
+  await out.decode().catch(() => {})
+  return out
 }

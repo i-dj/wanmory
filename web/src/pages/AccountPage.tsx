@@ -1,25 +1,16 @@
-import { Camera, Image as ImageIcon, LogOut, Monitor, Smartphone, Tablet } from 'lucide-react'
+import { Camera, LogOut, Monitor, Smartphone, Tablet } from 'lucide-react'
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import PageHeader, { HeaderTitle } from '@/components/layout/PageHeader'
+import AvatarPicker from '@/components/settings/AvatarPicker'
 import SettingsCard from '@/components/settings/SettingsCard'
 import Field from '@/components/ui/Field'
-import Modal, { Button } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Modal'
 import Segmented from '@/components/ui/Segmented'
 import Tooltip from '@/components/ui/Tooltip'
 import UserAvatar from '@/components/ui/UserAvatar'
-import {
-  type Account,
-  type Asset,
-  type Device,
-  changePassword,
-  getAccount,
-  listAssets,
-  logoutOthers,
-  renameMe,
-  setAvatar,
-  thumbnailUrl,
-} from '@/lib/api'
+import { type Account, type Device, changePassword, getAccount, logoutOthers, renameMe, setAvatar } from '@/lib/api'
 import { askConfirm, showError } from '@/lib/dialog'
+import { ago, describeDevice, ipKind } from '@/lib/device'
 import { useCurrentUser } from '@/lib/session'
 import { type Theme, useTheme } from '@/lib/theme'
 
@@ -69,19 +60,21 @@ export default function AccountPage() {
   )
 }
 
-// AvatarCard：右边大头像（点了选照片）；左边写照片数；底栏左边加入日期，右边「移除头像」「选择照片」
+// AvatarCard：右边大头像（点了换头像）；左边写照片数；底栏左边加入日期，右边「移除头像」「更换头像」。
+// 换头像的窗口在 AvatarPicker：照片、卡通、上传图片（裁好再传）
 function AvatarCard({ account, onChanged }: { account: Account | null; onChanged: (u: Account['user']) => void }) {
   const { user } = useCurrentUser()
   const [picking, setPicking] = useState(false)
-  const apply = async (assetId: string | null) => {
+  const [error, setError] = useState('') // 移除头像没成功的原因，写在底栏
+  const remove = async () => {
+    setError('')
     try {
-      const { user: u } = await setAvatar(assetId)
-      onChanged(u)
-      setPicking(false)
+      onChanged((await setAvatar(null)).user)
     } catch (e) {
-      showError('头像没有换成功', e)
+      setError(e instanceof Error ? e.message : String(e))
     }
   }
+  const hasAvatar = !!user.avatar || !!user.avatar_style
   return (
     <>
       <SettingsCard
@@ -96,21 +89,26 @@ function AvatarCard({ account, onChanged }: { account: Account | null; onChanged
             )}
           </>
         }
-        footer={user.created_at && `${day(user.created_at)}加入`}
+        footer={
+          <>
+            {user.created_at && `${day(user.created_at)}加入`}
+            {error && <span className="block text-caption text-danger">{error}</span>}
+          </>
+        }
         footerActions={
           <>
-            {user.avatar && <Button onClick={() => apply(null)}>移除头像</Button>}
+            {hasAvatar && <Button onClick={remove}>移除头像</Button>}
             <Button primary onClick={() => setPicking(true)}>
-              选择照片
+              更换头像
             </Button>
           </>
         }
         action={
-          <Tooltip label="选择照片">
+          <Tooltip label="更换头像">
             <button
               type="button"
               onClick={() => setPicking(true)}
-              aria-label="选择照片当头像"
+              aria-label="更换头像"
               className="group relative size-20 shrink-0 overflow-hidden rounded-full ring-1 ring-line"
             >
               <UserAvatar user={user} className="size-20 text-[28px]" />
@@ -121,52 +119,8 @@ function AvatarCard({ account, onChanged }: { account: Account | null; onChanged
           </Tooltip>
         }
       />
-      {picking && <AvatarPicker onClose={() => setPicking(false)} onPick={(a) => apply(a.id)} />}
+      {picking && <AvatarPicker user={user} onClose={() => setPicking(false)} onChanged={onChanged} />}
     </>
-  )
-}
-
-// AvatarPicker 是选头像的窗口：收藏 / 最近两组照片的方格，点一张就换上
-function AvatarPicker({ onClose, onPick }: { onClose: () => void; onPick: (a: Asset) => void }) {
-  const [group, setGroup] = useState<'favorite' | 'recent'>('favorite')
-  const [assets, setAssets] = useState<Asset[] | null>(null)
-  useEffect(() => {
-    setAssets(null)
-    listAssets(group === 'favorite' ? { favorite: true, kind: 'photo' } : { kind: 'photo' }, null, 60)
-      .then((p) => setAssets(p.items))
-      .catch((e) => showError('没有读到照片', e))
-  }, [group])
-  return (
-    <Modal title="选择照片" icon={ImageIcon} onClose={onClose} width="max-w-xl">
-      <div>
-        <Segmented<'favorite' | 'recent'>
-          label="照片"
-          value={group}
-          onChange={setGroup}
-          segments={[
-            { value: 'favorite', label: '收藏' },
-            { value: 'recent', label: '最近' },
-          ]}
-        />
-        <div className="mt-3 grid max-h-[50vh] grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-5">
-          {assets?.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => onPick(a)}
-              className="aspect-square overflow-hidden rounded-md bg-line transition hover:opacity-85 focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <img src={thumbnailUrl(a)} alt="" loading="lazy" className="size-full object-cover" />
-            </button>
-          ))}
-        </div>
-        {assets?.length === 0 && (
-          <p className="py-8 text-center text-body text-muted">
-            {group === 'favorite' ? '还没有收藏的照片，看看「最近」' : '还没有照片'}
-          </p>
-        )}
-      </div>
-    </Modal>
   )
 }
 
@@ -341,7 +295,7 @@ function DevicesCard({ devices, onChanged }: { devices: Device[] | null; onChang
                 </div>
                 <div className="truncate text-caption text-muted">
                   {[
-                    d.ip && `${d.ip}${ipKind(d.ip) ? `（${ipKind(d.ip)}）` : ''}`,
+                    d.ip && `${d.ip}（${d.location || ipKind(d.ip)}）`,
                     d.current ? '正在使用' : d.last_seen && `${ago(d.last_seen)}使用`,
                     `${day(d.created_at)}登录`,
                   ]
@@ -355,57 +309,6 @@ function DevicesCard({ devices, onChanged }: { devices: Device[] | null; onChang
       </ul>
     </SettingsCard>
   )
-}
-
-// ipKind 看 IP 是本机、家里的局域网，还是外面（公网）来的
-function ipKind(ip: string): string {
-  if (ip === '::1' || ip.startsWith('127.')) return '本机'
-  if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|f[cd]|fe80:)/i.test(ip)) return '局域网'
-  return '公网'
-}
-
-// ago 是「3 分钟前」「2 天前」，再早写日期
-function ago(s: string): string {
-  const min = Math.round((Date.now() - new Date(s).getTime()) / 60000)
-  if (min < 1) return '刚刚'
-  if (min < 60) return `${min} 分钟前`
-  if (min < 60 * 24) return `${Math.round(min / 60)} 小时前`
-  if (min < 60 * 24 * 30) return `${Math.round(min / 60 / 24)} 天前`
-  return day(s)
-}
-
-// describeDevice 从 User-Agent 看出大概是什么设备：「Mac · Chrome」「iPhone · Safari」；认不出（以前的登录没记）写「未知设备」
-function describeDevice(ua: string): { label: string; kind: 'phone' | 'tablet' | 'desktop' } {
-  if (!ua) return { label: '未知设备', kind: 'desktop' }
-  const os = /iPhone/.test(ua)
-    ? 'iPhone'
-    : /iPad/.test(ua) || (/Macintosh/.test(ua) && /Mobile/.test(ua))
-      ? 'iPad'
-      : /Android/.test(ua)
-        ? 'Android'
-        : /Mac OS X|Macintosh/.test(ua)
-          ? 'Mac'
-          : /Windows/.test(ua)
-            ? 'Windows'
-            : /Linux/.test(ua)
-              ? 'Linux'
-              : '未知设备'
-  const browser = /Edg\//.test(ua)
-    ? 'Edge'
-    : /Firefox\//.test(ua)
-      ? 'Firefox'
-      : /Chrome\//.test(ua)
-        ? 'Chrome'
-        : /Safari\//.test(ua)
-          ? 'Safari'
-          : ''
-  const kind =
-    os === 'iPhone' || (os === 'Android' && /Mobile/.test(ua))
-      ? 'phone'
-      : os === 'iPad' || os === 'Android'
-        ? 'tablet'
-        : 'desktop'
-  return { label: browser ? `${os} · ${browser}` : os, kind }
 }
 
 // ThemeCard 是只存在这个浏览器里的主题（跟随系统 / 浅色 / 深色），改了马上生效

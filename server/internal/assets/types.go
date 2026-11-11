@@ -63,8 +63,9 @@ type Asset struct {
 	Edited        []string   `json:"edited"`
 	DeletedAt     *time.Time `json:"deleted_at"` // 删除的时间，在「最近删除」里可以恢复；没删除时为空
 	HasThumbnail  bool       `json:"has_thumbnail"`
-	Beauty        *float32   `json:"beauty"` // 好不好看（0–1，CLIP 算的，见 clip 包的 tags.go），还没算过是 null
-	Camera        *Camera    `json:"camera"` // 没有任何拍摄参数时为空
+	Beauty        *float32   `json:"beauty"`            // 好不好看（0–1，CLIP 算的，见 clip 包的 tags.go），还没算过是 null
+	Subject       *Box       `json:"subject,omitempty"` // 照片里的人脸都在哪个框里，只有精选轮播（Highlights）会填，网页按它裁图
+	Camera        *Camera    `json:"camera"`            // 没有任何拍摄参数时为空
 	OriginalPath  string     `json:"-"`
 	Checksum      []byte     `json:"-"`
 	ThumbnailPath *string    `json:"-"`
@@ -101,4 +102,12 @@ const metadataPriority = 1 << 30
 // timelinePriority 按排序时间算任务优先级：越新的照片越先处理。以小时为单位，放得进 INT。
 func timelinePriority(t time.Time) int {
 	return max(0, min(int(t.Unix()/3600), metadataPriority-1))
+}
+
+// Box 是照片上的一块区域，左上角和宽高都是占图片宽高的比例（0–1）
+type Box struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	W float64 `json:"w"`
+	H float64 `json:"h"`
 }

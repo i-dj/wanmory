@@ -7,6 +7,8 @@ import { TrackPlayer, trackFor } from '@/lib/musicLibrary'
 import { eyeTransform, type Frame } from '@/lib/timelapse'
 import { showAlert } from '@/lib/dialog'
 
+// 画在视频上的字和网页用同一套字体（index.css 的 --font-sans）
+const font = () => getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim() || 'sans-serif'
 const SPEEDS = { slow: 1500, normal: 900, fast: 500 } as const // 每张停多久（毫秒），淡入另算
 type Speed = keyof typeof SPEEDS
 const SPEED_LABELS: Record<Speed, string> = { slow: '慢', normal: '中', fast: '快' }
@@ -319,11 +321,11 @@ function paint(
   ctx.fillStyle = '#fff'
   ctx.shadowColor = 'rgba(0,0,0,0.5)'
   ctx.shadowBlur = unit
-  ctx.font = `700 ${Math.round(unit * 7)}px -apple-system, "PingFang SC", system-ui, sans-serif`
+  ctx.font = `700 ${Math.round(unit * 7)}px ${font()}`
   ctx.fillText(f.label, cx, h - unit * 17)
   if (f.label !== f.date) {
     ctx.fillStyle = 'rgba(255,255,255,0.75)'
-    ctx.font = `500 ${Math.round(unit * 2.8)}px -apple-system, "PingFang SC", system-ui, sans-serif`
+    ctx.font = `500 ${Math.round(unit * 2.8)}px ${font()}`
     ctx.fillText(f.date, cx, h - unit * 12)
   }
   ctx.shadowBlur = 0

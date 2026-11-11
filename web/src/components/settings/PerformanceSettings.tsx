@@ -13,7 +13,6 @@ import {
   setPerf,
 } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { showError } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
 import SettingsCard, { SettingRow } from './SettingsCard'
 
@@ -41,12 +40,14 @@ export default function PerformanceSettings() {
   const [perf, setPerfState] = useState<PerfStatus | null>(null)
   const [ai, setAI] = useState<AIStatus | null>(null)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('') // 读取、保存没成功的原因，写在底栏
+  const fail = (e: unknown) => setError(e instanceof Error ? e.message : String(e))
 
   const load = useCallback(async () => {
     try {
       setPerfState(await perfStatus())
     } catch (e) {
-      showError('没有读到性能设置', e)
+      fail(e)
     }
   }, [])
   useEffect(() => {
@@ -61,20 +62,22 @@ export default function PerformanceSettings() {
 
   const save = async (patch: Partial<PerfSettings>) => {
     setBusy(true)
+    setError('')
     try {
       setPerfState(await setPerf(patch))
     } catch (e) {
-      showError('没有保存成功', e)
+      fail(e)
     } finally {
       setBusy(false)
     }
   }
   const saveAI = async (action: () => Promise<AIStatus>) => {
     setBusy(true)
+    setError('')
     try {
       setAI(await action())
     } catch (e) {
-      showError('没有保存成功', e)
+      fail(e)
     } finally {
       setBusy(false)
     }
@@ -92,6 +95,7 @@ export default function PerformanceSettings() {
         <span className="flex items-center gap-2">
           <span className={cx('size-2 shrink-0 rounded-full', perf.ai_running ? 'bg-ok' : 'bg-warn')} />
           {perf.ai_running ? 'AI 可运行' : `AI 已暂停：${perf.ai_paused}`}
+          {error && <span className="text-danger">· {error}</span>}
         </span>
       }
     >

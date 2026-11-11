@@ -15,6 +15,9 @@ type Config struct {
 	Addr        string // WANMORY_ADDR，默认 :8080
 	DataDir     string // WANMORY_DATA_DIR：缩略图等程序生成的文件，默认 ./data
 	UploadDir   string // WANMORY_UPLOAD_DIR：上传目录的默认值，网页上可以改，默认 <DataDir>/upload
+	// WANMORY_LIBRARY_DIR：照片目录，NAS、移动硬盘上已有的照片挂载到它下面，相册定时扫描、原地导入（见 assets/library.go）。
+	// 默认 <DataDir>/library，Docker 镜像里是 /photos
+	LibraryDir string
 
 	// WANMORY_WORKERS：同时处理多少个任务（读元数据、生成缩略图）的默认值，没设是 0，按核数和内存自动算（见 internal/perf）。
 	// 网页「设置 → 性能」里还可以改
@@ -58,6 +61,7 @@ func Load() (Config, error) {
 		c.Workers = n
 	}
 	c.UploadDir = envOr("WANMORY_UPLOAD_DIR", filepath.Join(c.DataDir, "upload"))
+	c.LibraryDir = envOr("WANMORY_LIBRARY_DIR", filepath.Join(c.DataDir, "library"))
 
 	// 路径会存进数据库，统一转成绝对路径
 	var err error

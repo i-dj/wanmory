@@ -70,7 +70,8 @@ func (s *Service) batch(w http.ResponseWriter, r *http.Request) {
 	}
 	defer s.KickHiddenSync() // 收藏、星级、时间等变了，私有智能相册的「同时隐藏」可能要跟着变
 	if req.Patch != (Patch{}) {
-		if _, err := s.store.UpdateMany(r.Context(), auth.UserID(r.Context()), req.IDs, req.Patch); errors.Is(err, ErrNotYours) {
+		u := auth.UserFrom(r.Context())
+		if _, err := s.store.UpdateMany(r.Context(), u.ID, u.IsAdmin, req.IDs, req.Patch); errors.Is(err, ErrNotYours) || errors.Is(err, ErrNotYourDelete) {
 			httpx.Error(w, http.StatusForbidden, err.Error())
 			return
 		} else if err != nil {
@@ -120,7 +121,20 @@ func (s *Service) purge(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, fmt.Sprintf("要么带 all，要么选 1 到 %d 张", maxBatch))
 		return
 	}
-	res, err := s.store.PurgeDeleted(r.Context(), req.IDs)
+	// 成员只能永久删除自己传的：选了别人的报错；「全部永久删除」只删自己传的。管理员不限
+	u := auth.UserFrom(r.Context())
+	var owner *uuid.UUID
+	if !u.IsAdmin {
+		owner = &u.ID
+		if n, err := s.store.othersCount(r.Context(), u.ID, req.IDs); err != nil {
+			httpx.InternalError(w, err)
+			return
+		} else if len(req.IDs) > 0 && n > 0 {
+			httpx.Error(w, http.StatusForbidden, ErrNotYourDelete.Error())
+			return
+		}
+	}
+	res, err := s.store.PurgeDeleted(r.Context(), req.IDs, owner)
 	if err != nil {
 		httpx.InternalError(w, err)
 		return
