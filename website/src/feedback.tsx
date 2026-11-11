@@ -1,4 +1,4 @@
 import { mount } from './mount'
 import FeedbackPage from './FeedbackPage'
 
-mount(FeedbackPage)
+mount(FeedbackPage, 'feedback')

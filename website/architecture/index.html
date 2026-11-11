@@ -1,33 +1,16 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>功能架构｜万象 Wanmory 私有 AI 相册的系统设计</title>
-    <meta name="description" content="万象 Wanmory 的系统架构：Go 后端、Python AI 推理服务、PostgreSQL + pgvector；照片处理流水线、基于 PostgreSQL 的任务队列调度、AI 调度与模型档位、人脸聚类与语义搜索算法。" />
-    <meta name="keywords" content="相册架构,pgvector,任务队列,SKIP LOCKED,Chinese-CLIP,ArcFace,人脸聚类,语义搜索,ONNX Runtime" />
+    <!-- 标题、描述、hreflang、结构化数据等按页面和语言生成（src/i18n/head.ts）：构建时由 scripts/prerender.mjs 写入，开发时由 vite.config.ts 注入 -->
+    <!--head-->
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://wanmory.com/architecture/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content="#131315" />
     <meta name="color-scheme" content="dark" />
     <!-- 样式表加载前就把底色设成深色，刷新时不会先闪一下白屏 -->
     <style>html,body{background:#131315;color:#e8ddd6;color-scheme:dark}</style>
-    <meta property="og:type" content="article" />
-    <meta property="og:site_name" content="万象 Wanmory" />
-    <meta property="og:locale" content="zh_CN" />
-    <meta property="og:title" content="功能架构｜万象 Wanmory 私有 AI 相册的系统设计" />
-    <meta property="og:description" content="万象 Wanmory 的系统架构：Go 后端、Python AI 推理服务、PostgreSQL + pgvector；照片处理流水线、基于 PostgreSQL 的任务队列调度、AI 调度与模型档位、人脸聚类与语义搜索算法。" />
-    <meta property="og:url" content="https://wanmory.com/architecture/" />
-    <meta property="og:image" content="https://wanmory.com/og.jpg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="功能架构｜万象 Wanmory 私有 AI 相册的系统设计" />
-    <meta name="twitter:description" content="万象 Wanmory 的系统架构：Go 后端、Python AI 推理服务、PostgreSQL + pgvector；照片处理流水线、基于 PostgreSQL 的任务队列调度、AI 调度与模型档位、人脸聚类与语义搜索算法。" />
-    <meta name="twitter:image" content="https://wanmory.com/og.jpg" />
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "万象 Wanmory 功能架构", "inLanguage": "zh-CN", "url": "https://wanmory.com/architecture/"}</script>
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "万象 Wanmory", "item": "https://wanmory.com/"}, {"@type": "ListItem", "position": 2, "name": "功能架构", "item": "https://wanmory.com/architecture/"}]}</script>
   </head>
   <body>
     <div id="root"><!--app--></div>

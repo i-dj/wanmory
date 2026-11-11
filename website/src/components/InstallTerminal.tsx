@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { CopyButton } from './Layout'
+import { usePage } from '../i18n'
+import type { HomeDict } from '../i18n/locales/zh/home'
 
 // InstallTerminal 是首页「部署」里的终端动画，模仿 pnpm.io 首页那种模拟安装，演示安装脚本 install.sh 的过程：
 // 打出安装命令 → 环境检查一项项通过 → 回答端口、域名、数据库密码、照片目录 → 生成配置 → 拉取镜像的进度条走完 → 容器一个个起来 →
@@ -198,6 +200,7 @@ function render(t: number): ReactNode[] {
 }
 
 export default function InstallTerminal() {
+  const copyLabel = usePage<HomeDict>().deploy.copyCmd
   const box = useRef<HTMLDivElement>(null)
   const screen = useRef<HTMLDivElement>(null)
   const [t, setT] = useState(0)
@@ -243,7 +246,7 @@ export default function InstallTerminal() {
           </div>
           <span className="absolute left-1/2 -translate-x-1/2 font-mono text-xs text-faint">~/wanmory</span>
           <span className="ml-auto">
-            <CopyButton text={INSTALL_CMD} label="复制命令" />
+            <CopyButton text={INSTALL_CMD} label={copyLabel} />
           </span>
         </div>
         {/* 宽屏和左边的步骤并排时，高度跟左边一样（底部对齐）；手机上上下排时固定高度 */}

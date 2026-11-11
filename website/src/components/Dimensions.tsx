@@ -2,54 +2,21 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Music, Pause, Search } from 'lucide-react'
 import Photo from './Photo'
 import { ShareMap, WorldMap } from './Views'
+import { fill, usePage } from '../i18n'
+import type { HomeDict } from '../i18n/locales/zh/home'
 
 // 「六大核心能力」轮播：上面一张示意图，下面标签、标题、说明、胶囊，底部一排缩略图切换，自动播放
 
-type Dim = { title: string; desc: string; chips: string[]; thumb: string; visual: ReactNode }
+// 标题、说明、胶囊在语言文件 dims.items 里，顺序一样
+type Dim = { thumb: string; visual: ReactNode }
 
 const dims: Dim[] = [
-  {
-    title: '播放幻灯片',
-    desc: '图库、相册、人物与回忆均支持幻灯片播放，搭配背景音乐与转场。',
-    chips: ['竖图拼页', '背景音乐', '转场效果'],
-    thumb: '/photos/450.webp',
-    visual: <SlideshowVisual />,
-  },
-  {
-    title: '按龄回看，记录每年成长',
-    desc: '人脸自动聚类，人物照片集中呈现。设置生日后，按年龄回看历年照片，见证每一年的成长与变化。',
-    chips: ['人脸聚类', '按年龄排列', '足迹和合影'],
-    thumb: '/photos/n5.webp',
-    visual: <GrowthVisual />,
-  },
-  {
-    title: '自然语言搜索，所想即所见',
-    desc: '输入「宝宝三岁生日」「宝马内饰」，无需标签或准确日期，即可查找照片。',
-    chips: ['Chinese-CLIP', 'pgvector', '本地运行'],
-    thumb: '/photos/b1.webp',
-    visual: <SearchVisual />,
-  },
-  {
-    title: '照片分享',
-    desc: '通过链接分享给朋友和家人，无需注册账号即可访问。',
-    chips: ['分享链接', '过期时间', '访问密码'],
-    thumb: '/photos/167.webp',
-    visual: <ShareVisual />,
-  },
-  {
-    title: '足迹地图，重温每段旅程',
-    desc: '根据照片 GPS 信息，自动标记到访的地点与国家。',
-    chips: ['EXIF 定位', '地图 / 卫星 / 网格', '按地点浏览'],
-    thumb: '/photos/184.webp',
-    visual: <WorldMap className="absolute inset-0" />,
-  },
-  {
-    title: '相似照片归组，轻松优选清理',
-    desc: '自动归组连拍、相似及重复照片。',
-    chips: ['连拍和相似', '重复照片', '推荐保留'],
-    thumb: '/photos/434.webp',
-    visual: <BurstVisual />,
-  },
+  { thumb: '/photos/450.webp', visual: <SlideshowVisual /> }, // 播放幻灯片
+  { thumb: '/photos/n5.webp', visual: <GrowthVisual /> }, // 按龄回看
+  { thumb: '/photos/b1.webp', visual: <SearchVisual /> }, // 自然语言搜索
+  { thumb: '/photos/167.webp', visual: <ShareVisual /> }, // 照片分享
+  { thumb: '/photos/184.webp', visual: <WorldMap className="absolute inset-0" /> }, // 足迹地图
+  { thumb: '/photos/434.webp', visual: <BurstVisual /> }, // 相似照片归组
 ]
 
 const STEP_MS = 5000 // 每个能力停几毫秒
@@ -57,12 +24,13 @@ const STEP_MS = 5000 // 每个能力停几毫秒
 export default function Dimensions() {
   const [i, setI] = useState(0)
   const [paused, setPaused] = useState(false)
+  const t = usePage<HomeDict>().dims
   useEffect(() => {
     if (paused) return
     const t = setTimeout(() => setI((i + 1) % dims.length), STEP_MS)
     return () => clearTimeout(t)
   }, [i, paused])
-  const d = dims[i]
+  const d = { ...dims[i], ...t.items[i] }
 
   return (
     <div
@@ -75,14 +43,14 @@ export default function Dimensions() {
           {d.visual}
         </div>
         <button
-          aria-label="上一个"
+          aria-label={t.prev}
           onClick={() => setI((i + dims.length - 1) % dims.length)}
           className="glass absolute top-1/2 left-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-fg sm:left-5"
         >
           <ChevronLeft className="size-4" />
         </button>
         <button
-          aria-label="下一个"
+          aria-label={t.next}
           onClick={() => setI((i + 1) % dims.length)}
           className="glass absolute top-1/2 right-3 grid size-9 -translate-y-1/2 place-items-center rounded-full text-fg sm:right-5"
         >
@@ -108,13 +76,13 @@ export default function Dimensions() {
             ))}
           </div>
         </div>
-        <div className="flex shrink-0 gap-2 self-start" role="tablist" aria-label="切换能力">
+        <div className="flex shrink-0 gap-2 self-start" role="tablist" aria-label={t.switch}>
           {dims.map((x, k) => (
             <button
-              key={x.title}
+              key={x.thumb}
               role="tab"
               aria-selected={k === i}
-              aria-label={x.title}
+              aria-label={t.items[k].title}
               onClick={() => setI(k)}
               className={`relative h-9 w-11 overflow-hidden rounded-md ring-offset-2 ring-offset-card transition sm:w-14 ${
                 k === i ? 'ring-2 ring-accent' : 'opacity-50 hover:opacity-90'
@@ -153,6 +121,7 @@ const slides: string[][] = [
 
 function SlideshowVisual() {
   const [k, setK] = useState(0)
+  const t = usePage<HomeDict>().dims.slideshow
   useEffect(() => {
     const t = setTimeout(() => setK((k + 1) % slides.length), 1000)
     return () => clearTimeout(t)
@@ -188,9 +157,9 @@ function SlideshowVisual() {
           <span className="glass grid size-8 place-items-center rounded-full">
             <Pause className="size-3.5" fill="currentColor" />
           </span>
-          <span>回忆 · 2026 年的秋天</span>
-          <span className="ml-auto hidden items-center gap-1.5 sm:flex">
-            <Music className="size-3.5" /> 背景音乐
+          <span className="truncate">{t.caption}</span>
+          <span className="ml-auto hidden shrink-0 items-center gap-1.5 sm:flex">
+            <Music className="size-3.5" /> {t.music}
           </span>
           <span className="tabular-nums">
             {k + 1} / {slides.length}
@@ -202,55 +171,40 @@ function SlideshowVisual() {
 }
 
 // 成长：照着人物页的「成长」：上面人物信息，下面每个年龄一张照片
-const ages = [
-  { src: 'n0', age: '刚出生' },
-  { src: 'n1', age: '1个月' },
-  { src: 'n2', age: '2个月' },
-  { src: 'n3', age: '3个月' },
-  { src: 'n5', age: '5个月' },
-  { src: 'n10', age: '10个月' },
-  { src: 'y1', age: '1岁' },
-  { src: 'y2', age: '2岁' },
-  { src: 'g3', age: '3岁' },
-  { src: 'g5', age: '4岁' },
-  { src: 'y5', age: '5岁' },
-  { src: 'y7', age: '7岁' },
-  { src: 'g8', age: '9岁' },
-  { src: 'y10', age: '11岁' },
-  { src: 'g13', age: '14岁' },
-  { src: 'g17', age: '17岁' },
-]
+// 每个年龄一张照片：刚出生、1个月、2个月、3个月、5个月、10个月、1岁、2岁、3岁、4岁、5岁、7岁、9岁、11岁、14岁、17岁（文字在 dims.growth.ages）
+const ages = ['n0', 'n1', 'n2', 'n3', 'n5', 'n10', 'y1', 'y2', 'g3', 'g5', 'y5', 'y7', 'g8', 'y10', 'g13', 'g17']
 
 // 窄屏放不下 16 张，只挑 4 个年龄：刚出生、1岁、5岁、17岁
 const MOBILE_AGES = [0, 6, 10, 15]
 
 function GrowthVisual() {
+  const t = usePage<HomeDict>().dims.growth
   return (
     <div className="absolute inset-0 overflow-hidden p-4 sm:p-7">
       <div className="flex items-center gap-3 sm:gap-4">
         <img src="/photos/g17.webp" alt="" className="size-11 rounded-full object-cover sm:size-14" />
         <div className="min-w-0">
-          <div className="text-base font-semibold text-fg sm:text-lg">小满</div>
-          <div className="truncate text-xs text-muted">17岁 · 3 月 12 日生日 · 2009–2026 · 3,482 张照片</div>
+          <div className="text-base font-semibold text-fg sm:text-lg">{t.name}</div>
+          <div className="truncate text-xs text-muted">{t.info}</div>
         </div>
         <div className="ml-auto hidden gap-1 text-xs sm:flex">
-          {['照片', '成长', '足迹', '合影'].map((t) => (
-            <span key={t} className={`rounded-lg px-2.5 py-1 ${t === '成长' ? 'bg-white/[0.08] font-medium text-accent' : 'text-muted'}`}>
-              {t}
+          {t.tabs.map((x, k) => (
+            <span key={x} className={`rounded-lg px-2.5 py-1 ${k === 1 ? 'bg-white/[0.08] font-medium text-accent' : 'text-muted'}`}>
+              {x}
             </span>
           ))}
         </div>
       </div>
       <div className="mt-4 grid grid-cols-4 gap-2 sm:mt-5 sm:grid-cols-8 sm:gap-2.5">
-        {ages.map((a, n) => (
-          <div key={a.age} className={MOBILE_AGES.includes(n) ? '' : 'hidden sm:block'}>
+        {ages.map((src, n) => (
+          <div key={src} className={MOBILE_AGES.includes(n) ? '' : 'hidden sm:block'}>
             <img
-              src={`/photos/${a.src}.webp`}
+              src={`/photos/${src}.webp`}
               alt=""
               loading="lazy"
               className="aspect-[3/4] w-full rounded-lg bg-[#1b1b1e] object-cover"
             />
-            <div className="mt-1 text-xs font-semibold text-fg sm:text-[13px]">{a.age}</div>
+            <div className="mt-1 truncate text-xs font-semibold text-fg sm:text-[13px]">{t.ages[n]}</div>
           </div>
         ))}
       </div>
@@ -259,23 +213,17 @@ function GrowthVisual() {
 }
 
 // 搜索：两句话轮流搜，每句下面是搜到的照片和相似度
+// 搜索词在 dims.search.queries 里，顺序一样：宝宝三岁生日的照片、宝马内饰照片
 const queries = [
-  {
-    q: '宝宝三岁生日的照片',
-    found: 126,
-    res: ['b1', 'b4', 'b6', 'b2', 'b8', 'b3', 'b10', 'b7', 'b5', 'b9'],
-  },
-  {
-    q: '宝马内饰照片',
-    found: 38,
-    res: ['m1', 'm2', 'm6', 'm3', 'm7', 'm4', 'm9', 'm8', 'm5', 'm10'],
-  },
+  { found: 126, res: ['b1', 'b4', 'b6', 'b2', 'b8', 'b3', 'b10', 'b7', 'b5', 'b9'] },
+  { found: 38, res: ['m1', 'm2', 'm6', 'm3', 'm7', 'm4', 'm9', 'm8', 'm5', 'm10'] },
 ]
 // 相似度从高到低
 const scores = ['0.95', '0.93', '0.91', '0.90', '0.88', '0.86', '0.85', '0.83', '0.81', '0.79']
 
 function SearchVisual() {
   const [k, setK] = useState(0)
+  const t = usePage<HomeDict>().dims.search
   useEffect(() => {
     const t = setTimeout(() => setK((k + 1) % queries.length), 2500)
     return () => clearTimeout(t)
@@ -287,9 +235,9 @@ function SearchVisual() {
         <div className="glass mx-auto mb-4 flex max-w-lg items-center gap-2.5 rounded-xl px-4 py-3 text-sm text-fg sm:text-base">
           <Search className="size-4 shrink-0 text-muted" />
           <span key={k} className="animate-fade truncate">
-            {q.q}
+            {t.queries[k]}
           </span>
-          <span className="ml-auto shrink-0 text-xs text-muted">找到 {q.found} 张</span>
+          <span className="ml-auto shrink-0 text-xs text-muted">{fill(t.found, { n: q.found })}</span>
         </div>
         <div key={k} className="animate-fade grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-2.5">
           {q.res.map((r, n) => (
@@ -308,8 +256,25 @@ function SearchVisual() {
 
 // 分享：一张世界地图，家里的万象把分享链接发到世界各地，每个城市的朋友在看、看完了、在输密码
 
+// 每个城市的位置、头像、卡片偏移；城市名、人、状态在 dims.share.viewers 里，顺序一样
+const viewerSpots: { lon: number; lat: number; photo: number; card: [number, number] }[] = [
+  { lon: -123.1, lat: 49.3, photo: 1005, card: [10, -50] }, // 温哥华
+  { lon: -122.4, lat: 37.8, photo: 1012, card: [10, 8] }, // 旧金山
+  { lon: -74, lat: 40.7, photo: 64, card: [10, -21] }, // 纽约
+  { lon: -46.6, lat: -23.5, photo: 91, card: [10, -21] }, // 圣保罗
+  { lon: -0.1, lat: 51.5, photo: 836, card: [-160, -50] }, // 伦敦
+  { lon: 12.5, lat: 41.9, photo: 777, card: [10, 8] }, // 罗马
+  { lon: 55.3, lat: 25.2, photo: 669, card: [10, 10] }, // 迪拜
+  { lon: 103.8, lat: 1.35, photo: 1011, card: [-160, 8] }, // 新加坡
+  { lon: 121.5, lat: 31.2, photo: 1027, card: [10, 10] }, // 上海
+  { lon: 139.7, lat: 35.7, photo: 823, card: [-60, -68] }, // 东京：在输入访问密码
+  { lon: 151.2, lat: -33.9, photo: 839, card: [-160, -50] }, // 悉尼
+]
+const TOKYO = 9
+
 function ShareVisual() {
   const [unlocked, setUnlocked] = useState(false)
+  const t = usePage<HomeDict>().dims.share
   useEffect(() => {
     const t = setTimeout(() => setUnlocked(!unlocked), unlocked ? 2800 : 1800)
     return () => clearTimeout(t)
@@ -317,33 +282,17 @@ function ShareVisual() {
   return (
     <div className="absolute inset-0 bg-[#14171c]">
       <ShareMap
-        viewers={[
-          { city: '温哥华', lon: -123.1, lat: 49.3, who: '小北', photo: 1005, status: '正在看 · 第 5 / 24 张', card: [10, -50] },
-          { city: '旧金山', lon: -122.4, lat: 37.8, who: '阿泽', photo: 1012, status: '看完了 24 张', card: [10, 8] },
-          { city: '纽约', lon: -74, lat: 40.7, who: 'Emily', photo: 64, status: '正在看 · 第 12 / 24 张', card: [10, -21] },
-          { city: '圣保罗', lon: -46.6, lat: -23.5, who: 'Lucas', photo: 91, status: '看了 6 张', card: [10, -21] },
-          { city: '伦敦', lon: -0.1, lat: 51.5, who: '阿佳', photo: 836, status: '下载了 2 张原图', card: [-160, -50] },
-          { city: '罗马', lon: 12.5, lat: 41.9, who: '安然', photo: 777, status: '正在看 · 第 18 / 24 张', card: [10, 8] },
-          { city: '迪拜', lon: 55.3, lat: 25.2, who: '老周', photo: 669, status: '看完了 24 张', card: [10, 10] },
-          { city: '新加坡', lon: 103.8, lat: 1.35, who: '一一', photo: 1011, status: '正在看 · 第 3 / 24 张', card: [-160, 8] },
-          { city: '上海', lon: 121.5, lat: 31.2, who: '妈妈', photo: 1027, status: '看完了 24 张', card: [10, 10] },
-          {
-            city: '东京',
-            lon: 139.7,
-            lat: 35.7,
-            who: '小林',
-            photo: 823,
-            status: unlocked ? '已输入密码 · 正在看' : '正在输入访问密码…',
-            card: [-60, -68],
-          },
-          { city: '悉尼', lon: 151.2, lat: -33.9, who: '晓晓', photo: 839, status: '正在看 · 第 20 / 24 张', card: [-160, -50] },
-        ]}
+        homeLabel={t.home}
+        viewers={viewerSpots.map((v, k) => {
+          const [city, who, status] = t.viewers[k]
+          return { ...v, city, who, status: k === TOKYO && unlocked ? t.unlocked : status }
+        })}
       />
       <div className="glass absolute top-4 left-4 flex items-center gap-3 rounded-xl p-2 pr-4 text-xs sm:top-5 sm:left-5">
         <Photo id={167} className="size-9 rounded-lg" />
         <div>
-          <div className="font-semibold text-fg">「秋天的山」· 24 张</div>
-          <div className="text-muted">分享给 11 位朋友 · 有访问密码 · 6 天后过期</div>
+          <div className="font-semibold text-fg">{t.album}</div>
+          <div className="text-muted">{t.info}</div>
         </div>
       </div>
     </div>
@@ -354,9 +303,9 @@ function ShareVisual() {
 // 按拍摄的日子分段，每组一张小卡片：几张差不多的照片，推荐保留的那张亮着，下面「都保留」「保留」。
 // 每天一行，组多到超出右边，右边和底部渐隐，铺满不留空
 type Burst = { src: string; n: number; keep: number }
-const bursts: { day: string; groups: Burst[] }[] = [
+// 日期在 dims.burst.days 里，顺序一样
+const bursts: { groups: Burst[] }[] = [
   {
-    day: '2026年10月3日',
     groups: [
       { src: '/photos/434.webp', n: 5, keep: 2 },
       { src: '/photos/g3.webp', n: 4, keep: 1 },
@@ -367,7 +316,6 @@ const bursts: { day: string; groups: Burst[] }[] = [
     ],
   },
   {
-    day: '2026年9月21日',
     groups: [
       { src: '/photos/49.webp', n: 3, keep: 1 },
       { src: '/photos/823.webp', n: 4, keep: 2 },
@@ -378,7 +326,6 @@ const bursts: { day: string; groups: Burst[] }[] = [
     ],
   },
   {
-    day: '2026年8月15日',
     groups: [
       { src: '/photos/110.webp', n: 4, keep: 3 },
       { src: '/photos/839.webp', n: 3, keep: 0 },
@@ -399,21 +346,23 @@ const looks = [
 ]
 
 function BurstVisual() {
+  const t = usePage<HomeDict>().dims.burst
   return (
     <div className="absolute inset-0 overflow-hidden p-4 sm:px-16 sm:py-7">
       <div className="flex items-center gap-3">
         <div className="flex gap-1 text-xs">
-          <span className="rounded-lg bg-white/[0.08] px-2.5 py-1 font-medium whitespace-nowrap text-fg">连拍和相似 · 36 组</span>
-          <span className="hidden rounded-lg px-2.5 py-1 whitespace-nowrap text-muted sm:inline">重复 · 12 组</span>
+          <span className="rounded-lg bg-white/[0.08] px-2.5 py-1 font-medium whitespace-nowrap text-fg">{t.similar}</span>
+          <span className="hidden rounded-lg px-2.5 py-1 whitespace-nowrap text-muted sm:inline">{t.duplicates}</span>
         </div>
-        <span className="ml-auto hidden text-xs text-muted sm:inline">按推荐整理可以省出 4.8 GB</span>
+        <span className="ml-auto hidden text-xs text-muted sm:inline">{t.saving}</span>
         <span className="ml-auto rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold whitespace-nowrap text-black sm:ml-0">
-          <span className="hidden sm:inline">全部</span>按推荐整理
+          <span className="hidden sm:inline">{t.applyAll}</span>
+          <span className="sm:hidden">{t.apply}</span>
         </span>
       </div>
       {bursts.map((sec, si) => (
-        <div key={sec.day} className={si > 0 ? 'hidden sm:block' : ''}>
-          <div className="mt-4 mb-2 text-[13px] font-medium text-fg">{sec.day}</div>
+        <div key={si} className={si > 0 ? 'hidden sm:block' : ''}>
+          <div className="mt-4 mb-2 text-[13px] font-medium text-fg">{t.days[si]}</div>
           <div className="flex gap-2.5">
             {sec.groups.map((g, gi) => (
               <div key={gi} className="shrink-0 rounded-xl bg-white/[0.04] p-2">
@@ -433,15 +382,15 @@ function BurstVisual() {
                       />
                       {k === g.keep && (
                         <span className="absolute inset-x-0 bottom-0 bg-accent py-px text-center text-[9px] font-semibold text-black">
-                          推荐
+                          {t.recommended}
                         </span>
                       )}
                     </div>
                   ))}
                 </div>
                 <div className="mt-2 flex justify-end gap-1.5 text-[11px]">
-                  <span className="rounded-md bg-white/[0.06] px-2 py-0.5 text-soft">都保留</span>
-                  <span className="rounded-md bg-white/[0.14] px-2 py-0.5 font-medium text-fg">保留</span>
+                  <span className="rounded-md bg-white/[0.06] px-2 py-0.5 text-soft">{t.keepAll}</span>
+                  <span className="rounded-md bg-white/[0.14] px-2 py-0.5 font-medium text-fg">{t.keep}</span>
                 </div>
               </div>
             ))}

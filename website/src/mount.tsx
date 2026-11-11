@@ -3,14 +3,19 @@ import '@fontsource-variable/inter'
 import './index.css'
 import { StrictMode, type ComponentType } from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
+import { I18nProvider, loadBundle, splitPath, type PageKey } from './i18n'
 
 // 构建时每个页面已经预渲染成静态 HTML（见 scripts/prerender.mjs，搜索引擎直接能读到内容），
 // 浏览器里在这份 HTML 上接管（hydrate）；开发时 #root 是空的，直接渲染
-export function mount(Page: ComponentType) {
+// 先按地址里的语言前缀加载这一页的文字，再渲染
+export async function mount(Page: ComponentType, page: PageKey) {
   const root = document.getElementById('root')!
+  const bundle = await loadBundle(splitPath(location.pathname).locale, page)
   const app = (
     <StrictMode>
-      <Page />
+      <I18nProvider bundle={bundle}>
+        <Page />
+      </I18nProvider>
     </StrictMode>
   )
   if (root.firstElementChild) hydrateRoot(root, app)

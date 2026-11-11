@@ -26,6 +26,9 @@ export interface Env {
 }
 
 const KINDS: Record<string, string> = { bug: '[Bug]', feature: '[建议]', question: '[咨询]' }
+// 官网非中文页面提交的 Issue 用英文前缀（与页面上的预览一致）
+const KINDS_EN: Record<string, string> = { bug: '[Bug]', feature: '[Feature]', question: '[Question]' }
+const KINDS_TW: Record<string, string> = { bug: '[Bug]', feature: '[建議]', question: '[諮詢]' }
 const MAX_TITLE = 120
 const MAX_BODY = 20000
 
@@ -79,7 +82,7 @@ export default {
     if (url.pathname !== '/issues' || req.method !== 'POST') return json({ error: 'not found' }, 404, headers)
     if (!headers['Access-Control-Allow-Origin']) return json({ error: '不允许的来源' }, 403, headers)
 
-    let input: { kind?: string; title?: string; body?: string; github?: string; token?: string; website?: string }
+    let input: { kind?: string; title?: string; body?: string; github?: string; token?: string; website?: string; lang?: string }
     try {
       input = await req.json()
     } catch {
@@ -89,7 +92,8 @@ export default {
     // 诱饵字段被填了：多半是机器人，假装成功
     if (input.website) return json({ ok: true }, 200, headers)
 
-    const prefix = KINDS[input.kind ?? '']
+    const lang = input.lang ?? 'zh'
+    const prefix = (lang === 'zh' ? KINDS : lang === 'zh-tw' ? KINDS_TW : KINDS_EN)[input.kind ?? '']
     const title = (input.title ?? '').trim()
     const body = (input.body ?? '').trim()
     const github = (input.github ?? '').trim().replace(/^@/, '')

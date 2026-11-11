@@ -27,6 +27,21 @@ jobs:
           ssh-keyscan gitee.com >> ~/.ssh/known_hosts
 
       - name: Push to Gitee
+        timeout-minutes: 10
+        env:
+          GIT_SSH_COMMAND: >-
+            ssh -i ~/.ssh/id_ed25519
+            -o IdentitiesOnly=yes
+            -o BatchMode=yes
+            -o ConnectTimeout=20
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+            -o StrictHostKeyChecking=yes
         run: |
           git remote add gitee git@gitee.com:i-dj/wanmory.git
-          git push gitee HEAD:refs/heads/main
+
+          echo "Checking repository access..."
+          git ls-remote gitee
+
+          echo "Pushing main..."
+          git push --progress gitee HEAD:refs/heads/main

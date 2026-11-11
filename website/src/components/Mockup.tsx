@@ -31,67 +31,29 @@ import {
 import Logo from './Logo'
 import Photo from './Photo'
 import { AlbumsView, PeopleView, PlacesView } from './Views'
+import { fill, useI18n, usePage } from '../i18n'
+import type { HomeDict } from '../i18n/locales/zh/home'
 
 // Mockup 是用 HTML 仿出来的相册界面：左边菜单点图库、相册、人物、足迹能切换页面，没人点时每隔几秒自动换下一个。
 // 图库是 AI 精选轮播、那年今天、按月份分组的照片墙。
 // 宽屏上固定高度，菜单和照片墙到底部渐隐，不把整页拉得很长。照片在 public/photos/
 
+// 文字（标题、时间、地点）在语言文件 mock.picks 里，顺序一样
 const picks = [
-  {
-    id: 450,
-    title: '雪山下的湖',
-    date: '2026年10月2日 07:46',
-    place: '加拿大 · 班夫',
-    camera: 'SONY α7R V',
-    lens: 'FE 16-35mm F2.8 GM II',
-    exposure: 'f/8 · 1/250s · ISO 100',
-  },
-  {
-    id: 110,
-    title: '原野上的日落',
-    date: '2026年10月14日 18:05',
-    place: '内蒙古 · 呼伦贝尔',
-    camera: 'Canon EOS R5',
-    lens: 'RF 24-70mm F2.8 L',
-    exposure: 'f/5.6 · 1/500s · ISO 200',
-  },
-  {
-    id: 49,
-    title: '海边的白房子',
-    date: '2026年9月21日 17:40',
-    place: '希腊 · 圣托里尼',
-    camera: 'FUJIFILM X-T5',
-    lens: 'XF 23mm F1.4 R LM WR',
-    exposure: 'f/4 · 1/1000s · ISO 125',
-  },
-  {
-    id: 477,
-    title: '湖里的那棵树',
-    date: '2026年9月3日 06:12',
-    place: '新西兰 · 瓦纳卡',
-    camera: 'LEICA Q3',
-    lens: 'Summilux 28mm f/1.7 ASPH',
-    exposure: 'f/2.8 · 1/125s · ISO 400',
-  },
+  { id: 450, camera: 'SONY α7R V', lens: 'FE 16-35mm F2.8 GM II', exposure: 'f/8 · 1/250s · ISO 100' },
+  { id: 110, camera: 'Canon EOS R5', lens: 'RF 24-70mm F2.8 L', exposure: 'f/5.6 · 1/500s · ISO 200' },
+  { id: 49, camera: 'FUJIFILM X-T5', lens: 'XF 23mm F1.4 R LM WR', exposure: 'f/4 · 1/1000s · ISO 125' },
+  { id: 477, camera: 'LEICA Q3', lens: 'Summilux 28mm f/1.7 ASPH', exposure: 'f/2.8 · 1/125s · ISO 400' },
 ]
 
-const memories = [
-  { id: 434, t: '1 年前的今天', d: '瑞士 · 湖边 · 36 张' },
-  { id: 184, t: '3 年前的今天', d: '甘肃 · 鸣沙山 · 52 张' },
-  { id: 62, t: '5 年前的今天', d: '云南 · 香格里拉 · 81 张' },
-]
+const memories = [434, 184, 62]
 
 const october = [381, 29, 231, 412, 483, 484, 247, 162]
 const september = [218, 471, 424, 206, 17, 28, 66, 77]
 
 export type View = 'library' | 'albums' | 'people' | 'places'
 
-const views: { view: View; label: string; title: string; subtitle: string }[] = [
-  { view: 'library', label: '图库', title: '图库', subtitle: '' },
-  { view: 'albums', label: '相册', title: '相册', subtitle: '8 个相册' },
-  { view: 'people', label: '人物', title: '人物', subtitle: '已认出 12 个人' },
-  { view: 'places', label: '足迹', title: '足迹', subtitle: '去过 6 个国家 · 8 个地方' },
-]
+const views: View[] = ['library', 'albums', 'people', 'places']
 
 const AUTO_MS = 3500 // 没人点时，每隔几秒自动换到下一个页面
 const IDLE_MS = 8000 // 点过以后，停多久没动再接着自动切换
@@ -100,12 +62,12 @@ export default function Mockup() {
   const [view, setView] = useState<View>('library')
   const [touched, setTouched] = useState(0) // 最后一次点菜单的时间
   const [hover, setHover] = useState(false)
+  const m = usePage<HomeDict>().mock
   useEffect(() => {
     if (hover) return
     const wait = Math.max(AUTO_MS, touched + IDLE_MS - Date.now())
     const t = setTimeout(() => {
-      const k = views.findIndex((v) => v.view === view)
-      setView(views[(k + 1) % views.length].view)
+      setView(views[(views.indexOf(view) + 1) % views.length])
     }, wait)
     return () => clearTimeout(t)
   }, [view, touched, hover])
@@ -113,7 +75,7 @@ export default function Mockup() {
     setView(v)
     setTouched(Date.now())
   }
-  const cur = views.find((v) => v.view === view)!
+  const cur = m.views[view]
 
   return (
     <div
@@ -134,7 +96,7 @@ export default function Mockup() {
         </div>
         <span className="hidden shrink-0 items-center gap-1.5 text-xs text-ok sm:flex">
           <span className="size-1.5 rounded-full bg-ok" />
-          AI 服务已连接
+          {m.aiConnected}
         </span>
       </div>
 
@@ -144,24 +106,24 @@ export default function Mockup() {
         {/* 右边内容：宽屏上超出高度的部分渐隐 */}
         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           {/* 窄屏上没有左边菜单，和相册网页一样换成顶上一排标签 */}
-          <div className="flex gap-1 border-b border-[#222225] px-3 py-2 md:hidden" role="tablist" aria-label="切换页面">
+          <div className="flex gap-1 border-b border-[#222225] px-3 py-2 md:hidden" role="tablist" aria-label={m.switchView}>
             {views.map((v) => (
               <button
-                key={v.view}
+                key={v}
                 role="tab"
-                aria-selected={v.view === view}
-                onClick={() => pick(v.view)}
+                aria-selected={v === view}
+                onClick={() => pick(v)}
                 className={`rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
-                  v.view === view ? 'bg-white/[0.08] font-medium text-fg' : 'text-muted'
+                  v === view ? 'bg-white/[0.08] font-medium text-fg' : 'text-muted'
                 }`}
               >
-                {v.label}
+                {m.views[v].label}
               </button>
             ))}
           </div>
           <div className="flex items-center justify-between gap-3 px-3 pt-3 sm:px-5 sm:pt-5">
             <div className="flex min-w-0 items-baseline gap-2.5">
-              <div className="shrink-0 text-lg font-semibold text-fg">{cur.title}</div>
+              <div className="shrink-0 text-lg font-semibold text-fg">{cur.label}</div>
               {cur.subtitle && <div className="truncate text-xs text-muted">{cur.subtitle}</div>}
             </div>
             <HeaderAction view={view} />
@@ -183,23 +145,24 @@ export default function Mockup() {
 
 // 每个页面右上角的东西：图库是搜索框，相册是「新建相册」，足迹是地图 / 卫星 / 网格
 function HeaderAction({ view }: { view: View }) {
+  const m = usePage<HomeDict>().mock
   if (view === 'library')
     return (
       <div className="flex min-w-0 items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-muted sm:w-64">
         <Search className="size-3.5 shrink-0" />
-        <span className="truncate">搜索「海边的日落」</span>
+        <span className="truncate">{m.search}</span>
       </div>
     )
   if (view === 'albums')
     return (
       <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-soft">
-        <Plus className="size-3.5" /> 新建相册
+        <Plus className="size-3.5" /> {m.newAlbum}
       </span>
     )
   if (view === 'places')
     return (
       <div className="flex shrink-0 gap-1 text-xs">
-        {['地图', '卫星', '网格'].map((l, k) => (
+        {m.mapModes.map((l, k) => (
           <span key={l} className={`rounded-lg px-2.5 py-1 ${k === 0 ? 'bg-white/[0.08] font-medium text-fg' : 'text-muted'}`}>
             {l}
           </span>
@@ -211,11 +174,13 @@ function HeaderAction({ view }: { view: View }) {
 
 function Library() {
   const [i, setI] = useState(0)
+  const m = usePage<HomeDict>().mock
+  const { num } = useI18n()
   useEffect(() => {
     const t = setTimeout(() => setI((i + 1) % picks.length), 5000)
     return () => clearTimeout(t)
   }, [i])
-  const p = picks[i]
+  const p = { ...picks[i], ...m.picks[i] }
   return (
     <>
       {/* AI 精选轮播 */}
@@ -230,14 +195,14 @@ function Library() {
         ))}
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
         <button
-          aria-label="上一张"
+          aria-label={m.prev}
           onClick={() => setI((i + picks.length - 1) % picks.length)}
           className="glass absolute top-1/2 left-3 hidden size-8 -translate-y-1/2 place-items-center rounded-full text-fg sm:grid"
         >
           <ChevronLeft className="size-4" />
         </button>
         <button
-          aria-label="下一张"
+          aria-label={m.next}
           onClick={() => setI((i + 1) % picks.length)}
           className="glass absolute top-1/2 right-3 hidden size-8 -translate-y-1/2 place-items-center rounded-full text-fg sm:grid"
         >
@@ -246,7 +211,7 @@ function Library() {
         <div key={i} className="animate-fade absolute right-3 bottom-3 left-3 sm:right-5 sm:bottom-5 sm:left-5">
           <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px]">
             <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 font-medium text-black">
-              <Sparkles className="size-3" /> AI 精选
+              <Sparkles className="size-3" /> {m.aiPick}
             </span>
             <span className="text-white/80">{p.date}</span>
           </div>
@@ -262,7 +227,7 @@ function Library() {
           {picks.map((x, k) => (
             <button
               key={x.id}
-              aria-label={`第 ${k + 1} 张`}
+              aria-label={fill(m.nth, { n: k + 1 })}
               onClick={() => setI(k)}
               className={`h-1.5 rounded-full transition-all ${k === i ? 'w-5 bg-accent' : 'w-1.5 bg-white/50'}`}
             />
@@ -272,20 +237,20 @@ function Library() {
 
       {/* 那年今天 */}
       <div className="mt-5 mb-2.5 flex items-center justify-between text-[13px]">
-        <span className="font-medium text-fg">那年今天</span>
-        <span className="text-xs text-muted">11月10日</span>
+        <span className="font-medium text-fg">{m.onThisDay}</span>
+        <span className="text-xs text-muted">{m.today}</span>
       </div>
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
-        {memories.map((m, k) => (
+        {memories.map((id, k) => (
           <div
-            key={m.t}
+            key={id}
             className={`relative aspect-[2/1] overflow-hidden rounded-lg bg-[#1b1b1e] lg:aspect-[5/2] ${k === 2 ? 'hidden lg:block' : ''}`}
           >
-            <Photo id={m.id} className="absolute inset-0 size-full" />
+            <Photo id={id} className="absolute inset-0 size-full" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="absolute bottom-2 left-2.5 sm:bottom-3 sm:left-3">
-              <div className="text-[13px] font-semibold text-white">{m.t}</div>
-              <div className="text-[11px] text-white/80">{m.d}</div>
+              <div className="text-[13px] font-semibold text-white">{m.memories[k].t}</div>
+              <div className="text-[11px] text-white/80">{m.memories[k].d}</div>
             </div>
           </div>
         ))}
@@ -293,7 +258,7 @@ function Library() {
 
       {/* 按月份分组 */}
       <div className="mt-5 mb-2.5 text-[13px] font-medium text-fg">
-        2026年10月 <span className="ml-1 text-xs font-normal text-muted">248 张</span>
+        {m.october} <span className="ml-1 text-xs font-normal text-muted">{fill(m.photos, { n: num(248) })}</span>
       </div>
       <div className="grid grid-cols-4 gap-1 sm:grid-cols-8">
         {october.map((id, k) => (
@@ -306,7 +271,7 @@ function Library() {
         ))}
       </div>
       <div className="mt-5 mb-2.5 hidden text-[13px] font-medium text-fg md:block">
-        2026年9月 <span className="ml-1 text-xs font-normal text-muted">312 张</span>
+        {m.september} <span className="ml-1 text-xs font-normal text-muted">{fill(m.photos, { n: num(312) })}</span>
       </div>
       <div className="hidden grid-cols-8 gap-1 md:grid">
         {september.map((id) => (
@@ -320,36 +285,38 @@ function Library() {
 // —— 左边菜单：照着相册网页的 Sidebar（web/src/components/layout/Sidebar.tsx）画的，菜单项、分组、底部存储和登录的人都一样 ——
 
 type Item = { icon: LucideIcon; label: string; count?: number; view?: View }
+type Sidebar = HomeDict['mock']['sidebar']
+type Views = HomeDict['mock']['views']
 
-const groups: { title?: string; items: (Item | 'rating' | 'more')[] }[] = [
+const groupsOf = (t: Sidebar, v: Views): { title?: string; items: (Item | 'rating' | 'more')[] }[] => [
   {
     items: [
-      { icon: Images, label: '图库', view: 'library' },
-      { icon: BookImage, label: '相册', view: 'albums' },
-      { icon: UsersRound, label: '人物', view: 'people' },
-      { icon: MapPinned, label: '足迹', view: 'places' },
+      { icon: Images, label: v.library.label, view: 'library' },
+      { icon: BookImage, label: v.albums.label, view: 'albums' },
+      { icon: UsersRound, label: v.people.label, view: 'people' },
+      { icon: MapPinned, label: v.places.label, view: 'places' },
     ],
   },
   {
-    title: '分类',
+    title: t.categories,
     items: [
-      { icon: Heart, label: '收藏', count: 326 },
+      { icon: Heart, label: t.favorites, count: 326 },
       'rating',
-      { icon: Video, label: '视频' },
-      { icon: Mountain, label: '风景' },
-      { icon: UtensilsCrossed, label: '美食' },
-      { icon: PawPrint, label: '动物' },
-      { icon: Flower2, label: '植物' },
+      { icon: Video, label: t.videos },
+      { icon: Mountain, label: t.scenery },
+      { icon: UtensilsCrossed, label: t.food },
+      { icon: PawPrint, label: t.animals },
+      { icon: Flower2, label: t.plants },
       'more',
     ],
   },
   {
-    title: '整理',
+    title: t.organize,
     items: [
-      { icon: Clock, label: '最近添加' },
-      { icon: Layers, label: '连拍整理' },
-      { icon: EyeOff, label: '已隐藏' },
-      { icon: Trash2, label: '最近删除' },
+      { icon: Clock, label: t.recent },
+      { icon: Layers, label: t.bursts },
+      { icon: EyeOff, label: t.hidden },
+      { icon: Trash2, label: t.deleted },
     ],
   },
 ]
@@ -357,13 +324,16 @@ const groups: { title?: string; items: (Item | 'rating' | 'more')[] }[] = [
 const row = 'flex h-9 shrink-0 items-center gap-3 rounded-[10px] px-[11px] text-sm font-medium'
 
 function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }) {
+  const m = usePage<HomeDict>().mock
+  const t = m.sidebar
+  const groups = groupsOf(t, m.views)
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-[#222225] bg-[#101012] md:flex">
       {/* 标志、名字、版本号，右边收起按钮 */}
       <div className="flex h-20 shrink-0 items-center gap-3 pr-3 pl-3.5">
         <Logo className="size-9 shrink-0 text-fg" />
         <div className="min-w-0 leading-tight">
-          <div className="text-[19px] font-bold tracking-[0.3em] text-fg">万象</div>
+          <div className={`text-[19px] font-bold text-fg ${/^[\x00-\x7f]+$/.test(m.appName) ? 'tracking-tight' : 'tracking-[0.3em]'}`}>{m.appName}</div>
           <div className="text-xs text-muted">v0.2.9</div>
         </div>
         <span className="ml-auto grid size-8 place-items-center rounded-full text-fg/50">
@@ -373,7 +343,7 @@ function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }
       {/* 菜单里最显眼的大按钮：深色主题是白底黑字 */}
       <div className="px-3 pb-6">
         <div className="flex h-10 items-center justify-center gap-2 rounded-xl bg-fg text-sm font-semibold text-page">
-          <Upload className="size-4" strokeWidth={2.2} /> 上传照片 / 视频
+          <Upload className="size-4 shrink-0" strokeWidth={2.2} /> <span className="truncate">{t.upload}</span>
         </div>
       </div>
       <nav className="relative flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-3">
@@ -388,7 +358,7 @@ function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }
               it === 'rating' ? (
                 <div key={k} className={`${row} text-soft`}>
                   <Star className="size-[19px] shrink-0" strokeWidth={1.7} />
-                  <span className="flex-1">星级</span>
+                  <span className="min-w-0 flex-1 truncate">{t.rating}</span>
                   <span className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <Star key={n} className="size-3.5 text-muted/60" strokeWidth={1.8} />
@@ -398,7 +368,7 @@ function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }
               ) : it === 'more' ? (
                 <div key={k} className={`${row} text-soft/70`}>
                   <ChevronDown className="size-[19px] shrink-0 -rotate-90" strokeWidth={1.7} />
-                  更多
+                  {t.more}
                 </div>
               ) : (
                 it.view ? (
@@ -412,12 +382,12 @@ function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }
                     }`}
                   >
                     <it.icon className="size-[19px] shrink-0" strokeWidth={1.7} />
-                    <span className="flex-1">{it.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{it.label}</span>
                   </button>
                 ) : (
                   <div key={k} className={`${row} text-soft`}>
                     <it.icon className="size-[19px] shrink-0" strokeWidth={1.7} />
-                    <span className="flex-1">{it.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{it.label}</span>
                     {it.count && <span className="text-[13px] font-normal text-muted tabular-nums">{it.count}</span>}
                   </div>
                 )
@@ -431,7 +401,7 @@ function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }
       {/* 存储空间 */}
       <div className="mx-3.5 mt-2 mb-2 shrink-0 rounded-xl border border-line/70 bg-[#1b1b1e] px-3.5 py-3">
         <div className="flex items-center justify-between text-xs text-muted">
-          <span>存储空间</span>
+          <span>{t.storage}</span>
           <span className="tabular-nums">1.2 / 4 TB</span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
@@ -442,14 +412,14 @@ function MockSidebar({ view, onPick }: { view: View; onPick: (v: View) => void }
       <div className="flex shrink-0 items-center gap-1 px-4 pt-1 pb-4">
         <div className="flex min-w-0 flex-1 items-center gap-2.5 px-1 py-1">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
-            妈
+            {t.userInitial}
           </span>
-          <span className="truncate text-sm font-medium text-fg">妈妈</span>
+          <span className="truncate text-sm font-medium text-fg">{t.userName}</span>
         </div>
-        <span className="grid size-8 place-items-center rounded-full text-fg/70" title="退出登录">
+        <span className="grid size-8 place-items-center rounded-full text-fg/70" title={t.logout}>
           <LogOut className="size-4.5" strokeWidth={1.8} />
         </span>
-        <span className="grid size-8 place-items-center rounded-full text-fg/70" title="系统设置">
+        <span className="grid size-8 place-items-center rounded-full text-fg/70" title={t.settings}>
           <Settings className="size-4.5" strokeWidth={1.8} />
         </span>
       </div>

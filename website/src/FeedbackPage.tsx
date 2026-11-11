@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowUpRight, Bug, CircleCheck, CircleHelp, ExternalLink, Lightbulb, LoaderCircle, Search, Send } from 'lucide-react'
 import { Container, Footer, GITHUB, Nav } from './components/Layout'
+import { LOCALE_INFO, fill, useI18n, usePage } from './i18n'
+import type { FeedbackDict } from './i18n/locales/zh/feedback'
 
 // 提交问题页：填好表单后整理成 GitHub Issue 的格式提交。
 // 配置了 VITE_FEEDBACK_API（服务端，见 worker/）时：通过人机验证后直接提交，不需要 GitHub 账号，提交成功显示 Issue 链接；
@@ -21,7 +23,7 @@ declare global {
 }
 
 // Cloudflare Turnstile 人机验证：用到时才加载它的脚本，通过后把 token 交给 onToken
-function Turnstile({ onToken }: { onToken: (t: string) => void }) {
+function Turnstile({ onToken, language }: { onToken: (t: string) => void; language: string }) {
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let id: string | undefined
@@ -30,7 +32,7 @@ function Turnstile({ onToken }: { onToken: (t: string) => void }) {
       id = window.turnstile.render(box.current, {
         sitekey: SITE_KEY,
         theme: 'dark',
-        language: 'zh-cn',
+        language,
         callback: onToken,
         'expired-callback': () => onToken(''),
       })
@@ -47,18 +49,17 @@ function Turnstile({ onToken }: { onToken: (t: string) => void }) {
       }
       el.addEventListener('load', draw)
     }
-  }, [onToken])
+  }, [onToken, language])
   return <div ref={box} className="min-h-[65px]" />
 }
 
 type Kind = 'bug' | 'feature' | 'question'
-const kinds: { key: Kind; label: string; prefix: string; icon: typeof Bug; hint: string }[] = [
-  { key: 'bug', label: '问题反馈', prefix: '[Bug]', icon: Bug, hint: '功能不正常、报错、数据异常' },
-  { key: 'feature', label: '功能建议', prefix: '[建议]', icon: Lightbulb, hint: '希望增加或改进的功能' },
-  { key: 'question', label: '使用咨询', prefix: '[咨询]', icon: CircleHelp, hint: '部署、配置、使用上的疑问' },
+// 名字、前缀、说明在语言文件 kinds 里
+const kinds: { key: Kind; icon: typeof Bug }[] = [
+  { key: 'bug', icon: Bug },
+  { key: 'feature', icon: Lightbulb },
+  { key: 'question', icon: CircleHelp },
 ]
-
-const deploys = ['Docker Compose（官方编排文件）', '群晖 / 威联通等 NAS', '树莓派 / ARM 设备', '远程 AI 服务', '其他']
 
 const MAX_URL = 7500 // GitHub 新建 Issue 的链接太长会打不开，正文超出时截断
 
@@ -79,6 +80,11 @@ const input =
   'w-full rounded-xl border border-line bg-[#111114] px-3.5 py-2.5 text-sm text-fg placeholder:text-faint outline-none transition focus:border-accent/60 focus:ring-2 focus:ring-accent/15'
 
 export default function FeedbackPage() {
+  const t = usePage<FeedbackDict>()
+  const { locale, href } = useI18n()
+  const f = t.fields
+  const sec = t.sections
+  const deploys = t.deploys
   const [kind, setKind] = useState<Kind>('bug')
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
@@ -92,29 +98,30 @@ export default function FeedbackPage() {
   const [token, setToken] = useState('')
   const [state, setState] = useState<{ s: 'idle' | 'sending' | 'done' | 'error'; msg?: string; url?: string; number?: number }>({ s: 'idle' })
 
-  const k = kinds.find((x) => x.key === kind)!
+  const k = { key: kind, ...t.kinds[kind] }
+  const env = `- ${sec.version}: ${version || sec.notFilled}\n- ${sec.deploy}: ${deploy}`
   const sections: [string, string][] =
     kind === 'bug'
       ? [
-          ['问题描述', desc],
-          ['复现步骤', steps],
-          ['运行环境', `- 版本：${version || '未填写'}\n- 部署方式：${deploy}`],
-          ['相关日志', logs ? '```\n' + logs + '\n```' : ''],
+          [sec.desc, desc],
+          [sec.steps, steps],
+          [sec.env, env],
+          [sec.logs, logs ? '```\n' + logs + '\n```' : ''],
         ]
       : kind === 'feature'
         ? [
-            ['希望实现的功能', desc],
-            ['使用场景', steps],
+            [sec.feature, desc],
+            [sec.scenario, steps],
           ]
         : [
-            ['问题', desc],
-            ['运行环境', `- 版本：${version || '未填写'}\n- 部署方式：${deploy}`],
+            [sec.question, desc],
+            [sec.env, env],
           ]
   const body =
     sections
       .filter(([, v]) => v.trim())
       .map(([h, v]) => `### ${h}\n\n${v.trim()}`)
-      .join('\n\n') + (DIRECT ? '' : '\n\n---\n_通过 wanmory.com 提交_') // 直接提交时尾注由服务端加
+      .join('\n\n') + (DIRECT ? '' : `\n\n---\n_${sec.via}_`) // 直接提交时尾注由服务端加
   const fullTitle = `${k.prefix} ${title.trim()}`
   const ok = title.trim().length > 0 && desc.trim().length > 0
 
@@ -123,7 +130,7 @@ export default function FeedbackPage() {
     const base = `${GITHUB}/issues/new?title=${encodeURIComponent(fullTitle)}&body=`
     let b = body
     while (base.length + encodeURIComponent(b).length > MAX_URL) b = b.slice(0, Math.floor(b.length * 0.9))
-    if (b !== body) b += '\n\n…（内容过长已截断，请在此补充）'
+    if (b !== body) b += `\n\n${sec.truncated}`
     window.open(base + encodeURIComponent(b), '_blank', 'noopener')
   }
 
@@ -131,19 +138,20 @@ export default function FeedbackPage() {
     setTried(true)
     if (!ok) return
     if (!DIRECT) return openGitHub()
-    if (!token) return setState({ s: 'error', msg: '请先完成人机验证' })
+    if (!token) return setState({ s: 'error', msg: t.errors.captcha })
     setState({ s: 'sending' })
     try {
       const res = await fetch(`${API}/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, title: title.trim(), body, github, token, website: trap }),
+        body: JSON.stringify({ kind, title: title.trim(), body, github, token, website: trap, lang: locale }),
       })
       const data = (await res.json()) as { ok?: boolean; error?: string; url?: string; number?: number }
-      if (!res.ok || !data.ok) throw new Error(data.error || '提交失败')
+      // 服务端的错误信息是中文的，其他语言只显示「提交失败」
+      if (!res.ok || !data.ok) throw new Error((locale === 'zh' && data.error) || t.errors.failed)
       setState({ s: 'done', url: data.url, number: data.number })
     } catch (e) {
-      setState({ s: 'error', msg: e instanceof Error ? e.message : '提交失败' })
+      setState({ s: 'error', msg: e instanceof Error && e.message ? e.message : t.errors.failed })
       setToken('')
       window.turnstile?.reset()
     }
@@ -157,10 +165,8 @@ export default function FeedbackPage() {
           <Container>
             <div className="max-w-2xl">
               <Send className="size-9 text-accent" strokeWidth={1.6} aria-hidden="true" />
-              <h1 className="mt-5 text-3xl font-bold tracking-tight text-fg sm:text-5xl">提交问题</h1>
-              <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
-                反馈问题、提出建议或咨询使用方法。内容会自动整理成 GitHub Issue 提交到项目仓库，开发者会在 GitHub 上回复。
-              </p>
+              <h1 className="mt-5 text-3xl font-bold tracking-tight text-fg sm:text-5xl">{t.title}</h1>
+              <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">{t.lead}</p>
             </div>
 
             <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
@@ -168,9 +174,13 @@ export default function FeedbackPage() {
               {state.s === 'done' ? (
                 <div className="flex flex-col items-start rounded-2xl border border-line bg-card p-6 sm:p-8">
                   <CircleCheck className="size-10 text-ok" strokeWidth={1.6} />
-                  <h2 className="mt-4 text-xl font-semibold text-fg">已提交{state.number ? ` #${state.number}` : ''}</h2>
+                  <h2 className="mt-4 text-xl font-semibold text-fg">
+                    {t.done.title}
+                    {state.number ? ` #${state.number}` : ''}
+                  </h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted">
-                    感谢反馈。问题已经提交到 GitHub，开发者会在那里回复{github ? `，回复时会通知 @${github}` : '；想收到回复通知，可以在 GitHub 上订阅这个 Issue'}。
+                    {t.done.thanks}
+                    {github ? fill(t.done.notify, { user: github }) : t.done.subscribe}
                   </p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     {state.url && (
@@ -180,7 +190,7 @@ export default function FeedbackPage() {
                         rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-full border border-accent bg-accent px-5 py-2 text-sm font-semibold text-black"
                       >
-                        查看 Issue <ArrowUpRight className="size-4" />
+                        {t.done.view} <ArrowUpRight className="size-4" />
                       </a>
                     )}
                     <button
@@ -195,7 +205,7 @@ export default function FeedbackPage() {
                       }}
                       className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-2 text-sm font-medium text-soft hover:text-fg"
                     >
-                      再提交一个
+                      {t.done.again}
                     </button>
                   </div>
                 </div>
@@ -207,8 +217,8 @@ export default function FeedbackPage() {
                   submit()
                 }}
               >
-                <div className="text-sm font-medium text-fg">类型</div>
-                <div className="mt-2 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="问题类型">
+                <div className="text-sm font-medium text-fg">{t.kindLabel}</div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t.kindAria}>
                   {kinds.map((x) => {
                     const Icon = x.icon
                     const on = x.key === kind
@@ -224,48 +234,48 @@ export default function FeedbackPage() {
                         }`}
                       >
                         <span className={`flex items-center gap-2 text-sm font-semibold ${on ? 'text-accent' : 'text-fg'}`}>
-                          <Icon className="size-4" /> {x.label}
+                          <Icon className="size-4" /> {t.kinds[x.key].label}
                         </span>
-                        <span className="mt-1 block text-xs text-muted">{x.hint}</span>
+                        <span className="mt-1 block text-xs text-muted">{t.kinds[x.key].hint}</span>
                       </button>
                     )
                   })}
                 </div>
 
                 <div className="mt-6 space-y-5">
-                  <Field label="标题" required hint="一句话概括">
+                  <Field label={f.title} required hint={f.titleHint}>
                     <input
                       className={`${input} ${tried && !title.trim() ? 'border-[#ff99a4]' : ''}`}
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder={kind === 'bug' ? '例如：上传 HEIC 照片后缩略图不显示' : kind === 'feature' ? '例如：支持按相机型号筛选照片' : '例如：如何把 AI 服务部署到 Mac 上'}
+                      placeholder={f.titlePlaceholder[kind]}
                       maxLength={120}
                     />
                   </Field>
-                  <Field label={kind === 'feature' ? '希望实现的功能' : kind === 'bug' ? '问题描述' : '问题'} required>
+                  <Field label={f.desc[kind]} required>
                     <textarea
                       className={`${input} min-h-28 resize-y ${tried && !desc.trim() ? 'border-[#ff99a4]' : ''}`}
                       value={desc}
                       onChange={(e) => setDesc(e.target.value)}
-                      placeholder={kind === 'bug' ? '发生了什么？期望的结果是什么？' : kind === 'feature' ? '希望万象能做到什么？' : '遇到了什么疑问？'}
+                      placeholder={f.descPlaceholder[kind]}
                     />
                   </Field>
                   {kind !== 'question' && (
-                    <Field label={kind === 'bug' ? '复现步骤' : '使用场景'} hint="选填">
+                    <Field label={f.steps[kind]} hint={f.optional}>
                       <textarea
                         className={`${input} min-h-24 resize-y`}
                         value={steps}
                         onChange={(e) => setSteps(e.target.value)}
-                        placeholder={kind === 'bug' ? '1. 打开……\n2. 点击……\n3. 出现……' : '在什么情况下需要这个功能？'}
+                        placeholder={f.stepsPlaceholder[kind]}
                       />
                     </Field>
                   )}
                   {kind !== 'feature' && (
                     <div className="grid gap-5 sm:grid-cols-2">
-                      <Field label="版本号" hint="系统设置 → 系统更新">
-                        <input className={input} value={version} onChange={(e) => setVersion(e.target.value)} placeholder="例如 v0.2.9" />
+                      <Field label={f.version} hint={f.versionHint}>
+                        <input className={input} value={version} onChange={(e) => setVersion(e.target.value)} placeholder={f.versionPlaceholder} />
                       </Field>
-                      <Field label="部署方式">
+                      <Field label={f.deploy}>
                         <select className={input} value={deploy} onChange={(e) => setDeploy(e.target.value)}>
                           {deploys.map((d) => (
                             <option key={d}>{d}</option>
@@ -275,18 +285,18 @@ export default function FeedbackPage() {
                     </div>
                   )}
                   {kind === 'bug' && (
-                    <Field label="相关日志" hint="选填，docker compose logs server 或 ml">
+                    <Field label={f.logs} hint={f.logsHint}>
                       <textarea
                         className={`${input} min-h-24 resize-y font-mono text-xs`}
                         value={logs}
                         onChange={(e) => setLogs(e.target.value)}
-                        placeholder="粘贴相关的报错日志，注意去掉密码、令牌等敏感信息"
+                        placeholder={f.logsPlaceholder}
                       />
                     </Field>
                   )}
                   {DIRECT && (
-                    <Field label="GitHub 用户名" hint="选填，Issue 里会 @ 你，有回复时收到通知">
-                      <input className={input} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="例如 octocat" maxLength={39} />
+                    <Field label={f.github} hint={f.githubHint}>
+                      <input className={input} value={github} onChange={(e) => setGithub(e.target.value)} placeholder={f.githubPlaceholder} maxLength={39} />
                     </Field>
                   )}
                   {/* 诱饵字段：屏幕外、不可聚焦，只有机器人会填 */}
@@ -300,29 +310,29 @@ export default function FeedbackPage() {
                     onChange={(e) => setTrap(e.target.value)}
                     className="absolute -left-[9999px] h-0 w-0 opacity-0"
                   />
-                  {DIRECT && <Turnstile onToken={setToken} />}
+                  {DIRECT && <Turnstile onToken={setToken} language={LOCALE_INFO[locale].turnstile} />}
                 </div>
 
                 <div className="mt-7 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs leading-relaxed text-muted">
                     {tried && !ok ? (
-                      <span className="text-[#ff99a4]">请填写标题和{kind === 'feature' ? '功能描述' : '问题描述'}。</span>
+                      <span className="text-[#ff99a4]">{t.errors.required[kind]}</span>
                     ) : state.s === 'error' ? (
                       <span className="text-[#ff99a4]">
                         {state.msg}
-                        {state.msg !== '请先完成人机验证' && (
+                        {state.msg !== t.errors.captcha && (
                           <>
-                            ，也可以
+                            {t.errors.orUse}
                             <button type="button" onClick={openGitHub} className="ml-1 underline">
-                              改用 GitHub 提交
+                              {t.errors.useGitHub}
                             </button>
                           </>
                         )}
                       </span>
                     ) : DIRECT ? (
-                      '无需 GitHub 账号，提交后会公开显示在项目的 Issues 中，请勿填写隐私信息。'
+                      t.noteDirect
                     ) : (
-                      '将打开 GitHub 并自动填好内容，需要登录 GitHub 账号。'
+                      t.noteGitHub
                     )}
                   </p>
                   <button
@@ -337,7 +347,7 @@ export default function FeedbackPage() {
                     ) : (
                       <ExternalLink className="size-4" />
                     )}
-                    {state.s === 'sending' ? '正在提交…' : DIRECT ? '提交' : '在 GitHub 上提交'}
+                    {state.s === 'sending' ? t.sending : DIRECT ? t.submit : t.submitGitHub}
                   </button>
                 </div>
               </form>
@@ -346,28 +356,30 @@ export default function FeedbackPage() {
               {/* 右边：预览和提示 */}
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-2xl border border-line bg-card">
-                  <div className="border-b border-line px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ISSUE 预览</div>
+                  <div className="border-b border-line px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">{t.preview}</div>
                   <div className="p-5">
-                    <div className="text-[15px] font-semibold break-words text-fg">{title.trim() ? fullTitle : <span className="text-faint">{k.prefix} 标题</span>}</div>
+                    <div className="text-[15px] font-semibold break-words text-fg">{title.trim() ? fullTitle : <span className="text-faint">
+                          {k.prefix} {t.previewTitle}
+                        </span>}</div>
                     <pre className="mt-3 max-h-72 overflow-auto font-sans text-xs leading-relaxed break-words whitespace-pre-wrap text-muted">{body}</pre>
                   </div>
                 </div>
                 <div className="rounded-2xl border border-line bg-card p-5">
-                  <div className="text-sm font-semibold text-fg">提交之前</div>
+                  <div className="text-sm font-semibold text-fg">{t.before}</div>
                   <ul className="mt-3 space-y-2.5 text-sm">
                     <li>
                       <a href={`${GITHUB}/issues?q=is%3Aissue`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted hover:text-fg">
-                        <Search className="size-4 text-accent" /> 搜索是否已有相同的问题 <ArrowUpRight className="size-3.5" />
+                        <Search className="size-4 text-accent" /> {t.searchExisting} <ArrowUpRight className="size-3.5" />
                       </a>
                     </li>
                     <li>
-                      <a href="/faq/" className="flex items-center gap-2 text-muted hover:text-fg">
-                        <CircleHelp className="size-4 text-accent" /> 查看常见问题
+                      <a href={href('/faq/')} className="flex items-center gap-2 text-muted hover:text-fg">
+                        <CircleHelp className="size-4 text-accent" /> {t.readFaq}
                       </a>
                     </li>
                     <li>
-                      <a href="/docs/#troubleshooting" className="flex items-center gap-2 text-muted hover:text-fg">
-                        <Bug className="size-4 text-accent" /> 查看故障排查
+                      <a href={href('/docs/#troubleshooting')} className="flex items-center gap-2 text-muted hover:text-fg">
+                        <Bug className="size-4 text-accent" /> {t.troubleshooting}
                       </a>
                     </li>
                   </ul>

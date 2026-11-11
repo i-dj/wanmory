@@ -1,14 +1,14 @@
-import { useState, type ReactNode } from 'react'
-import { Check, Copy, Github, HardDrive, Menu, ShieldCheck, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Check, ChevronDown, Copy, Github, Globe, HardDrive, Menu, ShieldCheck, X } from 'lucide-react'
 import Logo from './Logo'
+import { LANG_KEY, LOCALE_INFO, LOCALES, PAGES, SITE_URL as SITE, localize, useI18n } from '../i18n'
 
 // 首页和功能架构页共用的东西：顶部导航、页脚、版心、区块标题、按钮、复制按钮
 
 export const GITHUB = 'https://github.com/i-dj/wanmory'
 export const GITEE = 'https://gitee.com/i-dj/wanmory' // 国内镜像仓库
-export const DOCS = '/docs/' // 部署与文档页
-// 官网正式域名：canonical、Open Graph、站点地图都用它（上线前确认）
-export const SITE_URL = 'https://wanmory.com'
+// 官网正式域名：canonical、Open Graph、站点地图都用它（定义在 src/i18n/config.ts）
+export const SITE_URL = SITE
 
 // —— 通用小组件 ——
 
@@ -46,10 +46,11 @@ export function Button({
   primary?: boolean
   icon: ReactNode
 }) {
+  const { href: loc } = useI18n()
   const external = href.startsWith('http')
   return (
     <a
-      href={href}
+      href={loc(href)}
       {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
       className={`inline-flex items-center justify-center gap-2 rounded-full border px-5 py-2.5 text-sm font-semibold transition ${
         primary
@@ -65,14 +66,6 @@ export function Button({
 
 // —— 顶部导航 ——
 
-// 首页上的几块用 /#xxx（在首页时只是滚过去），功能架构、部署与文档、常见问题是单独的页面
-const links = [
-  { href: '/architecture/', label: '功能架构' },
-  { href: '/docs/', label: '部署与文档' },
-  { href: '/faq/', label: '常见问题' },
-  { href: '/releases/', label: '版本发布' },
-]
-
 // current：现在在哪一页（那一项亮着）
 // Gitee 的标志：圆里一个「G」（lucide 没有这个图标，用线条画一个，和 lucide 的线性风格一致）
 function GiteeIcon({ className }: { className?: string }) {
@@ -86,26 +79,34 @@ function GiteeIcon({ className }: { className?: string }) {
 
 export function Nav({ current }: { current?: string }) {
   const [open, setOpen] = useState(false)
+  const { c, href } = useI18n()
+  // 功能架构、部署与文档、常见问题、版本发布是单独的页面
+  const links = [
+    { href: '/architecture/', label: c.nav.architecture },
+    { href: '/docs/', label: c.nav.docs },
+    { href: '/faq/', label: c.nav.faq },
+    { href: '/releases/', label: c.nav.releases },
+  ]
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-page/75 backdrop-blur-xl">
       <Container className="flex h-16 items-center gap-4 md:h-20">
-        <a href="/" className="flex shrink-0 items-center gap-3 text-fg" aria-label="万象 Wanmory 首页">
+        <a href={href('/')} className="flex shrink-0 items-center gap-3 text-fg" aria-label={c.homeLabel}>
           <Logo className="size-9 md:size-10" />
           <div className="leading-tight">
             <div className="flex items-center gap-2 text-lg font-bold whitespace-nowrap md:text-xl">
-              万象
+              {c.brand}
               <span className="rounded bg-accent-soft px-1.5 py-px text-[10px] font-semibold tracking-wider whitespace-nowrap text-accent md:hidden lg:inline md:text-[11px]">
                 OPEN EDITION
               </span>
             </div>
-            <div className="hidden text-[11px] tracking-widest whitespace-nowrap text-faint sm:block md:hidden lg:block">WANMORY · 私有 AI 相册</div>
+            <div className="hidden text-[11px] tracking-widest whitespace-nowrap text-faint sm:block md:hidden lg:block">{c.tagline}</div>
           </div>
         </a>
         <nav className="mx-auto hidden gap-1.5 text-[15px] md:flex lg:text-base">
           {links.map((l) => (
             <a
               key={l.href}
-              href={l.href}
+              href={href(l.href)}
               aria-current={current === l.href ? 'page' : undefined}
               className={`rounded-xl px-3 py-2 font-medium whitespace-nowrap transition hover:bg-white/[0.06] hover:text-fg lg:px-4 ${
                 current === l.href ? 'bg-white/[0.06] text-fg' : 'text-muted'
@@ -121,7 +122,7 @@ export function Nav({ current }: { current?: string }) {
             href={GITHUB}
             target="_blank"
             rel="noreferrer"
-            aria-label="GitHub 仓库"
+            aria-label={c.nav.github}
             className="flex items-center gap-2 rounded-full border border-line bg-white/[0.04] px-2.5 py-2 text-[15px] font-medium text-soft transition hover:text-fg lg:px-4"
           >
             <Github className="size-[18px]" /> <span className="hidden lg:inline">GitHub</span>
@@ -130,14 +131,14 @@ export function Nav({ current }: { current?: string }) {
             href={GITEE}
             target="_blank"
             rel="noreferrer"
-            aria-label="Gitee 仓库"
+            aria-label={c.nav.gitee}
             className="flex items-center gap-2 rounded-full border border-line bg-white/[0.04] px-2.5 py-2 text-[15px] font-medium text-soft transition hover:text-fg lg:px-4"
           >
             <GiteeIcon className="size-[18px]" /> <span className="hidden lg:inline">Gitee</span>
           </a>
         </div>
         <button
-          aria-label={open ? '关闭菜单' : '打开菜单'}
+          aria-label={open ? c.nav.closeMenu : c.nav.openMenu}
           aria-expanded={open}
           onClick={() => setOpen(!open)}
           className="ml-auto grid size-9 place-items-center rounded-lg text-soft hover:bg-white/[0.06] md:hidden"
@@ -147,10 +148,10 @@ export function Nav({ current }: { current?: string }) {
       </Container>
       {open && (
         <div className="glass absolute inset-x-4 top-[68px] rounded-2xl bg-[rgb(30_30_33/0.9)] p-2 shadow-2xl md:hidden">
-          {[...links, { href: GITHUB, label: 'GitHub 仓库' }, { href: GITEE, label: 'Gitee 仓库（国内）' }].map((l) => (
+          {[...links, { href: GITHUB, label: c.nav.github }, { href: GITEE, label: c.nav.giteeMobile }].map((l) => (
             <a
               key={l.href}
-              href={l.href}
+              href={href(l.href)}
               onClick={() => setOpen(false)}
               className="block rounded-lg px-4 py-2.5 text-sm text-soft hover:bg-white/[0.06]"
             >
@@ -163,8 +164,9 @@ export function Nav({ current }: { current?: string }) {
   )
 }
 
-export function CopyButton({ text, label = '复制配置' }: { text: string; label?: string }) {
+export function CopyButton({ text, label }: { text: string; label?: string }) {
   const [done, setDone] = useState(false)
+  const { c } = useI18n()
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text)
@@ -182,44 +184,45 @@ export function CopyButton({ text, label = '复制配置' }: { text: string; lab
   return (
     <button onClick={copy} className="flex shrink-0 items-center gap-1.5 text-xs text-accent hover:brightness-110">
       {done ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-      {done ? '已复制' : label}
+      {done ? c.copied : (label ?? c.copy)}
     </button>
   )
 }
 
 // —— 页脚 ——
 
-const footerCols = [
-  {
-    title: '产品',
-    links: [
-      { label: '核心特性', href: '/#features' },
-      { label: '功能架构', href: '/architecture/' },
-      { label: '端侧 AI', href: '/#hardware' },
-      { label: '常见问题', href: '/faq/' },
-    ],
-  },
-  {
-    title: '部署与文档',
-    links: [
-      { label: '快速安装', href: '/#deploy' },
-      { label: '部署与文档', href: '/docs/' },
-      { label: '版本发布', href: '/releases/' },
-      { label: '独立部署 AI', href: '/docs/#ai-remote' },
-    ],
-  },
-  {
-    title: '开源',
-    links: [
-      { label: 'GitHub 仓库', href: GITHUB },
-      { label: 'Gitee 仓库', href: GITEE },
-      { label: '提交问题', href: '/feedback/' },
-      { label: 'AGPL-3.0 许可', href: `${GITHUB}/blob/main/LICENSE` },
-    ],
-  },
-]
-
 export function Footer() {
+  const { c, href } = useI18n()
+  const f = c.footer
+  const cols = [
+    {
+      title: f.product,
+      links: [
+        { label: f.features, href: '/#features' },
+        { label: f.architecture, href: '/architecture/' },
+        { label: f.edgeAI, href: '/#hardware' },
+        { label: f.faq, href: '/faq/' },
+      ],
+    },
+    {
+      title: f.deploy,
+      links: [
+        { label: f.quickInstall, href: '/#deploy' },
+        { label: f.docs, href: '/docs/' },
+        { label: f.releases, href: '/releases/' },
+        { label: f.remoteAI, href: '/docs/#ai-remote' },
+      ],
+    },
+    {
+      title: f.openSource,
+      links: [
+        { label: f.github, href: GITHUB },
+        { label: f.gitee, href: GITEE },
+        { label: f.feedback, href: '/feedback/' },
+        { label: f.license, href: `${GITHUB}/blob/main/LICENSE` },
+      ],
+    },
+  ]
   return (
     <footer className="border-t border-line bg-[#0f0f11] pt-14 pb-8">
       <Container>
@@ -227,22 +230,21 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2.5 text-fg">
               <Logo className="size-7" />
-              <span className="font-bold">万象 Wanmory</span>
+              <span className="font-bold">{c.brandFull}</span>
               <span className="rounded bg-ok/15 px-1.5 py-px text-[11px] text-ok">AGPL-3.0</span>
             </div>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
-              开源、自托管的私有 AI 相册。照片留在自己的硬盘上，AI 在自己的设备上运行。
-            </p>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">{f.about}</p>
+            <LanguageSwitcher />
           </div>
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-3">
-            {footerCols.map((c) => (
-              <div key={c.title}>
-                <div className="mb-3 text-sm font-semibold text-fg">{c.title}</div>
+            {cols.map((col) => (
+              <div key={col.title}>
+                <div className="mb-3 text-sm font-semibold text-fg">{col.title}</div>
                 <ul className="space-y-2 text-sm">
-                  {c.links.map((l) => (
+                  {col.links.map((l) => (
                     <li key={l.label}>
                       <a
-                        href={l.href}
+                        href={href(l.href)}
                         {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}
                         className="text-muted transition hover:text-accent"
                       >
@@ -256,17 +258,85 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} Wanmory Contributors · 基于 GNU AGPL v3.0 开源</span>
+          <span>© {new Date().getFullYear()} Wanmory Contributors · {f.copyright}</span>
           <span className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="size-3.5" /> 不依赖云服务
+              <ShieldCheck className="size-3.5" /> {f.noCloud}
             </span>
             <span className="flex items-center gap-1.5">
-              <HardDrive className="size-3.5" /> 100% 自托管
+              <HardDrive className="size-3.5" /> {f.selfHosted}
             </span>
           </span>
         </div>
       </Container>
     </footer>
+  )
+}
+
+// 页脚的语言切换：点开向上弹出磨砂玻璃菜单，每种语言是一个指向同一页面的普通链接（搜索引擎也能顺着找到），
+// 点了以后记住选择，以后打开英语页面时不再按浏览器语言自动跳转
+function LanguageSwitcher() {
+  const { c, locale, page } = useI18n()
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+  const remember = (l: string) => {
+    try {
+      localStorage.setItem(LANG_KEY, l)
+    } catch {
+      /* 隐私模式下存不了也没关系 */
+    }
+  }
+  return (
+    <div ref={box} className="relative mt-6 inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={c.footer.language}
+        className="flex items-center gap-2 rounded-full border border-line bg-white/[0.04] px-3.5 py-2 text-sm text-soft transition hover:border-line-strong hover:text-fg"
+      >
+        <Globe className="size-4 text-muted" />
+        {LOCALE_INFO[locale].name}
+        <ChevronDown className={`size-3.5 text-muted transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="glass absolute bottom-full left-0 z-50 mb-2 grid w-[300px] max-w-[calc(100vw-2rem)] grid-cols-2 gap-0.5 rounded-2xl bg-[rgb(30_30_33/0.88)] p-1.5 shadow-2xl"
+        >
+          {LOCALES.map((l) => (
+            <a
+              key={l}
+              role="menuitem"
+              href={localize(l, PAGES[page])}
+              hrefLang={LOCALE_INFO[l].html}
+              lang={LOCALE_INFO[l].html}
+              onClick={() => remember(l)}
+              aria-current={l === locale ? 'true' : undefined}
+              className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                l === locale ? 'bg-white/[0.08] font-medium text-fg' : 'text-soft hover:bg-white/[0.06] hover:text-fg'
+              }`}
+            >
+              {LOCALE_INFO[l].name}
+              {l === locale && <Check className="size-3.5 shrink-0 text-accent" />}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
