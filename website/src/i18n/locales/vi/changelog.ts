@@ -2,6 +2,17 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "Trang web mới: trang chủ, kiến trúc, cài đặt và tài liệu, câu hỏi thường gặp, phiên bản và góp ý, có 12 ngôn ngữ; mặc định theo ngôn ngữ của trình duyệt, có thể đổi ở cuối trang",
+    "Tập lệnh cài đặt và gỡ cài đặt bằng một lệnh (install.sh, uninstall.sh): khi cài có thể đặt cổng, tên miền, mật khẩu và vị trí cơ sở dữ liệu, múi giờ, thư mục dữ liệu và thư mục ảnh; bạn tự chọn nơi lưu cơ sở dữ liệu, dữ liệu và mô hình (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), còn WANMORY_DOMAIN đặt tên miền dùng trong mạng nội bộ",
+    "“Hành trình” giờ là bản đồ thế giới phẳng: các nước đã đến được tô màu ấm, mỗi thành phố có một ghim ảnh kèm tên thành phố và quốc gia, bấm vào để xem ảnh chụp ở đó; góc trên bên phải chỉ còn “Bản đồ / Lưới”, bản đồ đường phố và quả địa cầu vệ tinh đã được bỏ",
+    "Trang Album dùng thẻ lớn: ảnh bìa vuông, tên và số mục ở bên dưới, album riêng tư có biểu tượng ổ khóa, album do người khác tạo có ghi tên người tạo; xóa album dùng hộp xác nhận chung, và nút “Thêm ảnh” trong album giờ là nút chính nổi bật",
+    "Trang Người hiển thị ảnh chân dung lớn tỉ lệ 3:4, tên và số mục ở bên dưới; bấm vào tên để đổi tên. Phần đầu trang của mỗi người gọn hơn: ảnh đại diện, tên và tuổi, dòng dưới là các năm cùng số ảnh và video, bên phải là các thẻ Ảnh, Trưởng thành, Hành trình và Cùng nhau; thẻ trong Trưởng thành, Cùng nhau và Hành trình có cùng kích thước với trang Người và Album",
+    "Tiêu đề của mọi trang giờ nằm trên một dòng: tiêu đề lớn, theo sau là mô tả màu xám",
+    "Trên điện thoại và các màn hình hẹp, phía trên là thanh logo, còn menu trượt ra từ bên phải",
+    "Tài khoản demo: tài khoản có tên người dùng demo (đổi được bằng WANMORY_DEMO_USER) không thể đổi mật khẩu, đăng xuất thiết bị khác hay xóa bất cứ thứ gì; vẫn tải lên được, và có thể xóa ảnh mình tải lên, album mình tạo trong vòng 30 phút",
+    "Cải thiện kỷ niệm nổi bật, lịch sử đăng nhập, ảnh đại diện, điểm thẩm mỹ, vị trí theo IP và nhiều chỗ khác",
+  ],
   'v0.2.9': [
     'Logo mới: chữ «M» vẽ một nét trong vòng tròn mảnh cùng một chấm đỏ; tab trình duyệt cũng đã có biểu tượng',
     'Menu bên trái thu gọn được thành thanh hẹp chỉ có biểu tượng (nhấp logo để mở ra); menu chia thành ba nhóm Thường dùng, Phân loại, Sắp xếp, trong Phân loại có Yêu thích, Xếp hạng, Video, Phong cảnh, Ẩm thực, Động vật, Cây cối, còn Ảnh chụp màn hình, Tài liệu, Giấy tờ được gom vào «Thêm»',

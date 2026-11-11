@@ -3,6 +3,17 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "A new website: home, architecture, setup & docs, FAQ, releases and feedback, in 12 languages; it follows your browser language by default, and you can switch at the bottom of the page",
+    "One-command install and uninstall scripts (install.sh, uninstall.sh): set the port, domain, database password and location, time zone, data directory and photo directory during install; you can choose where the database, data and models live (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), and WANMORY_DOMAIN sets the domain used on your local network",
+    "Places is now a flat world map: countries you have visited are shown in a warm color, each city has a photo pin labeled with the city and country, and clicking one opens the photos taken there; the top right now offers just Map / Grid, and the street map and satellite globe are gone",
+    "The Albums page now uses large cards: square covers with the name and item count below, a lock on private albums, and the creator’s name on albums made by someone else; deleting an album uses the standard confirmation dialog, and Add photos inside an album is now a prominent primary button",
+    "The People page now shows large 3:4 portraits with the name and count below; click a name to rename. The person header is simpler: avatar, name and age, with the years and photo and video counts on the line below, and Photos, Growth, Places and Together tabs on the right; cards in Growth, Together and Places are the same size as on the People and Albums pages",
+    "Every page title is now a single line: the large title followed by a gray description",
+    "On phones and other narrow screens, a logo bar sits at the top, and the menu slides in from the right",
+    "Demo account: the account named demo (change it with WANMORY_DEMO_USER) cannot change its password, sign out other devices or delete anything, but it can upload, and it can delete photos it uploaded and albums it created within the last 30 minutes",
+    "Improvements to featured memories, sign-in history, avatars, aesthetic scoring, IP location and more",
+  ],
   'v0.2.9': [
     'New logo: a single-stroke “M” inside a thin circle with a red dot; browser tabs now show an icon too',
     'The left menu can collapse into a narrow icon-only bar (click the logo to expand); it is now split into three groups, Main, Categories and Organize. Categories include Favorites, Rating, Videos, Scenery, Food, Animals and Plants, with Screenshots, Documents and IDs under More',

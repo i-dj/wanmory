@@ -3,6 +3,17 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "Novo site: início, arquitetura, instalação e documentação, perguntas frequentes, versões e feedback, em 12 idiomas; por padrão segue o idioma do navegador, e você pode trocar no rodapé da página",
+    "Scripts de instalação e desinstalação com um comando (install.sh, uninstall.sh): na instalação, defina a porta, o domínio, a senha e o local do banco de dados, o fuso horário, o diretório de dados e o de fotos; você escolhe onde ficam o banco de dados, os dados e os modelos (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), e WANMORY_DOMAIN define o domínio usado na sua rede local",
+    "Lugares agora é um mapa-múndi plano: os países visitados aparecem numa cor quente, cada cidade tem um alfinete com foto e o nome da cidade e do país, e um clique abre as fotos tiradas lá; no canto superior direito ficaram só Mapa / Grade, e o mapa de ruas e o globo de satélite foram removidos",
+    "A página de Álbuns usa cartões grandes: capa quadrada com o nome e a quantidade de itens embaixo, um cadeado nos álbuns privados e o nome de quem criou os álbuns de outras pessoas; excluir um álbum usa a caixa de confirmação padrão, e Adicionar fotos dentro de um álbum agora é um botão principal em destaque",
+    "A página de Pessoas mostra retratos grandes 3:4 com o nome e a quantidade embaixo; clique no nome para renomear. O cabeçalho de cada pessoa ficou mais simples: avatar, nome e idade, com os anos e a quantidade de fotos e vídeos na linha de baixo, e à direita as abas Fotos, Crescimento, Lugares e Juntos; os cartões de Crescimento, Juntos e Lugares têm o mesmo tamanho das páginas de Pessoas e Álbuns",
+    "Todos os títulos de página agora ficam numa só linha: o título grande seguido de uma descrição em cinza",
+    "Em celulares e outras telas estreitas, há uma barra com o logotipo no topo, e o menu desliza pela direita",
+    "Conta de demonstração: a conta chamada demo (pode ser trocada com WANMORY_DEMO_USER) não pode mudar a senha, sair de outros dispositivos nem excluir nada; pode enviar arquivos, e pode excluir as fotos que enviou e os álbuns que criou nos últimos 30 minutos",
+    "Melhorias nas memórias em destaque, no histórico de login, nos avatares, na nota estética, na localização por IP e mais",
+  ],
   'v0.2.9': [
     'Novo logotipo: um "M" de um só traço dentro de um círculo fino, com um ponto vermelho; as abas do navegador também passam a mostrar um ícone',
     'O menu da esquerda pode ser recolhido numa barra estreita só com ícones (clique no logotipo para abrir); agora ele se divide em três grupos: Principais, Categorias e Organizar. Categorias reúne Favoritos, Classificação, Vídeos, Paisagens, Comida, Animais e Plantas, com Capturas de tela, Documentos e Identidades em "Mais"',

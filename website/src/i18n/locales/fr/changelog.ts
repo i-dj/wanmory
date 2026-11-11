@@ -3,6 +3,17 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "Nouveau site web : accueil, architecture, installation et documentation, FAQ, versions et retours, en 12 langues ; il suit par défaut la langue de votre navigateur, et vous pouvez en changer en bas de page",
+    "Scripts d’installation et de désinstallation en une commande (install.sh, uninstall.sh) : à l’installation, choisissez le port, le domaine, le mot de passe et l’emplacement de la base de données, le fuseau horaire, le répertoire des données et celui des photos ; vous décidez où se trouvent la base de données, les données et les modèles (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), et WANMORY_DOMAIN définit le domaine utilisé sur votre réseau local",
+    "Lieux devient une carte du monde à plat : les pays visités apparaissent dans une couleur chaude, chaque ville porte une épingle photo avec le nom de la ville et du pays, et un clic ouvre les photos prises sur place ; en haut à droite, il ne reste que Carte / Grille, la carte routière et le globe satellite ont été retirés",
+    "La page Albums passe aux grandes cartes : couverture carrée avec le nom et le nombre d’éléments en dessous, un cadenas sur les albums privés et le nom de la personne qui a créé l’album s’il n’est pas le vôtre ; la suppression d’un album utilise la boîte de confirmation standard, et Ajouter des photos dans un album devient un bouton principal bien visible",
+    "La page Personnes affiche de grands portraits 3:4 avec le nom et le nombre en dessous ; cliquez sur un nom pour le modifier. L’en-tête d’une personne est plus épuré : avatar, nom et âge, puis les années et le nombre de photos et de vidéos sur la ligne suivante, avec à droite les onglets Photos, Croissance, Lieux et Ensemble ; les cartes de Croissance, Ensemble et Lieux ont la même taille que sur les pages Personnes et Albums",
+    "Tous les titres de page tiennent désormais sur une ligne : le grand titre suivi d’une description en gris",
+    "Sur téléphone et autres écrans étroits, une barre avec le logo s’affiche en haut, et le menu glisse depuis la droite",
+    "Compte de démonstration : le compte nommé demo (modifiable avec WANMORY_DEMO_USER) ne peut ni changer son mot de passe, ni déconnecter d’autres appareils, ni rien supprimer ; il peut téléverser, et supprimer les photos qu’il a téléversées et les albums qu’il a créés dans les 30 dernières minutes",
+    "Améliorations des souvenirs mis en avant, de l’historique de connexion, des avatars, de la note esthétique, de la localisation IP et plus encore",
+  ],
   'v0.2.9': [
     'Nouveau logo : un « M » tracé d’un seul trait dans un cercle fin, avec un point rouge ; les onglets du navigateur affichent aussi une icône',
     'Le menu de gauche peut se replier en une barre étroite d’icônes (cliquez sur le logo pour le déplier) ; il est réparti en trois groupes : Principal, Catégories et Organiser. Les catégories comprennent Favoris, Note, Vidéos, Paysages, Cuisine, Animaux et Plantes, avec Captures d’écran, Documents et Papiers d’identité sous « Plus »',

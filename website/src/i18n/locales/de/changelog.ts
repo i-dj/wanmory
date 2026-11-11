@@ -3,6 +3,17 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "Neue Website: Startseite, Architektur, Installation & Dokumentation, FAQ, Versionen und Feedback, in 12 Sprachen; standardmäßig in der Sprache Ihres Browsers, umschaltbar unten auf der Seite",
+    "Installations- und Deinstallationsskript mit einem Befehl (install.sh, uninstall.sh): Bei der Installation lassen sich Port, Domain, Datenbankpasswort und -speicherort, Zeitzone, Datenverzeichnis und Fotoverzeichnis festlegen; wo Datenbank, Daten und Modelle liegen, bestimmen Sie selbst (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), und WANMORY_DOMAIN legt die Domain für den Zugriff im lokalen Netzwerk fest",
+    "„Orte“ ist jetzt eine flache Weltkarte: Besuchte Länder sind in einer warmen Farbe hervorgehoben, jede Stadt hat eine Foto-Stecknadel mit Stadt- und Ländernamen, ein Klick öffnet die Fotos von dort; oben rechts gibt es nur noch „Karte / Raster“, Straßenkarte und Satelliten-Globus sind entfallen",
+    "Die Albenseite zeigt große Karten: quadratische Cover mit Name und Anzahl darunter, ein Schloss auf privaten Alben und der Name der Person, die ein fremdes Album angelegt hat; Alben werden über den einheitlichen Bestätigungsdialog gelöscht, und „Fotos hinzufügen“ im Album ist jetzt eine auffällige Hauptschaltfläche",
+    "Die Personenseite zeigt große Porträts im Format 3:4 mit Name und Anzahl darunter; ein Klick auf den Namen benennt direkt um. Der Kopf einer Person ist schlichter: Profilbild, Name und Alter, darunter Jahre sowie Foto- und Videoanzahl, rechts die Tabs Fotos, Entwicklung, Orte und Gemeinsam; die Karten in Entwicklung, Gemeinsam und Orte sind so groß wie auf der Personen- und Albenseite",
+    "Alle Seitentitel stehen jetzt in einer Zeile: der große Titel, gefolgt von einer grauen Beschreibung",
+    "Auf Smartphones und anderen schmalen Bildschirmen gibt es oben eine Logoleiste, und das Menü gleitet von rechts herein",
+    "Demokonto: Das Konto mit dem Benutzernamen demo (änderbar mit WANMORY_DEMO_USER) kann weder das Passwort ändern noch andere Geräte abmelden oder etwas löschen; Hochladen ist möglich, und selbst hochgeladene Fotos und angelegte Alben lassen sich innerhalb von 30 Minuten wieder löschen",
+    "Verbesserungen bei ausgewählten Erinnerungen, Anmeldeverlauf, Profilbildern, ästhetischer Bewertung, IP-Standort und mehr",
+  ],
   'v0.2.9': [
     'Neues Logo: ein in einem Zug gezeichnetes „M“ in einem dünnen Kreis mit einem roten Punkt; auch Browser-Tabs zeigen jetzt ein Symbol',
     'Das linke Menü lässt sich zu einer schmalen Leiste nur mit Symbolen einklappen (Klick aufs Logo klappt es aus); es ist in drei Gruppen gegliedert: Häufig, Kategorien und Ordnen. Unter Kategorien finden sich Favoriten, Bewertung, Videos, Landschaft, Essen, Tiere und Pflanzen, Screenshots, Dokumente und Ausweise stehen unter „Mehr“',

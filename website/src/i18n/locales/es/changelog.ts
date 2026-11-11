@@ -3,6 +3,17 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "Nuevo sitio web: inicio, arquitectura, instalación y documentación, preguntas frecuentes, versiones y comentarios, en 12 idiomas; sigue por defecto el idioma del navegador y se puede cambiar al pie de la página",
+    "Scripts de instalación y desinstalación en un solo comando (install.sh, uninstall.sh): durante la instalación puedes configurar el puerto, el dominio, la contraseña y la ubicación de la base de datos, la zona horaria, el directorio de datos y el de fotos; tú decides dónde se guardan la base de datos, los datos y los modelos (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), y WANMORY_DOMAIN define el dominio para acceder desde tu red local",
+    "Lugares ahora es un mapa del mundo plano: los países visitados aparecen en un color cálido, cada ciudad tiene una chincheta con una foto y el nombre de la ciudad y el país, y al hacer clic se abren las fotos tomadas allí; arriba a la derecha solo queda Mapa / Cuadrícula, y se han eliminado el mapa de calles y el globo satelital",
+    "La página de Álbumes usa tarjetas grandes: portada cuadrada con el nombre y el número de elementos debajo, un candado en los álbumes privados y el nombre de quien creó los álbumes ajenos; eliminar un álbum usa el cuadro de confirmación estándar, y Añadir fotos dentro de un álbum ahora es un botón principal destacado",
+    "La página de Personas muestra retratos grandes 3:4 con el nombre y el número debajo; haz clic en un nombre para cambiarlo. La cabecera de cada persona es más sencilla: avatar, nombre y edad, con los años y el número de fotos y vídeos en la línea de abajo, y a la derecha las pestañas Fotos, Crecimiento, Lugares y Juntos; las tarjetas de Crecimiento, Juntos y Lugares tienen el mismo tamaño que en las páginas de Personas y Álbumes",
+    "Todos los títulos de página ocupan ahora una sola línea: el título grande seguido de una descripción en gris",
+    "En móviles y otras pantallas estrechas hay una barra con el logotipo arriba, y el menú se desliza desde la derecha",
+    "Cuenta de demostración: la cuenta llamada demo (se puede cambiar con WANMORY_DEMO_USER) no puede cambiar su contraseña, cerrar sesión en otros dispositivos ni eliminar nada; sí puede subir, y eliminar las fotos que subió y los álbumes que creó en los últimos 30 minutos",
+    "Mejoras en los recuerdos destacados, el historial de inicios de sesión, los avatares, la puntuación estética, la ubicación por IP y más",
+  ],
   'v0.2.9': [
     'Logotipo nuevo: una «M» de un solo trazo dentro de un círculo fino, con un punto rojo; las pestañas del navegador también muestran ya un icono',
     'El menú izquierdo se puede plegar en una barra estrecha solo con iconos (pulsa el logotipo para desplegarlo); ahora se divide en tres grupos: Principal, Categorías y Organizar. Categorías incluye Favoritos, Valoración, Vídeos, Paisajes, Comida, Animales y Plantas, con Capturas, Documentos y Carnés en «Más»',

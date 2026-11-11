@@ -3,6 +3,17 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.3.0': [
+    "Nuovo sito web: home, architettura, installazione e documentazione, domande frequenti, versioni e feedback, in 12 lingue; per impostazione predefinita segue la lingua del browser, e si può cambiare in fondo alla pagina",
+    "Script di installazione e disinstallazione con un solo comando (install.sh, uninstall.sh): durante l’installazione puoi impostare porta, dominio, password e posizione del database, fuso orario, cartella dei dati e cartella delle foto; decidi tu dove tenere database, dati e modelli (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), e WANMORY_DOMAIN imposta il dominio usato nella rete locale",
+    "Luoghi ora è una mappa del mondo piatta: i paesi visitati hanno un colore caldo, ogni città ha una puntina con una foto e il nome della città e del paese, e un clic apre le foto scattate lì; in alto a destra restano solo Mappa / Griglia, e la mappa stradale e il globo satellitare sono stati rimossi",
+    "La pagina Album usa schede grandi: copertina quadrata con nome e numero di elementi sotto, un lucchetto sugli album privati e il nome di chi ha creato gli album altrui; l’eliminazione di un album usa la finestra di conferma standard, e Aggiungi foto dentro un album ora è un pulsante principale ben visibile",
+    "La pagina Persone mostra grandi ritratti 3:4 con nome e numero sotto; fai clic sul nome per rinominare. L’intestazione di una persona è più semplice: avatar, nome ed età, con gli anni e il numero di foto e video nella riga sotto, e a destra le schede Foto, Crescita, Luoghi e Insieme; le schede in Crescita, Insieme e Luoghi hanno la stessa dimensione delle pagine Persone e Album",
+    "Tutti i titoli di pagina ora stanno su una riga: il titolo grande seguito da una descrizione in grigio",
+    "Su telefoni e altri schermi stretti, in alto c’è una barra con il logo e il menu scorre da destra",
+    "Account demo: l’account chiamato demo (si può cambiare con WANMORY_DEMO_USER) non può cambiare la password, disconnettere altri dispositivi né eliminare nulla; può caricare, e può eliminare le foto caricate e gli album creati negli ultimi 30 minuti",
+    "Miglioramenti a ricordi in evidenza, cronologia degli accessi, avatar, punteggio estetico, posizione da IP e altro",
+  ],
   'v0.2.9': [
     'Nuovo logo: una «M» tracciata con un solo segno dentro un cerchio sottile, con un punto rosso; anche le schede del browser mostrano ora un’icona',
     'Il menu a sinistra si può ridurre a una barra stretta di sole icone (fai clic sul logo per espanderlo); ora è diviso in tre gruppi: Principali, Categorie e Riordina. Nelle categorie ci sono Preferiti, Valutazione, Video, Paesaggi, Cibo, Animali e Piante, mentre Screenshot, Documenti e Documenti d’identità stanno in «Altro»',
