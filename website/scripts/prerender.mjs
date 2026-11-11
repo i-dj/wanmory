@@ -26,13 +26,23 @@ const FONT_PRELOADS = { vi: ['plus-jakarta-sans-vietnamese-wght-normal', 'plus-j
 const preloads = (locale) =>
   ['plus-jakarta-sans-latin-wght-normal', ...(FONT_PRELOADS[locale] ?? [])].map((n) => `    ${font(n)}`).join('\n')
 
+// 样式表直接写进每个页面的 <style>：
+// 每次部署样式表的文件名（带哈希）都会变，Vercel 上旧的文件随即 404。浏览器拿着旧的 HTML 时（后退、恢复标签页、
+// 部署前就打开的页面，网络慢时更常见）会去要一个已经不存在的样式表，整页没有样式。写进 HTML 就不会缺，
+// 也少了一个首屏前必须等的请求（压缩后十几 KB）
+const inlineCss = (html) =>
+  html.replace(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/g, (_, href) => {
+    const css = readFileSync(`${root}dist${href}`, 'utf8').replaceAll('</style', '<\\/style')
+    return `<style>${css}</style>`
+  })
+
 for (const [page, path] of Object.entries(PAGES)) {
   const file = path === '/' ? 'index.html' : `${path.slice(1)}index.html`
   const template = readFileSync(`${root}dist/${file}`, 'utf8')
   for (const ph of ['<!--app-->', '<!--head-->'])
     if (!template.includes(ph)) throw new Error(`${file} 里没有 ${ph} 占位`)
   for (const locale of LOCALES) {
-    const html = template
+    const html = inlineCss(template)
       .replace(/<html lang="[^"]*">/, `<html lang="${HTML_LANG[locale]}">`)
       .replace('<!--head-->', `${renderHead(page, locale)}\n${preloads(locale)}`)
       .replace('<!--app-->', await render(page, locale))
