@@ -110,3 +110,54 @@ func TestAIBlocker(t *testing.T) {
 		t.Fatal("模型下好后应该能跑")
 	}
 }
+
+func TestOpenUploadsKeepAIWaiting(t *testing.T) {
+	now := time.Date(2026, 11, 8, 12, 0, 0, 0, time.Local)
+	s := &Service{cur: defaults, now: func() time.Time { return now }}
+	offset := "0"
+	h := s.Track(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			w.Header().Set("Location", "http://x/api/uploads/abc")
+			w.WriteHeader(http.StatusCreated)
+		case http.MethodPatch:
+			w.Header().Set("Upload-Offset", offset)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	do := func(method, path string, hdr map[string]string) {
+		req := httptest.NewRequest(method, path, nil)
+		for k, v := range hdr {
+			req.Header.Set(k, v)
+		}
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+	do(http.MethodPost, "/api/uploads/", map[string]string{"Upload-Length": "100"})
+	offset = "50"
+	do(http.MethodPatch, "/api/uploads/abc", nil)
+	now = now.Add(2 * time.Minute) // 两片之间隔了很久（大视频、网络慢），没有请求在路上
+	if ok, why := s.aiState(); ok || why != "有照片正在上传" {
+		t.Fatalf("视频没传完时 AI 应该等着: %v %q", ok, why)
+	}
+	offset = "100"
+	do(http.MethodPatch, "/api/uploads/abc", nil)
+	now = now.Add(time.Minute)
+	if !s.AllowAI() {
+		t.Fatal("传完一分钟后 AI 应该能跑")
+	}
+	// 开了头就再没动静（网页关了）：过了 uploadIdle 不再等
+	do(http.MethodPost, "/api/uploads/", map[string]string{"Upload-Length": "100"})
+	now = now.Add(uploadIdle + time.Second)
+	if !s.AllowAI() {
+		t.Fatal("太久没动静的上传不该一直挡着 AI")
+	}
+	// 取消的不再等
+	do(http.MethodPost, "/api/uploads/", map[string]string{"Upload-Length": "100"})
+	do(http.MethodDelete, "/api/uploads/abc", nil)
+	now = now.Add(time.Minute)
+	if !s.AllowAI() {
+		t.Fatal("取消的上传不该挡着 AI")
+	}
+}

@@ -103,10 +103,10 @@ export function JobRow({ job, pausedFor, urgent }: { job: ActiveJobs; pausedFor:
           style={{ width: `${Math.max(2, ratio * 100)}%` }}
         />
       </div>
-      <div className="mt-1.5 flex items-baseline gap-2 text-caption text-muted">
-        <span className="min-w-0 flex-1 truncate">{g.detail}</span>
-        <span className={cx('shrink-0', urgent && 'text-warn')}>{status}</span>
-      </div>
+      {/* 做了哪些事一行，进度（还要多久 / 等什么 / 为什么停）另起一行、放不下就换行：两句都长（换成别的语言更长），
+          挤在一行会把前一句截成几个字 */}
+      <p className="mt-1.5 truncate text-caption text-muted">{g.detail}</p>
+      <p className={cx('mt-0.5 text-caption leading-snug', urgent ? 'text-warn' : 'text-muted')}>{status}</p>
       {job.failed > 0 && <p className="mt-1 text-caption text-danger">{tr('{n} 项没处理成功', { n: job.failed })}</p>}
     </li>
   )

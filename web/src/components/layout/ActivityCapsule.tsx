@@ -129,7 +129,7 @@ function Capsule() {
             ref={panel}
             role="dialog"
             aria-label={tr('上传和后台任务')}
-            className="popover-card glass-menu fixed z-50 w-[380px] max-w-[calc(100vw-16px)] overflow-y-auto rounded-2xl p-4"
+            className="popover-card glass-menu fixed z-50 w-[380px] max-w-[calc(100vw-16px)] overflow-x-hidden overflow-y-auto rounded-2xl p-4"
             style={position}
           >
             {hasUploads && (
