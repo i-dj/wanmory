@@ -3,6 +3,12 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "A etapa “Salvando” depois de enviar arquivos grandes ficou muito mais rápida: a soma de verificação é calculada enquanto o arquivo chega, então ele não é mais lido inteiro de novo do disco (num Raspberry Pi, um vídeo de algumas centenas de MB levava dezenas de segundos); para arquivos acima de 20 MB, o log registra a velocidade de recebimento e o tempo de gravação, mostrando se o limite é a rede ou o disco",
+    "Imagens menores: o servidor agora usa um ffmpeg de arquivo único em vez de mais de 300 MB de bibliotecas sem uso, reduzindo o download em cerca de um terço; a imagem do serviço de IA não traz mais a ferramenta de empacotamento",
+    "“Importando fotos” no painel de tarefas vai somando ao longo do lote, em vez de pular entre 2 e 10 durante o envio",
+    "Nova frase na página de login — “Recolha os fragmentos espalhados do tempo e teça com eles o poema dos anos.” —, escrita para cada idioma; vários textos que nunca tinham sido traduzidos agora estão (horário noturno, busca por conteúdo, mudar a porta, senha esquecida)",
+  ],
   'v0.4.5': [
     "Em lotes com vídeos grandes, a análise com IA começava quando as fotos terminavam, com os vídeos ainda sendo enviados, disputando recursos com o envio; agora a IA espera enquanto houver algum arquivo inacabado (um envio cancelado deixa de ser esperado na hora, e um sem atividade por 10 minutos não a segura mais)",
     "Painel de tarefas no canto superior direito: o que cada tarefa faz e o progresso (tempo restante, o que está aguardando) ficam em linhas separadas e quebram quando preciso, em vez de serem cortados em poucas letras; o painel não rola mais na horizontal",

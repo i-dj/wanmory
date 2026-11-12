@@ -3,6 +3,12 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "L'étape « Enregistrement » après un gros envoi est bien plus rapide : la somme de contrôle est calculée pendant la réception, le fichier n'est donc plus relu entièrement depuis le disque (une vidéo de quelques centaines de Mo prenait des dizaines de secondes sur un Raspberry Pi) ; pour les fichiers de plus de 20 Mo, le journal note la vitesse de réception et la durée d'enregistrement, pour savoir si c'est le réseau ou le disque qui ralentit",
+    "Images plus légères : le serveur utilise un ffmpeg en un seul fichier au lieu de plus de 300 Mo de bibliothèques inutiles, soit un téléchargement réduit d'environ un tiers ; l'image du service IA n'embarque plus son outil d'empaquetage",
+    "« Import des photos » dans le panneau des tâches se cumule sur tout le lot, au lieu de sauter entre 2 et 10 pendant l'envoi",
+    "Nouvelle phrase sur la page de connexion — « Rassembler les éclats épars du temps pour en tisser le poème des années. » —, formulée pour chaque langue ; plusieurs textes jamais traduits le sont désormais (heures de nuit, recherche par contenu, changement de port, mot de passe oublié)",
+  ],
   'v0.4.5': [
     "Avec de grosses vidéos dans un lot, l'analyse IA démarrait dès que les photos étaient envoyées alors que les vidéos l'étaient encore, en concurrence avec l'envoi ; l'IA attend maintenant tant qu'un fichier n'est pas terminé (un envoi annulé arrête l'attente aussitôt, et un envoi sans activité depuis 10 minutes ne la bloque plus)",
     "Panneau des tâches en haut à droite : ce que fait chaque tâche et son avancement (temps restant, ce qu'elle attend) sont sur des lignes séparées et passent à la ligne si besoin, au lieu d'être réduits à quelques caractères ; le panneau ne défile plus horizontalement",

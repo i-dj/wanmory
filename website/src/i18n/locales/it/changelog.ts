@@ -3,6 +3,12 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "La fase «Salvataggio» dopo il caricamento di file grandi è molto più rapida: il checksum viene calcolato mentre il file arriva, così non viene più riletto per intero dal disco (su un Raspberry Pi un video di qualche centinaio di MB richiedeva decine di secondi); per i file sopra i 20 MB il log registra velocità di ricezione e tempo di salvataggio, per capire se il limite è la rete o il disco",
+    "Immagini più piccole: il server usa un ffmpeg a file singolo invece di oltre 300 MB di librerie inutilizzate, con un download più leggero di circa un terzo; l'immagine del servizio IA non contiene più lo strumento di pacchettizzazione",
+    "«Importazione foto» nel pannello delle attività si accumula su tutto il gruppo, invece di saltare tra 2 e 10 durante il caricamento",
+    "Nuova frase nella pagina di accesso — «Raccogli i frammenti sparsi del tempo e intrecciali nella poesia degli anni.» —, scritta per ogni lingua; tradotti diversi testi rimasti finora senza traduzione (orario notturno, ricerca per contenuto, cambio porta, password dimenticata)",
+  ],
   'v0.4.5': [
     "Con video grandi in un caricamento, l'analisi IA partiva appena finite le foto mentre i video si stavano ancora caricando, contendendo le risorse al caricamento; ora l'IA aspetta finché c'è un file non completato (un caricamento annullato smette subito di trattenerla, e uno fermo da 10 minuti non la blocca più)",
     "Pannello delle attività in alto a destra: cosa fa ogni attività e il suo avanzamento (tempo rimanente, cosa sta aspettando) sono su righe separate e vanno a capo se serve, invece di essere tagliati a pochi caratteri; il pannello non scorre più in orizzontale",

@@ -3,6 +3,12 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "El paso «Guardando» tras subir archivos grandes es mucho más rápido: la suma de comprobación se calcula mientras se recibe el archivo, así que ya no se vuelve a leer entero del disco (en una Raspberry Pi, un vídeo de unos cientos de MB tardaba decenas de segundos); para archivos de más de 20 MB, el registro anota la velocidad de recepción y el tiempo de guardado, para ver si el límite es la red o el disco",
+    "Imágenes más pequeñas: el servidor usa ahora un ffmpeg de un solo archivo en lugar de más de 300 MB de bibliotecas que no usa, y la descarga se reduce en un tercio; la imagen del servicio de IA ya no incluye su herramienta de empaquetado",
+    "«Importando fotos» en el panel de tareas va sumando en todo el lote, en vez de saltar entre 2 y 10 mientras se sube",
+    "Nueva frase en la página de inicio de sesión —«Recoge los fragmentos dispersos del tiempo y téjelos en el poema de los años.»—, escrita para cada idioma; se tradujeron varios textos que nunca lo habían estado (horas nocturnas, búsqueda por contenido, cambiar el puerto, contraseña olvidada)",
+  ],
   'v0.4.5': [
     "En lotes con vídeos grandes, el análisis con IA empezaba al terminar las fotos aunque los vídeos aún se estuvieran subiendo, compitiendo con la subida; ahora la IA espera mientras quede algún archivo sin terminar (una subida cancelada deja de esperarse al momento, y una sin actividad durante 10 minutos ya no la retiene)",
     "Panel de tareas de arriba a la derecha: lo que hace cada tarea y su progreso (tiempo restante, qué está esperando) van en líneas separadas y saltan de línea si hace falta, en vez de quedar cortados en pocas letras; el panel ya no se desplaza en horizontal",

@@ -2,6 +2,12 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "Bước “Đang lưu” sau khi tải lên tệp lớn nhanh hơn nhiều: mã kiểm tra được tính ngay khi nhận, nên không phải đọc lại cả tệp từ ổ đĩa (trên Raspberry Pi, video vài trăm MB từng mất vài chục giây); với tệp trên 20 MB, nhật ký ghi lại tốc độ nhận và thời gian lưu, khi tải chậm sẽ biết là do mạng hay ổ đĩa",
+    "Image nhỏ hơn: máy chủ dùng ffmpeg dạng một tệp thay vì hơn 300 MB thư viện không dùng, dung lượng tải về giảm khoảng một phần ba; image dịch vụ AI không còn kèm công cụ đóng gói",
+    "“Đang nhập ảnh” trong bảng tác vụ cộng dồn cho cả đợt, không còn nhảy giữa 2 và 10 khi đang tải lên",
+    "Câu mới trên trang đăng nhập — “Nhặt lại những mảnh thời gian rơi vãi, dệt thành bài thơ của năm tháng.” — được viết riêng cho từng ngôn ngữ; đã dịch vài chỗ trước nay chưa được dịch (khung giờ ban đêm, tìm theo nội dung, đổi cổng, quên mật khẩu)",
+  ],
   'v0.4.5': [
     "Khi một lượt tải lên có video lớn, AI bắt đầu phân tích ngay khi ảnh xong dù video vẫn đang tải lên, tranh tài nguyên với việc tải lên; giờ AI chờ đến khi không còn tệp nào chưa xong (tệp bị hủy thôi chờ ngay, tệp 10 phút không có động tĩnh cũng không chờ nữa)",
     "Bảng tác vụ góc trên bên phải: việc đang làm và tiến độ (còn bao lâu, đang chờ gì) nằm trên hai dòng riêng và tự xuống dòng khi cần, không còn bị cắt còn vài chữ; bảng không còn thanh cuộn ngang",

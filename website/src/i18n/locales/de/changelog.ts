@@ -3,6 +3,12 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "„Wird gespeichert“ nach großen Uploads geht viel schneller: Die Prüfsumme wird beim Empfang berechnet, die Datei wird also nicht noch einmal komplett von der Festplatte gelesen (bei einem Video von einigen hundert MB dauerte das auf einem Raspberry Pi Dutzende Sekunden); bei Dateien über 20 MB protokolliert das Log Empfangsgeschwindigkeit und Speicherzeit, sodass man bei langsamen Uploads sieht, ob Netzwerk oder Festplatte bremst",
+    "Kleinere Images: Der Server nutzt jetzt ein ffmpeg aus einer einzigen Datei statt über 300 MB ungenutzter Bibliotheken, der Download wird um etwa ein Drittel kleiner; das Image des KI-Dienstes enthält kein Paketierungswerkzeug mehr",
+    "„Fotos werden importiert“ im Aufgabenbereich zählt über den ganzen Stapel hoch, statt beim Hochladen zwischen 2 und 10 zu springen",
+    "Neuer Satz auf der Anmeldeseite – „Sammle die verstreuten Splitter der Zeit und webe sie zu einem Gedicht der Jahre.“ –, für jede Sprache eigens formuliert; einige bisher nie übersetzte Texte sind jetzt übersetzt (Nachtzeiten, Inhaltssuche, Port ändern, Passwort vergessen)",
+  ],
   'v0.4.5': [
     "Bei Uploads mit großen Videos startete die KI-Analyse, sobald die Fotos fertig waren, obwohl die Videos noch hochgeladen wurden, und machte dem Upload Ressourcen streitig; jetzt wartet die KI, solange noch eine Datei unvollständig ist (ein abgebrochener Upload beendet das Warten sofort, einer ohne Aktivität seit 10 Minuten hält sie nicht mehr auf)",
     "Aufgabenbereich oben rechts: Was eine Aufgabe tut und wie weit sie ist (Restzeit, worauf sie wartet) stehen in getrennten Zeilen und brechen bei Bedarf um, statt auf wenige Zeichen gekürzt zu werden; der Bereich scrollt nicht mehr seitwärts",

@@ -3,6 +3,12 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.6': [
+    "“Saving” after large uploads is much faster: the checksum is computed while the file is received, so the whole file is no longer read from disk again (a video of a few hundred MB used to take tens of seconds on a Raspberry Pi); for files over 20 MB the log records receive speed and save time, so a slow upload shows whether the network or the disk is the limit",
+    "Smaller images: the server now uses a single-file ffmpeg instead of pulling in over 300 MB of unused libraries, cutting the download by about a third; the AI service image no longer ships its packaging tool",
+    "“Importing photos” in the task panel counts up over the whole batch, instead of jumping between 2 and 10 while uploading",
+    "New line on the sign-in page — “Gather the scattered fragments of time, and weave them into a poem of the years.” — written for each language; several texts that were never translated are now (night hours, content search, changing the port, forgotten password)",
+  ],
   'v0.4.5': [
     "With large videos in a batch, AI analysis started once the photos were done while the videos were still uploading, competing with the upload; AI now waits as long as any file is still unfinished (a cancelled upload stops the wait at once, and one with no activity for 10 minutes no longer holds it up)",
     "Task panel at the top right: what each task does and its progress (time left, what it is waiting for) are on separate lines and wrap when needed, instead of being cut down to a few characters; the panel no longer scrolls sideways",
