@@ -2,11 +2,12 @@ import { Play } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 import { cx } from '@/lib/cx'
 import GlobalSearch from '@/components/photos/GlobalSearch'
+import ActivityCapsule from './ActivityCapsule'
 import Tooltip from '@/components/ui/Tooltip'
 
 // PageHeader 是每一页顶上那一块（图库、相册、人物、足迹、连拍整理、设置都用它），各页高度、位置一样，切换页面时不跳：
 //   固定栏（68px 高，滚动时停在顶上，半透明磨砂，底下一条细线）：左边搜索框（center，不给时是全局搜索，给 false 时没有），
-//     右边按钮（right，例如日历、排序那一组和「幻灯片」）；
+//     右边按钮（right，例如日历、排序那一组和「幻灯片」），按钮左边是上传、后台任务的状态胶囊（ActivityCapsule）；
 //   下面是标题块（跟着页面滚走）：粗体大标题，同一行后面跟着灰色的说明（subtitle，例如「22 个人」「7 个相册」），
 //     再后面可以跟 titleAction（例如「显示全部」），右边是 aside（例如「已选 3 项」）。
 //     beside 紧跟在标题后面、说明前面（例如足迹的「筛选」），和说明的字对齐。
@@ -47,7 +48,11 @@ export default function PageHeader({
           {leading}
           {/* 中间没有东西时也占着，右边的按钮在各个页面上都待在同一个地方 */}
           <div className="flex min-w-0 flex-1 items-center">{center === undefined ? <GlobalSearch /> : center}</div>
-          <div className="flex shrink-0 items-center gap-3">{right}</div>
+          <div className="flex shrink-0 items-center gap-3">
+            {/* 上传、后台任务的状态胶囊：有事在做时出现在工具按钮左边，每一页都有 */}
+            <ActivityCapsule />
+            {right}
+          </div>
         </div>
       </header>
       {hero ? (

@@ -32,7 +32,6 @@ import type { AssetStats } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
 import Logo from './Logo'
-import TaskIndicator from './TaskIndicator'
 import { useUpdate, useVersion, versionLabel } from '@/lib/version'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { useCurrentUser } from '@/lib/session'
@@ -200,7 +199,6 @@ export default function Sidebar({
             </span>
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            {!guest && <TaskIndicator />}
             <button
               type="button"
               onClick={() => setOpen(true)}
@@ -269,8 +267,7 @@ export default function Sidebar({
                   <VersionLine guest={guest} onUpdate={() => go(`${SETTINGS_PATH}#update`)} />
                 </div>
                 <div className="ml-auto flex items-center">
-                  {!guest && <TaskIndicator />}
-                  {collapse}
+                        {collapse}
                 </div>
               </>
             )}
@@ -636,11 +633,10 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
   }
   const onAccountPage = path === ACCOUNT_PATH
   const onSettingsPage = path === SETTINGS_PATH
-  // 收起时一列：后台任务（有任务时）、齿轮（管理员）、头像（去我的账号）；退出登录在「我的账号」里
+  // 收起时一列：齿轮（管理员）、头像（去我的账号）；退出登录在「我的账号」里
   if (rail)
     return (
       <div className="flex flex-col items-center gap-1.5 py-1.5">
-        <TaskIndicator side="right" />
         {user.is_admin && (
           <Tooltip label={t('系统设置')} side="right">
             <button

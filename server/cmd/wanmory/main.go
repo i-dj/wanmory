@@ -131,6 +131,12 @@ func run(ctx context.Context) error {
 	aiWorker.SetLimit(aiAdmin.Concurrency)
 	aiWorker.SetReady(aiAdmin.Ready)       // 档位是自动时，等定下用哪档再开始
 	aiWorker.SetReady(perfService.AllowAI) // 空闲时 / 夜里才跑（见设置 → 性能）
+	perfService.SetBlocker(func() string {
+		if aiAdmin.ModelsMissing() {
+			return "AI 模型还没下载，在「系统设置 → AI 设置」里下载后开始"
+		}
+		return ""
+	})
 	faceService.RegisterJobs(aiWorker)
 
 	// 语义搜索和自动分类（CLIP）：和人脸用同一个 AI 服务、同一个 worker

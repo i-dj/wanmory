@@ -48,6 +48,7 @@ type Service struct {
 	lastUpload  atomic.Int64 // 最后一次成功收到上传数据，unix 纳秒
 	uploading   atomic.Int32 // 正在传的上传请求
 	localActive func() int
+	blocker     func() string // AI 根本跑不了的原因（例如模型还没下载），空串表示没有；任何时段都先看它
 	now         func() time.Time
 }
 
@@ -87,6 +88,12 @@ func (s *Service) Workers() int {
 		return s.auto
 	}
 	return min(n, s.MaxWorkers())
+}
+
+// SetBlocker 接上「AI 根本跑不了」的原因（例如这一档的模型还没下载）：返回非空时 AI 任务一律不领，
+// 设置成「一直运行」也一样；任务图标上显示这个原因。必须在 worker 开始前调用
+func (s *Service) SetBlocker(f func() string) {
+	s.blocker = f
 }
 
 // SetLocalActive 接上本机 worker 正在处理几个任务（生成缩略图时 AI 先停）
@@ -145,6 +152,11 @@ func (s *Service) aiState() (bool, string) {
 	s.mu.RLock()
 	cur := s.cur
 	s.mu.RUnlock()
+	if s.blocker != nil {
+		if reason := s.blocker(); reason != "" {
+			return false, reason
+		}
+	}
 	if cur.Schedule == "always" {
 		return true, ""
 	}

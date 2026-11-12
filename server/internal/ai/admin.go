@@ -67,6 +67,7 @@ type Admin struct {
 	resolved   atomic.Bool  // 用哪档已经定了：手动选的一开始就定了，自动的要等问到 AI 服务器的硬件
 	switchMu   sync.Mutex   // 换档一次只换一个
 	parallel   atomic.Int32 // AI 服务同时算几张照片（它按显卡、核数、内存自动定，设置里能改），没问到时是 1
+	missing    atomic.Bool  // 这一档的模型 AI 服务上还没下载（问不到时当作有，连不上另有处理）
 }
 
 // NewAdmin：faceModel、clipModel 是启动时环境变量里的模型，设置里没选过档位时用
@@ -94,6 +95,10 @@ func (a *Admin) Watch(ctx context.Context) {
 			a.noteConfig(cfg)
 			a.autoApply(ctx, cfg)
 		}
+		var models json.RawMessage
+		if err := a.client.Call(cctx, http.MethodGet, "/models", nil, &models); err == nil {
+			a.noteModels(models)
+		}
 		cancel()
 		wait := time.Minute
 		if !a.resolved.Load() { // 档位自动、还没问到硬件（AI 服务刚启动、很忙）：AI 任务等着它，10 秒后再问
@@ -105,6 +110,33 @@ func (a *Admin) Watch(ctx context.Context) {
 		case <-time.After(wait):
 		}
 	}
+}
+
+// noteModels 从 AI 服务的 /models 里看这一档的人脸、语义搜索模型下载了没有（目录里找不到的不算缺）
+func (a *Admin) noteModels(raw json.RawMessage) {
+	var m struct {
+		Catalog []struct {
+			ID         string `json:"id"`
+			Downloaded bool   `json:"downloaded"`
+		} `json:"catalog"`
+	}
+	if json.Unmarshal(raw, &m) != nil || len(m.Catalog) == 0 {
+		return
+	}
+	t := a.models()
+	missing := false
+	for _, c := range m.Catalog {
+		if (c.ID == t.Face || c.ID == t.Clip) && !c.Downloaded {
+			missing = true
+		}
+	}
+	a.missing.Store(missing)
+}
+
+// ModelsMissing：这一档要用的模型还没下载（内置的 AI 服务不自动下载，要在设置里点）。
+// 这时 AI 任务全部停着，不然只有文字识别在跑，任务图标上的进度看起来像在识别
+func (a *Admin) ModelsMissing() bool {
+	return a.missing.Load()
 }
 
 // noteConfig 从 AI 服务的 /config 里记下同时算几张（parallel 是设置的，0 是自动，用 parallel_auto）
@@ -270,6 +302,9 @@ func (a *Admin) status(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	resp["config"], resp["models"] = config, models
+	if models != nil {
+		a.noteModels(models) // 设置页下载模型时一直在问，下完马上恢复，不用等 Watch 的下一分钟
+	}
 	if config != nil {
 		a.noteConfig(config)
 		a.autoApply(r.Context(), config)

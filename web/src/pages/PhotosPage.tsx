@@ -26,7 +26,6 @@ import UploadButton from '@/components/photos/UploadButton'
 import PersonHero from '@/components/people/PersonHero'
 import { PlayButton } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Modal'
-import UploadPanel from '@/components/upload/UploadPanel'
 import { MenuItem, ToolbarButton } from '@/components/ui/Popover'
 import { useElementSize } from '@/hooks/useElementSize'
 import { useFileDrop } from '@/hooks/useFileDrop'
@@ -635,7 +634,6 @@ export default function PhotosPage({
           onJump={jumpTo}
         />
       )}
-      <UploadPanel items={uploads.items} queue={uploads.queue} />
       {batchEdit && (
         <BatchEditDialog
           kind={batchEdit}

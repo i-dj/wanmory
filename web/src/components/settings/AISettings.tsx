@@ -328,7 +328,7 @@ export default function AISettings() {
           )}
           {models.some((m) => inUse.has(m.id) && !m.downloaded) && (
             <p className="mb-4 rounded-control bg-warn/10 px-3 py-2 text-body text-warn">
-              {tr('当前档位的模型未下载，下载完成前人脸识别和语义搜索暂停。')}
+              {tr('当前档位的模型未下载，下载完成前 AI 识别（人脸、画面内容、文字）全部暂停。')}
             </p>
           )}
           <ModelTable

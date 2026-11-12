@@ -21,27 +21,28 @@ import Tooltip from '@/components/ui/Tooltip'
 import { askConfirm } from '@/lib/dialog'
 import { t as tr } from '@/i18n'
 
-// UploadPanel 是左下角的上传窗口：顶部是状态图标、标题和「已传多少 / 共多少 · 剩余时间」，下面一条总进度；
-// 展开后每个文件一行，带缩略图、大小和自己的进度条，鼠标移上去可以单独暂停、继续、取消、重试。
-// 暂停、继续都走分片上传，从服务器已经收到的位置接着传。
-// 窗口是半透明的毛玻璃，后面的照片隐约看得见。全部传完（没有失败）一会儿后自动缩成左下角一个小胶囊，
-// 点一下再展开；有新的上传时自动展开。
+// UploadSection 是右上角状态胶囊点开后的「上传」那一块：顶部是状态图标、标题和「已传多少 / 共多少 · 剩余时间」，
+// 下面一条总进度；展开后每个文件一行，带缩略图、大小和自己的进度条，鼠标移上去可以单独暂停、继续、取消、重试。
+// 暂停、继续都走分片上传，从服务器已经收到的位置接着传。胶囊上的那句话也从这里算（useUploadSummary）。
 
 // saving：数据已经全部发出，服务器正在保存（算校验值、放进照片库），这时不能暂停或取消
 const saving = (u: UploadItem) => u.state === 'uploading' && u.progress >= 1
 const active = (u: UploadItem) => u.state === 'waiting' || u.state === 'uploading'
 const sentBytes = (u: UploadItem) => u.file.size * (u.state === 'done' || u.state === 'duplicate' ? 1 : u.progress)
 
-type Phase = 'running' | 'paused' | 'failed' | 'done'
+export type UploadPhase = 'running' | 'paused' | 'failed' | 'done'
 
-const MINIMIZE_DELAY = 1500 // 毫秒，传完后先让人看一眼「上传完成」再缩小
-const DISMISS_DELAY = 10_000 // 毫秒，缩小成一条「上传完成」后过这么久自己消失
-// 浅色磨砂，和选中照片后底部的操作栏、后台任务面板一样（index.css 的 .frost）
-const GLASS = 'frost'
+export interface UploadSummary {
+  phase: UploadPhase
+  ratio: number
+  title: string
+  detail: string
+  unfinished: number
+  retryable: boolean
+}
 
-export default function UploadPanel({ items, queue }: { items: UploadItem[]; queue: UploadQueue }) {
-  // 宽屏默认展开文件列表，手机上默认收起，免得挡住照片
-  const [expanded, setExpanded] = useState(() => window.innerWidth >= 640)
+// useUploadSummary 算这一批上传现在怎么样：哪个阶段、总进度、标题和第二行小字
+export function useUploadSummary(items: UploadItem[]): UploadSummary {
   const counted = items.filter((u) => u.state !== 'canceled')
   const added = counted.filter((u) => u.state === 'done').length
   const duplicates = counted.filter((u) => u.state === 'duplicate').length
@@ -57,39 +58,13 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
   const running = items.some(active)
   const remaining = useRemainingTime(sent, total, running)
 
-  const phase: Phase = running
+  const phase: UploadPhase = running
     ? 'running'
     : items.some((u) => u.state === 'paused')
       ? 'paused'
       : failed > 0
         ? 'failed'
         : 'done'
-
-  // 传完自动缩小；有新的上传（又开始传）时展开
-  const [minimized, setMinimized] = useState(false)
-  useEffect(() => {
-    if (phase === 'running') {
-      setMinimized(false)
-      return
-    }
-    if (phase !== 'done') return
-    const t = setTimeout(() => {
-      setMinimized(true)
-      setExpanded(false)
-    }, MINIMIZE_DELAY)
-    return () => clearTimeout(t)
-  }, [phase])
-  // 缩小成「上传完成 · 新增 4 项」那一条以后，10 秒自己消失（和点 × 一样清掉传完的）；失败的不自动消失
-  useEffect(() => {
-    if (!minimized || phase !== 'done') return
-    const t = setTimeout(() => {
-      queue.clearFinished()
-      setMinimized(false)
-    }, DISMISS_DELAY)
-    return () => clearTimeout(t)
-  }, [minimized, phase, queue])
-
-  if (items.length === 0) return null
 
   const title = {
     running: tr('正在上传 {v0} 个文件', { v0: counted.length - finished }),
@@ -98,7 +73,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
     done: counted.length === 0 ? tr('已全部取消') : tr('上传完成'),
   }[phase]
 
-  // 第二行：传输中显示进度和剩余时间；结束后是「新增 243 项 · 17 项已存在」，要短，面板窄放不下长句
+  // 第二行：传输中显示进度和剩余时间；结束后是「新增 243 项 · 17 项已存在」
   const detail =
     phase === 'running' || phase === 'paused'
       ? [`${Math.floor(ratio * 100)}%`, `${formatSize(sent)} / ${formatSize(total)}`, phase === 'running' && remaining]
@@ -112,47 +87,27 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
           .filter(Boolean)
           .join(' · ')
 
-  const close = () => {
-    queue.clearFinished()
-    setExpanded(window.innerWidth >= 640)
-    setMinimized(false)
-  }
+  return { phase, ratio, title, detail, unfinished, retryable }
+}
 
-  if (minimized) {
-    return (
-      <div
-        data-keep-selection
-        className={cx(
-          'fixed bottom-3 left-3 z-40 flex items-center gap-1 rounded-full py-1 pr-1 pl-1.5 sm:left-4',
-          GLASS,
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setMinimized(false)}
-          aria-label={tr('展开上传窗口')}
-          className="flex min-w-0 items-center gap-2 rounded-full py-0.5 pr-2 hover:opacity-80"
-        >
-          <CircleCheck className="size-5 shrink-0 text-ok" strokeWidth={2} />
-          <span className="truncate text-caption font-medium">
-            {title}
-            {detail && <span className="font-normal text-muted"> · {detail}</span>}
-          </span>
-        </button>
-        <HeaderButton label={tr('关闭')} onClick={close}>
-          <X className="size-4" />
-        </HeaderButton>
-      </div>
-    )
-  }
+export function UploadSection({
+  items,
+  queue,
+  summary,
+  onClose,
+}: {
+  items: UploadItem[]
+  queue: UploadQueue
+  summary: UploadSummary
+  onClose: () => void // 点 ×：清掉传完的
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const { phase, ratio, title, detail, unfinished, retryable } = summary
 
   return (
-    <div
-      data-keep-selection
-      className={cx('fixed inset-x-3 bottom-3 z-40 overflow-hidden rounded-2xl sm:right-auto sm:left-4 sm:w-95', GLASS)}
-    >
-      {/* 顶部：状态图标、标题、展开 / 收起、关闭或暂停 */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+    <div>
+      {/* 顶部：状态图标、标题、暂停 / 继续、展开 / 收起、关闭 */}
+      <div className="flex items-center gap-3">
         <PhaseIcon phase={phase} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-body font-semibold">{title}</p>
@@ -171,16 +126,16 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
           </HeaderButton>
         )}
         <HeaderButton label={expanded ? tr('收起列表') : tr('展开列表')} onClick={() => setExpanded((e) => !e)}>
-          {expanded ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+          {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
         </HeaderButton>
         {(phase === 'done' || phase === 'failed') && (
-          <HeaderButton label={tr('关闭')} onClick={close}>
+          <HeaderButton label={tr('关闭')} onClick={onClose}>
             <X className="size-4" />
           </HeaderButton>
         )}
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="mt-3">
         <Bar
           ratio={ratio}
           tone={phase === 'paused' ? 'muted' : phase === 'failed' ? 'danger' : phase === 'done' ? 'ok' : 'accent'}
@@ -189,12 +144,12 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
 
       {expanded && (
         <>
-          <div className="border-t border-line">
+          <div className="-mx-4 mt-3 border-t border-line">
             <VirtualRows items={items} render={(u) => <UploadRow u={u} queue={queue} />} />
           </div>
           {/* 底部操作：失败可以重试，没传完的可以全部取消 */}
           {(retryable || unfinished > 0) && (
-            <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
+            <div className="-mx-4 flex items-center justify-between gap-3 border-t border-line px-4 pt-2.5">
               {unfinished > 0 ? (
                 <button
                   type="button"
@@ -230,8 +185,8 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
 }
 
 // PhaseIcon：左上角的圆形状态图标
-function PhaseIcon({ phase }: { phase: Phase }) {
-  const styles: Record<Phase, string> = {
+export function PhaseIcon({ phase, small }: { phase: UploadPhase; small?: boolean }) {
+  const styles: Record<UploadPhase, string> = {
     running: 'bg-accent/15 text-accent',
     paused: 'bg-muted/15 text-muted',
     failed: 'bg-danger/15 text-danger',
@@ -239,8 +194,10 @@ function PhaseIcon({ phase }: { phase: Phase }) {
   }
   const Icon = { running: CloudUpload, paused: CirclePause, failed: CircleAlert, done: CircleCheck }[phase]
   return (
-    <span className={cx('flex size-10 shrink-0 items-center justify-center rounded-full', styles[phase])}>
-      <Icon className={cx('size-5', phase === 'running' && 'animate-pulse')} strokeWidth={2} />
+    <span
+      className={cx('flex shrink-0 items-center justify-center rounded-full', small ? 'size-6' : 'size-10', styles[phase])}
+    >
+      <Icon className={cx(small ? 'size-3.5' : 'size-5', phase === 'running' && 'animate-pulse')} strokeWidth={2} />
     </span>
   )
 }

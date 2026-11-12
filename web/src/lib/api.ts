@@ -264,6 +264,7 @@ export const largeUrl = (a: Asset) => `/api/assets/${a.id}/large`
 
 const UPLOAD_CHUNK_SIZE = 16 * 1024 * 1024 // 每片 16 MB，过反向代理（例如有 100 MB 上限的）也没问题
 const RETRY_DELAYS = [0, 1000, 3000, 5000, 10000, 20000, 30000] // 毫秒；全部用完才算失败
+const UPLOAD_STALL_MS = 45_000 // 正在发数据却这么久没有进度，算卡住了，断开重连
 
 // UploadHandle 控制一个正在进行的上传。
 export interface UploadHandle {
@@ -288,6 +289,19 @@ export function startUpload(
   }: { album?: string; onProgress: (ratio: number) => void; onDone: (result: UploadResult) => void },
 ): UploadHandle {
   let stopped = false
+  // 卡住检测：正在发数据、却这么久一点进度都没有（Wi-Fi 断了一下、路由器丢了连接，浏览器的请求不报错也不结束，
+  // 会一直挂着），就断开这个请求，从服务器已经收到的位置重新接着传。数据全部发完、服务器在保存时不算
+  let lastProgress = Date.now()
+  let sentAll = false
+  const watchdog = window.setInterval(() => {
+    if (stopped || sentAll || Date.now() - lastProgress < UPLOAD_STALL_MS) return
+    lastProgress = Date.now()
+    console.warn(`上传 ${file.name} 超过 ${UPLOAD_STALL_MS / 1000} 秒没有进度，重新连接接着传`)
+    void upload.abort(false).then(() => {
+      if (!stopped) upload.start()
+    })
+  }, 5000)
+  const finish = () => window.clearInterval(watchdog)
   const upload = new tus.Upload(file, {
     endpoint: '/api/uploads/',
     chunkSize: UPLOAD_CHUNK_SIZE,
@@ -299,18 +313,25 @@ export function startUpload(
       lastModified: String(file.lastModified),
       ...(album ? { album } : {}),
     },
-    onProgress: (sent, total) => onProgress(total > 0 ? sent / total : 0),
+    onProgress: (sent, total) => {
+      lastProgress = Date.now()
+      sentAll = total > 0 && sent >= total
+      onProgress(total > 0 ? sent / total : 0)
+    },
     // 服务器明确拒绝（4xx，例如格式不支持）就不重试；网络错误和 5xx 才重试
     onShouldRetry: (err) => {
       const status = err.originalResponse?.getStatus() ?? 0
       return status === 0 || status >= 500 || status === 409 || status === 423
     },
-    onSuccess: ({ lastResponse }) =>
+    onSuccess: ({ lastResponse }) => {
+      finish()
       onDone({
         asset_id: lastResponse.getHeader('Wanmory-Asset-Id'),
         duplicate: lastResponse.getHeader('Wanmory-Duplicate') === 'true',
-      }),
+      })
+    },
     onError: (err) => {
+      finish()
       const res = (err as tus.DetailedError).originalResponse
       const status = res?.getStatus() ?? 0
       if (status >= 400 && status < 500) {
@@ -353,10 +374,12 @@ export function startUpload(
     },
     resume: () => {
       stopped = false
+      lastProgress = Date.now()
       ready.then(() => upload.start())
     },
     cancel: () => {
       stopped = true
+      finish()
       ready.then(() => upload.abort(true)).catch((e) => console.warn('取消上传时删除服务器上的文件失败', e))
     },
   }

@@ -96,3 +96,17 @@ func TestTrack(t *testing.T) {
 		}
 	}
 }
+
+func TestAIBlocker(t *testing.T) {
+	now := time.Date(2026, 11, 8, 12, 0, 0, 0, time.Local)
+	s := &Service{cur: Settings{Schedule: "always"}, now: func() time.Time { return now }}
+	reason := "模型没下载"
+	s.SetBlocker(func() string { return reason })
+	if ok, why := s.aiState(); ok || why != reason {
+		t.Fatalf("模型没下载时就算一直运行也应该停: %v %q", ok, why)
+	}
+	reason = ""
+	if !s.AllowAI() {
+		t.Fatal("模型下好后应该能跑")
+	}
+}
