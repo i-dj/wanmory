@@ -2,6 +2,11 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Từ v0.4.2, Wanmory chuyển các tệp trong thư mục dữ liệu cho người dùng trong container, nên người dùng trên máy chủ (ví dụ người dùng Raspberry Pi có ID khác 1000) không xóa được ảnh đã tải lên và ảnh thu nhỏ; giờ Wanmory chạy với danh nghĩa chủ thư mục dữ liệu, mọi tệp nó ghi đều thuộc người đó, và các tệp do phiên bản cũ để lại cũng được trả lại",
+    "Tệp mô hình do dịch vụ AI tải về thuộc root nên không xóa được trên máy chủ; giờ được giao cho chủ thư mục mô hình",
+    "Script gỡ cài đặt: khi lệnh xóa thông thường bị từ chối, nó xóa qua một container tạm; chỉ báo lỗi kèm lệnh sudo cần chạy khi cách đó cũng thất bại, không còn vừa báo lỗi vừa báo đã xóa",
+  ],
   'v0.4.3': [
     "Viên trạng thái mới ở góc trên bên phải: khi ảnh đang tải lên, nhập hoặc được AI phân tích, nó hiện bên trái thanh công cụ và nói ngắn gọn đang làm gì (Đang tải lên 11%, Tải lên xong, Đang chờ AI phân tích, AI phân tích ảnh 3 / 674); bấm vào để xem tiến độ tải lên, từng tệp và các tác vụ nền. Nó thay cho cửa sổ tải lên ở góc dưới bên trái và biểu tượng tác vụ ở đầu menu",
     "Chuyển sang trang khác vẫn tiếp tục tải lên, tiến độ hiện trên mọi trang; đóng hoặc tải lại trang khi ảnh còn đang tải lên sẽ được hỏi trước",

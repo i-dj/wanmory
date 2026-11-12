@@ -3,6 +3,11 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Desde a v0.4.2, o Wanmory passava os arquivos da pasta de dados para o usuário do contêiner, então o usuário do computador (por exemplo, um usuário do Raspberry Pi cujo ID não é 1000) não conseguia apagar as fotos enviadas e as miniaturas; agora o Wanmory roda como o dono da pasta de dados, tudo o que ele grava pertence a esse usuário e os arquivos deixados por versões anteriores voltam para ele",
+    "Os arquivos de modelos baixados pelo serviço de IA pertenciam ao root e não podiam ser apagados no computador; agora vão para o dono da pasta de modelos",
+    "Script de desinstalação: quando uma exclusão normal é recusada, ele apaga por meio de um contêiner temporário; só avisa, com o comando sudo a executar, se isso também falhar, em vez de dizer ao mesmo tempo que falhou e que apagou",
+  ],
   'v0.4.3': [
     "Nova cápsula de status no canto superior direito: enquanto fotos são enviadas, importadas ou analisadas pela IA, ela aparece à esquerda da barra de ferramentas e diz em poucas palavras o que está acontecendo (Enviando 11%, Envio concluído, Aguardando análise com IA, Análise com IA 3 / 674); clique para ver o progresso do envio, cada arquivo e as tarefas em segundo plano. Substitui a janela de envio no canto inferior esquerdo e o ícone de tarefas no topo do menu",
     "Os envios continuam quando você muda de página, e o progresso aparece em todas; fechar ou recarregar a página com fotos ainda sendo enviadas pede confirmação antes",

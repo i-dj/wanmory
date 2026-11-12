@@ -3,6 +3,11 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Since v0.4.2, Wanmory gave the files in the data folder to the container's own user, so the host user (for example a Raspberry Pi user whose ID isn't 1000) couldn't delete uploaded photos and thumbnails; Wanmory now runs as the owner of the data folder, so everything it writes belongs to that user, and files left by earlier versions are given back",
+    "Model files downloaded by the AI service belonged to root and couldn't be deleted on the host; they now go to the owner of the model folder",
+    "Uninstall script: when a normal delete is refused, it deletes through a temporary container; only if that fails too does it say so, with the sudo command to run, instead of reporting both failure and success",
+  ],
   'v0.4.3': [
     "New status capsule at the top right: while photos upload, import or go through AI analysis it appears left of the toolbar and says in a few words what is happening (Uploading 11%, Upload complete, Waiting for AI analysis, AI analysis 3 / 674); click it for upload progress, each file and background tasks. It replaces the upload window at the bottom left and the task icon at the top of the menu",
     "Uploads keep going when you switch to another page, and progress is visible on every page; closing or reloading the page while photos are still uploading asks first",

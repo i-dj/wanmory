@@ -3,6 +3,11 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Depuis la v0.4.2, Wanmory donnait les fichiers du dossier de données à l'utilisateur du conteneur, si bien que l'utilisateur de l'hôte (par exemple un utilisateur de Raspberry Pi dont l'ID n'est pas 1000) ne pouvait pas supprimer les photos envoyées ni les miniatures ; Wanmory s'exécute désormais en tant que propriétaire du dossier de données, tout ce qu'il écrit lui appartient, et les fichiers laissés par les anciennes versions lui sont rendus",
+    "Les fichiers de modèles téléchargés par le service IA appartenaient à root et ne pouvaient pas être supprimés sur l'hôte ; ils reviennent maintenant au propriétaire du dossier des modèles",
+    "Script de désinstallation : si une suppression normale est refusée, il supprime via un conteneur temporaire ; il ne signale un échec, avec la commande sudo à lancer, que si cela échoue aussi, au lieu d'annoncer à la fois l'échec et la réussite",
+  ],
   'v0.4.3': [
     "Nouvelle capsule d'état en haut à droite : pendant l'envoi, l'import ou l'analyse IA des photos, elle apparaît à gauche de la barre d'outils et dit en quelques mots ce qui se passe (Envoi 11 %, Envoi terminé, En attente de l'analyse IA, Analyse IA 3 / 674) ; un clic affiche la progression de l'envoi, chaque fichier et les tâches de fond. Elle remplace la fenêtre d'envoi en bas à gauche et l'icône des tâches en haut du menu",
     "Les envois continuent quand vous changez de page, et la progression est visible partout ; fermer ou recharger la page pendant un envoi demande d'abord confirmation",

@@ -3,6 +3,11 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Seit v0.4.2 gab Wanmory die Dateien im Datenordner dem Benutzer im Container, sodass der Benutzer auf dem Host (etwa ein Raspberry-Pi-Benutzer mit einer anderen ID als 1000) hochgeladene Fotos und Vorschaubilder nicht löschen konnte; jetzt läuft Wanmory als Besitzer des Datenordners, alles Geschriebene gehört ihm, und Dateien älterer Versionen werden zurückgegeben",
+    "Vom KI-Dienst heruntergeladene Modelldateien gehörten root und ließen sich auf dem Host nicht löschen; sie gehen jetzt an den Besitzer des Modellordners",
+    "Deinstallationsskript: Wird normales Löschen verweigert, löscht es über einen temporären Container; nur wenn auch das scheitert, meldet es das mit dem passenden sudo-Befehl, statt Fehler und Erfolg zugleich anzuzeigen",
+  ],
   'v0.4.3': [
     "Neue Statuskapsel oben rechts: Während Fotos hochgeladen, importiert oder per KI analysiert werden, erscheint sie links neben der Werkzeugleiste und sagt kurz, was gerade passiert (Hochladen 11 %, Upload abgeschlossen, Warte auf KI-Analyse, KI-Analyse 3 / 674); ein Klick zeigt Upload-Fortschritt, jede Datei und die Hintergrundaufgaben. Sie ersetzt das Upload-Fenster unten links und das Aufgabensymbol oben im Menü",
     "Uploads laufen weiter, wenn du auf eine andere Seite wechselst, und der Fortschritt ist auf jeder Seite sichtbar; schließt oder lädst du die Seite neu, während noch Fotos hochgeladen werden, wird vorher nachgefragt",

@@ -3,6 +3,11 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Dalla v0.4.2 Wanmory assegnava i file della cartella dei dati all'utente del container, quindi l'utente dell'host (per esempio un utente di Raspberry Pi con ID diverso da 1000) non poteva eliminare le foto caricate e le miniature; ora Wanmory gira come proprietario della cartella dei dati, tutto ciò che scrive gli appartiene e i file lasciati dalle versioni precedenti gli vengono restituiti",
+    "I file dei modelli scaricati dal servizio IA appartenevano a root e non si potevano eliminare sull'host; ora passano al proprietario della cartella dei modelli",
+    "Script di disinstallazione: se l'eliminazione normale viene rifiutata, elimina tramite un container temporaneo; segnala un errore, con il comando sudo da eseguire, solo se fallisce anche questo, invece di dire insieme che non è riuscito e che ha eliminato",
+  ],
   'v0.4.3': [
     "Nuova capsula di stato in alto a destra: mentre le foto vengono caricate, importate o analizzate dall'IA compare a sinistra della barra degli strumenti e dice in poche parole cosa sta succedendo (Caricamento 11%, Caricamento completato, In attesa dell'analisi IA, Analisi IA 3 / 674); cliccandola si vedono l'avanzamento del caricamento, ogni file e le attività in background. Sostituisce la finestra di caricamento in basso a sinistra e l'icona delle attività in cima al menu",
     "I caricamenti continuano quando passi a un'altra pagina e l'avanzamento è visibile ovunque; chiudendo o ricaricando la pagina mentre ci sono ancora foto in caricamento viene chiesta conferma",

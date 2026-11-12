@@ -3,6 +3,11 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.4': [
+    "Desde la v0.4.2, Wanmory daba los archivos de la carpeta de datos al usuario del contenedor, así que el usuario del equipo (por ejemplo, un usuario de Raspberry Pi cuyo ID no es 1000) no podía borrar las fotos subidas ni las miniaturas; ahora Wanmory se ejecuta como el dueño de la carpeta de datos, todo lo que escribe le pertenece y los archivos que dejaron versiones anteriores se le devuelven",
+    "Los archivos de modelos que descargaba el servicio de IA pertenecían a root y no se podían borrar en el equipo; ahora pasan al dueño de la carpeta de modelos",
+    "Script de desinstalación: si un borrado normal se rechaza, borra mediante un contenedor temporal; solo si eso también falla lo indica, con el comando sudo que hay que ejecutar, en lugar de decir a la vez que falló y que se borró",
+  ],
   'v0.4.3': [
     "Nueva cápsula de estado arriba a la derecha: mientras las fotos se suben, se importan o pasan por el análisis con IA, aparece a la izquierda de la barra de herramientas y dice en pocas palabras qué está pasando (Subiendo 11 %, Subida completada, Esperando el análisis con IA, Análisis con IA 3 / 674); al pulsarla se ven el progreso de la subida, cada archivo y las tareas en segundo plano. Sustituye a la ventana de subida de abajo a la izquierda y al icono de tareas de arriba del menú",
     "Las subidas siguen al cambiar de página y el progreso se ve en todas; cerrar o recargar la página mientras aún se suben fotos pide confirmación antes",
