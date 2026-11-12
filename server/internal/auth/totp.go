@@ -28,7 +28,7 @@ import (
 const (
 	totpStep      = 30 // 秒
 	totpDigits    = 6
-	totpIssuer    = "万象 Wanmory"
+	totpIssuer    = "Wanmory" // 验证器 App 里显示成「Wanmory:名字」
 	recoveryCount = 10
 )
 

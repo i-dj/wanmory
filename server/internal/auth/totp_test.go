@@ -56,8 +56,8 @@ func TestRecoveryCodes(t *testing.T) {
 }
 
 func TestTOTPURI(t *testing.T) {
-	uri := totpURI("ABC", "小明")
-	if !strings.HasPrefix(uri, "otpauth://totp/") || !strings.Contains(uri, "secret=ABC") || !strings.Contains(uri, "issuer=") {
+	uri := totpURI("ABC", "liao")
+	if !strings.HasPrefix(uri, "otpauth://totp/Wanmory:liao?") || !strings.Contains(uri, "secret=ABC") || !strings.Contains(uri, "issuer=Wanmory&") {
 		t.Fatalf("二维码内容不对：%s", uri)
 	}
 }
