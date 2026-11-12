@@ -559,8 +559,62 @@ if [ "$DRY_RUN" = 1 ]; then
   exit 0
 fi
 
+# A database left over from an earlier installation (uninstalled without deleting the database, or .env removed)
+# keeps the password it was created with; PostgreSQL ignores the password in .env after the first start.
+# Ask whether to keep it; kept or new, the password is synced to .env once PostgreSQL is up (see below).
+PROJECT=$("${COMPOSE[@]}" config --format json 2>/dev/null | tr ',' '\n' | sed -n 's/^{*"name": *"\([^"]*\)".*/\1/p' | head -1)
+PROJECT=${PROJECT:-$(basename "$INSTALL_DIR" | tr 'A-Z' 'a-z')}
+DB_VOLUME="${PROJECT}_pgdata"
+DB_PATH=''
+[ -n "${DB_DIR:-${WANMORY_DB_DIR:-}}" ] && DB_PATH=$(abs_path "${DB_DIR:-$WANMORY_DB_DIR}")
+OLD_DB=''
+if [ -n "$DB_PATH" ]; then
+  [ -f "$DB_PATH/PG_VERSION" ] && OLD_DB="directory $DB_PATH"
+elif docker volume inspect "$DB_VOLUME" >/dev/null 2>&1; then
+  OLD_DB="Docker volume $DB_VOLUME"
+fi
+if [ -n "$OLD_DB" ] && [ "$REUSE_ENV" = 0 ]; then
+  step "Existing database found"
+  warn "A database from a previous installation is still here ($OLD_DB)"
+  if confirm "Keep it (photos, albums, people and accounts stay as they were)" y; then
+    ok "Keeping the existing database; its password will be updated to the one in .env"
+  elif [ -n "$DB_PATH" ]; then
+    fail "Not deleting $DB_PATH automatically. Empty or remove that directory yourself, then run the installer again"
+  else
+    "${COMPOSE[@]}" down >/dev/null 2>&1 || true
+    docker volume rm "$DB_VOLUME" >/dev/null || fail "Could not delete the Docker volume $DB_VOLUME"
+    ok "Old database deleted; a new, empty one will be created"
+  fi
+fi
+
 step "Pulling images and starting (a few minutes on first run)"
 "${COMPOSE[@]}" pull
+
+# Start PostgreSQL first and set the database password to the one in .env. Inside the container PostgreSQL trusts
+# local socket connections, so this works even when the stored password differs (an older database); for a new
+# database it is a no-op. Then start everything else
+"${COMPOSE[@]}" up -d postgres
+printf '  Waiting for the database'
+DB_READY=0
+for _ in $(seq 1 60); do
+  if "${COMPOSE[@]}" exec -T postgres pg_isready -U wanmory -d wanmory >/dev/null 2>&1; then
+    DB_READY=1
+    break
+  fi
+  printf '.'
+  sleep 2
+done
+printf '\n'
+[ "$DB_READY" = 1 ] || fail "The database did not start. Check the logs: cd $INSTALL_DIR && ${COMPOSE[*]} logs postgres"
+DB_PW=$(grep -m1 '^WANMORY_DB_PASSWORD=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+DB_PW=${DB_PW:-wanmory}
+# (the password has no quotes: random passwords are hex, and typed ones are checked above)
+if printf "ALTER USER wanmory WITH PASSWORD '%s';\n" "$DB_PW" |
+  "${COMPOSE[@]}" exec -T postgres psql -q -v ON_ERROR_STOP=1 -U wanmory -d wanmory >/dev/null 2>&1; then
+  ok "Database ready"
+else
+  warn "Could not update the database password; if Wanmory cannot connect, check WANMORY_DB_PASSWORD in .env"
+fi
 "${COMPOSE[@]}" up -d
 
 # 树莓派这类慢机器第一次启动要久一点：最多等 5 分钟。相册程序反复重启（启动就出错）时不用干等，直接把日志贴出来
