@@ -3,6 +3,9 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.1': [
+    "Verifica in due passaggi: le app di autenticazione ora mostrano la voce come «Wanmory:nome utente», senza il prefisso cinese; se l’avevi già attivata, disattivala e inquadra di nuovo il codice per vedere il nuovo nome",
+  ],
   'v0.4.0': [
     "L’interfaccia è ora disponibile in 12 lingue: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Si imposta in Il mio account; per impostazione predefinita segue la lingua del browser e resta la stessa quando accedi da un altro dispositivo. Anche date, numeri e nomi dei luoghi seguono la lingua",
     "Verifica in due passaggi: attivala in Il mio account inquadrando un codice QR con un’app di autenticazione (Google Authenticator, Microsoft Authenticator, 2FAS e altre); all’accesso, dopo la password, viene chiesto un codice di 6 cifre. Ricevi 10 codici di recupero per quando non hai il telefono a portata di mano",

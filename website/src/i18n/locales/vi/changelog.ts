@@ -2,6 +2,9 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.1': [
+    "Xác minh hai bước: ứng dụng xác thực nay hiển thị tên là “Wanmory:tên người dùng”, bỏ phần chữ Trung ở đầu; nếu đã bật thì cần tắt rồi quét lại mới đổi tên",
+  ],
   'v0.4.0': [
     "Giao diện nay có 12 ngôn ngữ: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Chọn trong Tài khoản của tôi; mặc định theo ngôn ngữ của trình duyệt và giữ nguyên khi đăng nhập trên thiết bị khác. Ngày tháng, con số và tên địa điểm cũng hiển thị theo ngôn ngữ",
     "Xác minh hai bước: bật trong Tài khoản của tôi bằng cách quét mã QR với ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, 2FAS…); khi đăng nhập, sau mật khẩu cần nhập mã 6 chữ số. Khi bật sẽ có 10 mã dự phòng để dùng lúc không có điện thoại bên cạnh",

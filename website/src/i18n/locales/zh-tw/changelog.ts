@@ -2,6 +2,9 @@
 // 版本缺少譯文或條數不一致時顯示簡體中文原文
 
 const changelog: Record<string, string[]> = {
+  'v0.4.1': [
+    "兩步驗證：驗證器 App 裡顯示的名字改成「Wanmory:使用者名稱」，去掉了前面的中文；已經開啟的要關掉再重新掃碼才會變",
+  ],
   'v0.4.0': [
     "介面支援 12 種語言：簡體中文、繁體中文、English、日本語、한국어、Deutsch、Français、Español、Português、Русский、Italiano、Tiếng Việt；在「我的帳號」裡設定，預設跟隨瀏覽器語言，換裝置登入也是這個語言；日期、數字和地名也跟著語言顯示",
     "兩步驗證：在「我的帳號」裡用驗證器 App（Google Authenticator、Microsoft Authenticator、2FAS 等）掃碼開啟，登入時在密碼之後再輸 6 位驗證碼；開啟時給 10 個備用碼，手機不在身邊時可以用",

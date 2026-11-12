@@ -3,6 +3,9 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.1': [
+    "Two-step verification: authenticator apps now show the entry as “Wanmory:username”, without the Chinese prefix; if you already turned it on, turn it off and scan again to get the new name",
+  ],
   'v0.4.0': [
     "The interface now comes in 12 languages: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Set it in My account; by default it follows your browser language, and it stays the same when you sign in on another device. Dates, numbers and place names follow the language too",
     "Two-step verification: turn it on in My account by scanning a QR code with an authenticator app (Google Authenticator, Microsoft Authenticator, 2FAS and others); signing in then asks for a 6-digit code after your password. You get 10 recovery codes for when your phone isn’t at hand",

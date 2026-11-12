@@ -3,6 +3,9 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.1': [
+    "Zwei-Faktor-Authentifizierung: Authenticator-Apps zeigen den Eintrag jetzt als „Wanmory:Benutzername“, ohne chinesisches Präfix; wer sie schon eingeschaltet hat, muss sie aus- und wieder einschalten und neu scannen",
+  ],
   'v0.4.0': [
     "Die Oberfläche gibt es jetzt in 12 Sprachen: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Einstellbar unter Mein Konto; standardmäßig folgt sie der Browsersprache und bleibt auch bei der Anmeldung auf einem anderen Gerät gleich. Datumsangaben, Zahlen und Ortsnamen richten sich ebenfalls nach der Sprache",
     "Zwei-Faktor-Authentifizierung: unter Mein Konto per QR-Code mit einer Authenticator-App (Google Authenticator, Microsoft Authenticator, 2FAS u. a.) einschalten; bei der Anmeldung wird dann nach dem Passwort ein 6-stelliger Code abgefragt. Beim Einschalten gibt es 10 Wiederherstellungscodes für den Fall, dass das Handy nicht zur Hand ist",
