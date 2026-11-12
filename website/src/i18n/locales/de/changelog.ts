@@ -3,6 +3,10 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.2': [
+    "Wanmory startete nicht und lief in einer Neustartschleife, wenn der Datenordner nicht dem Benutzer im Container gehörte (z. B. nach einer Installation mit sudo oder auf einem Raspberry Pi); jetzt wird der Besitzer beim Start automatisch korrigiert, und es funktioniert auch auf USB-Laufwerken und Netzwerkfreigaben, auf denen sich der Besitzer nicht ändern lässt",
+    "Installationsskript: wartet bis zu 5 Minuten, bevor es entscheidet, ob Wanmory gestartet ist; bei ständigen Neustarts werden die letzten Logzeilen angezeigt, und „Installation complete“ erscheint nicht mehr, wenn der Start fehlschlug; der Abschlusshinweis enthält kein Chinesisch mehr",
+  ],
   'v0.4.1': [
     "Zwei-Faktor-Authentifizierung: Authenticator-Apps zeigen den Eintrag jetzt als „Wanmory:Benutzername“, ohne chinesisches Präfix; wer sie schon eingeschaltet hat, muss sie aus- und wieder einschalten und neu scannen",
   ],

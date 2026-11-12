@@ -3,6 +3,10 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.2': [
+    "Wanmory non si avviava e si riavviava di continuo quando la cartella dei dati non apparteneva all’utente del container (per esempio dopo un’installazione con sudo o su un Raspberry Pi); ora il proprietario della cartella viene corretto all’avvio, e funziona anche su chiavette USB e condivisioni di rete dove il proprietario non si può cambiare",
+    "Script di installazione: attende fino a 5 minuti prima di decidere se Wanmory si è avviato; se si riavvia di continuo mostra le ultime righe del log, e non scrive più «Installation complete» quando l’avvio non è riuscito; il messaggio finale non contiene più cinese",
+  ],
   'v0.4.1': [
     "Verifica in due passaggi: le app di autenticazione ora mostrano la voce come «Wanmory:nome utente», senza il prefisso cinese; se l’avevi già attivata, disattivala e inquadra di nuovo il codice per vedere il nuovo nome",
   ],

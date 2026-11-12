@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.2': [
+    "Wanmory could not start and kept restarting when the data folder wasn’t owned by the container’s user (for example after installing with sudo, or on a Raspberry Pi); it now fixes the folder’s owner on startup, and also works on USB drives and network shares where the owner can’t be changed",
+    "Install script: waits up to 5 minutes before deciding whether Wanmory started; if it keeps restarting, the last log lines are shown, and “Installation complete” is no longer printed when it didn’t start; the closing hint no longer contains Chinese",
+  ],
   'v0.4.1': [
     "Two-step verification: authenticator apps now show the entry as “Wanmory:username”, without the Chinese prefix; if you already turned it on, turn it off and scan again to get the new name",
   ],
