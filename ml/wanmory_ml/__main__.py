@@ -11,11 +11,14 @@ import threading
 
 import uvicorn
 
+from . import models
 from .app import DEFAULT_CLIP_MODEL, DEFAULT_FACE_MODEL, app, clip_model, face_model
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # 以前下载的模型归 root 的，交给模型目录的主人（宿主机上的用户才删得掉）
+    threading.Thread(target=models.give_to_owner, daemon=True).start()
     if os.environ.get("WANMORY_FACE_MODEL_PRELOAD") == "1":
         face_model(DEFAULT_FACE_MODEL)
         threading.Thread(target=clip_model, args=(DEFAULT_CLIP_MODEL,), daemon=True).start()

@@ -113,12 +113,33 @@ def start_download(name: str, original: bool = False) -> None:
                 hf_model(name, CLIP_REPOS[name], download=True)
             else:
                 onnx_model(name, download=True)
+            give_to_owner()
         except Exception as e:  # 网络断了、磁盘满了：记下来给网页看，可以再点一次重试（重试时重新选下载源）
             log.exception("下载模型 %s 失败", name)
             forget_endpoint()
             _report(name, state="error", error=str(e))
 
     threading.Thread(target=run, daemon=True).start()
+
+
+def give_to_owner() -> None:
+    """容器里以 root 运行时，把下载的模型文件交给模型目录的主人（宿主机上建这个目录的用户），
+    不然宿主机上的普通用户删不掉这些文件（卸载、腾地方时）。不是 root、或者目录本身归 root 时不用管"""
+    if os.name != "posix" or os.geteuid() != 0:
+        return
+    try:
+        st = MODEL_DIR.stat()
+    except OSError:
+        return
+    if st.st_uid == 0:
+        return
+    for root, dirs, files in os.walk(MODEL_DIR):
+        for n in [root, *(os.path.join(root, d) for d in dirs), *(os.path.join(root, f) for f in files)]:
+            try:
+                if os.lstat(n).st_uid != st.st_uid:
+                    os.lchown(n, st.st_uid, st.st_gid)
+            except OSError:  # 网络共享、U 盘这类改不了归属的：算了
+                pass
 
 
 def delete(name: str) -> None:

@@ -198,9 +198,10 @@ fi
 
 # ---------- remove ----------
 step "Removing"
+# The server image is used below to delete files the current user cannot (see remove_dir), so images are removed last
+CLEANUP_IMAGE=$("${COMPOSE[@]}" config --images 2>/dev/null | grep -m1 wanmory-server || true)
 DOWN=(down --remove-orphans)
 [ "$DEL_DB" = 1 ] && [ -z "$DB_DIR" ] && DOWN+=(--volumes)
-[ "$DEL_IMAGES" = 1 ] && DOWN+=(--rmi all)
 run "${COMPOSE[@]}" "${DOWN[@]}"
 ok "Containers removed"
 
@@ -211,8 +212,17 @@ remove_dir() {
   elif ! safe_to_delete "$dir"; then
     warn "$label: refusing to delete $dir; remove it manually if you are sure"
   else
-    run rm -rf -- "$dir" || warn "$label: could not delete $dir (try with sudo)"
-    ok "$label deleted: $dir"
+    # Files written by the containers may belong to another user (older versions wrote as uid 1000 or root);
+    # when a plain rm is refused, delete them from inside a throwaway container, which runs as root
+    if run rm -rf -- "$dir" 2>/dev/null; then
+      ok "$label deleted: $dir"
+    elif [ -n "$CLEANUP_IMAGE" ] &&
+      docker run --rm -v "$dir:/target" --entrypoint sh "$CLEANUP_IMAGE" -c 'rm -rf /target/* /target/.[!.]* /target/..?*' >/dev/null 2>&1 &&
+      rm -rf -- "$dir" 2>/dev/null; then
+      ok "$label deleted: $dir"
+    else
+      warn "$label: could not delete $dir; run: sudo rm -rf $dir"
+    fi
   fi
 }
 
@@ -227,6 +237,10 @@ if [ "$DEL_DB" = 1 ]; then
 fi
 [ "$DEL_DATA" = 1 ] && remove_dir "Data directory" "$DATA_DIR"
 [ "$DEL_MODELS" = 1 ] && remove_dir "AI models" "$MODELS_DIR"
+if [ "$DEL_IMAGES" = 1 ]; then
+  run "${COMPOSE[@]}" down --rmi all >/dev/null 2>&1 || true
+  ok "Docker images removed"
+fi
 if [ "$DEL_CONFIG" = 1 ]; then
   for f in .env docker-compose.yml docker-compose.override.yml; do
     [ -f "$INSTALL_DIR/$f" ] && run rm -f -- "$INSTALL_DIR/$f"
