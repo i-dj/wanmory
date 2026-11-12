@@ -3,6 +3,12 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.3': [
+    "Nueva cápsula de estado arriba a la derecha: mientras las fotos se suben, se importan o pasan por el análisis con IA, aparece a la izquierda de la barra de herramientas y dice en pocas palabras qué está pasando (Subiendo 11 %, Subida completada, Esperando el análisis con IA, Análisis con IA 3 / 674); al pulsarla se ven el progreso de la subida, cada archivo y las tareas en segundo plano. Sustituye a la ventana de subida de abajo a la izquierda y al icono de tareas de arriba del menú",
+    "Las subidas siguen al cambiar de página y el progreso se ve en todas; cerrar o recargar la página mientras aún se suben fotos pide confirmación antes",
+    "Una subida atascada (la red se cortó un momento, 45 segundos sin progreso) se reconecta sola y sigue desde donde se quedó",
+    "Sin los modelos de IA descargados, el reconocimiento de texto integrado seguía funcionando y el progreso parecía un análisis en curso; ahora todo el análisis con IA se pausa hasta descargar los modelos, con un aviso para hacerlo en Ajustes → IA, y empieza solo después",
+  ],
   'v0.4.2': [
     "Wanmory no arrancaba y se reiniciaba sin parar cuando la carpeta de datos no pertenecía al usuario del contenedor (por ejemplo, al instalar con sudo o en una Raspberry Pi); ahora corrige el propietario de la carpeta al arrancar, y también funciona en unidades USB y recursos de red donde no se puede cambiar el propietario",
     "Script de instalación: espera hasta 5 minutos antes de decidir si Wanmory arrancó; si se reinicia sin parar, muestra las últimas líneas del registro, y ya no muestra «Installation complete» cuando no arrancó; el aviso final ya no contiene chino; ahora empieza con un banner de bienvenida y la versión que se instala",

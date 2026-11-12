@@ -3,6 +3,12 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.3': [
+    "Neue Statuskapsel oben rechts: Während Fotos hochgeladen, importiert oder per KI analysiert werden, erscheint sie links neben der Werkzeugleiste und sagt kurz, was gerade passiert (Hochladen 11 %, Upload abgeschlossen, Warte auf KI-Analyse, KI-Analyse 3 / 674); ein Klick zeigt Upload-Fortschritt, jede Datei und die Hintergrundaufgaben. Sie ersetzt das Upload-Fenster unten links und das Aufgabensymbol oben im Menü",
+    "Uploads laufen weiter, wenn du auf eine andere Seite wechselst, und der Fortschritt ist auf jeder Seite sichtbar; schließt oder lädst du die Seite neu, während noch Fotos hochgeladen werden, wird vorher nachgefragt",
+    "Ein hängender Upload (Netzwerk kurz weg, 45 Sekunden ohne Fortschritt) verbindet sich automatisch neu und macht an der Stelle weiter",
+    "Ohne heruntergeladene KI-Modelle lief die eingebaute Texterkennung trotzdem, sodass der Fortschritt wie eine laufende Analyse aussah; jetzt pausiert die gesamte KI-Analyse, bis die Modelle heruntergeladen sind, mit einem Hinweis auf Einstellungen → KI, und startet danach automatisch",
+  ],
   'v0.4.2': [
     "Wanmory startete nicht und lief in einer Neustartschleife, wenn der Datenordner nicht dem Benutzer im Container gehörte (z. B. nach einer Installation mit sudo oder auf einem Raspberry Pi); jetzt wird der Besitzer beim Start automatisch korrigiert, und es funktioniert auch auf USB-Laufwerken und Netzwerkfreigaben, auf denen sich der Besitzer nicht ändern lässt",
     "Installationsskript: wartet bis zu 5 Minuten, bevor es entscheidet, ob Wanmory gestartet ist; bei ständigen Neustarts werden die letzten Logzeilen angezeigt, und „Installation complete“ erscheint nicht mehr, wenn der Start fehlschlug; der Abschlusshinweis enthält kein Chinesisch mehr; zu Beginn erscheinen ein Begrüßungsbanner und die zu installierende Version",

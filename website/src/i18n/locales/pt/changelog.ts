@@ -3,6 +3,12 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.3': [
+    "Nova cápsula de status no canto superior direito: enquanto fotos são enviadas, importadas ou analisadas pela IA, ela aparece à esquerda da barra de ferramentas e diz em poucas palavras o que está acontecendo (Enviando 11%, Envio concluído, Aguardando análise com IA, Análise com IA 3 / 674); clique para ver o progresso do envio, cada arquivo e as tarefas em segundo plano. Substitui a janela de envio no canto inferior esquerdo e o ícone de tarefas no topo do menu",
+    "Os envios continuam quando você muda de página, e o progresso aparece em todas; fechar ou recarregar a página com fotos ainda sendo enviadas pede confirmação antes",
+    "Um envio travado (a rede caiu por um instante, 45 segundos sem progresso) reconecta sozinho e continua de onde parou",
+    "Sem os modelos de IA baixados, o reconhecimento de texto embutido continuava rodando e o progresso parecia uma análise em andamento; agora toda a análise com IA fica pausada até os modelos serem baixados, com um aviso para baixá-los em Configurações → IA, e começa sozinha depois",
+  ],
   'v0.4.2': [
     "O Wanmory não iniciava e reiniciava sem parar quando a pasta de dados não pertencia ao usuário do contêiner (por exemplo, ao instalar com sudo ou num Raspberry Pi); agora o dono da pasta é corrigido na inicialização, e também funciona em pendrives e compartilhamentos de rede onde o dono não pode ser alterado",
     "Script de instalação: espera até 5 minutos antes de decidir se o Wanmory iniciou; se ele ficar reiniciando, mostra as últimas linhas do log, e não exibe mais “Installation complete” quando não iniciou; a dica final não tem mais chinês; agora começa com uma tela de boas-vindas e a versão que será instalada",

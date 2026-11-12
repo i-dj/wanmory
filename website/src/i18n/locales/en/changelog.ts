@@ -3,6 +3,12 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.3': [
+    "New status capsule at the top right: while photos upload, import or go through AI analysis it appears left of the toolbar and says in a few words what is happening (Uploading 11%, Upload complete, Waiting for AI analysis, AI analysis 3 / 674); click it for upload progress, each file and background tasks. It replaces the upload window at the bottom left and the task icon at the top of the menu",
+    "Uploads keep going when you switch to another page, and progress is visible on every page; closing or reloading the page while photos are still uploading asks first",
+    "A stalled upload (the network dropped for a moment, no progress for 45 seconds) reconnects automatically and continues from where it stopped",
+    "Without the AI models downloaded, the built-in text recognition still ran, so task progress looked like analysis was happening; now all AI analysis pauses until the models are downloaded, with a hint to download them in Settings → AI, and starts automatically afterwards",
+  ],
   'v0.4.2': [
     "Wanmory could not start and kept restarting when the data folder wasn’t owned by the container’s user (for example after installing with sudo, or on a Raspberry Pi); it now fixes the folder’s owner on startup, and also works on USB drives and network shares where the owner can’t be changed",
     "Install script: waits up to 5 minutes before deciding whether Wanmory started; if it keeps restarting, the last log lines are shown, and “Installation complete” is no longer printed when it didn’t start; the closing hint no longer contains Chinese; it now opens with a welcome banner and the version being installed",

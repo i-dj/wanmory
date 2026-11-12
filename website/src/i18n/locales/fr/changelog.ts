@@ -3,6 +3,12 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.3': [
+    "Nouvelle capsule d'état en haut à droite : pendant l'envoi, l'import ou l'analyse IA des photos, elle apparaît à gauche de la barre d'outils et dit en quelques mots ce qui se passe (Envoi 11 %, Envoi terminé, En attente de l'analyse IA, Analyse IA 3 / 674) ; un clic affiche la progression de l'envoi, chaque fichier et les tâches de fond. Elle remplace la fenêtre d'envoi en bas à gauche et l'icône des tâches en haut du menu",
+    "Les envois continuent quand vous changez de page, et la progression est visible partout ; fermer ou recharger la page pendant un envoi demande d'abord confirmation",
+    "Un envoi bloqué (réseau coupé un instant, aucune progression pendant 45 secondes) se reconnecte automatiquement et reprend là où il s'était arrêté",
+    "Sans les modèles IA téléchargés, la reconnaissance de texte intégrée tournait quand même, et la progression donnait l'impression d'une analyse en cours ; désormais toute l'analyse IA est en pause tant que les modèles ne sont pas téléchargés, avec une invite vers Réglages → IA, puis démarre automatiquement",
+  ],
   'v0.4.2': [
     "Wanmory ne démarrait pas et redémarrait en boucle lorsque le dossier de données n’appartenait pas à l’utilisateur du conteneur (par exemple après une installation avec sudo, ou sur un Raspberry Pi) ; le propriétaire du dossier est maintenant corrigé au démarrage, et cela fonctionne aussi sur les clés USB et partages réseau où le propriétaire ne peut pas être changé",
     "Script d’installation : attend jusqu’à 5 minutes avant de décider si Wanmory a démarré ; en cas de redémarrages en boucle, les dernières lignes du journal s’affichent, et « Installation complete » n’apparaît plus si le démarrage a échoué ; le message final ne contient plus de chinois ; il commence par une bannière d’accueil et la version installée",

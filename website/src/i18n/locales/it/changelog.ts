@@ -3,6 +3,12 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.3': [
+    "Nuova capsula di stato in alto a destra: mentre le foto vengono caricate, importate o analizzate dall'IA compare a sinistra della barra degli strumenti e dice in poche parole cosa sta succedendo (Caricamento 11%, Caricamento completato, In attesa dell'analisi IA, Analisi IA 3 / 674); cliccandola si vedono l'avanzamento del caricamento, ogni file e le attività in background. Sostituisce la finestra di caricamento in basso a sinistra e l'icona delle attività in cima al menu",
+    "I caricamenti continuano quando passi a un'altra pagina e l'avanzamento è visibile ovunque; chiudendo o ricaricando la pagina mentre ci sono ancora foto in caricamento viene chiesta conferma",
+    "Un caricamento bloccato (rete caduta per un attimo, 45 secondi senza avanzamento) si riconnette da solo e riprende da dove si era fermato",
+    "Senza i modelli IA scaricati, il riconoscimento del testo integrato girava comunque e l'avanzamento sembrava un'analisi in corso; ora tutta l'analisi IA resta in pausa finché i modelli non sono scaricati, con un invito a scaricarli in Impostazioni → IA, e parte da sola subito dopo",
+  ],
   'v0.4.2': [
     "Wanmory non si avviava e si riavviava di continuo quando la cartella dei dati non apparteneva all’utente del container (per esempio dopo un’installazione con sudo o su un Raspberry Pi); ora il proprietario della cartella viene corretto all’avvio, e funziona anche su chiavette USB e condivisioni di rete dove il proprietario non si può cambiare",
     "Script di installazione: attende fino a 5 minuti prima di decidere se Wanmory si è avviato; se si riavvia di continuo mostra le ultime righe del log, e non scrive più «Installation complete» quando l’avvio non è riuscito; il messaggio finale non contiene più cinese; ora si apre con un banner di benvenuto e la versione che verrà installata",
