@@ -3,6 +3,17 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "The interface now comes in 12 languages: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Set it in My account; by default it follows your browser language, and it stays the same when you sign in on another device. Dates, numbers and place names follow the language too",
+    "Two-step verification: turn it on in My account by scanning a QR code with an authenticator app (Google Authenticator, Microsoft Authenticator, 2FAS and others); signing in then asks for a 6-digit code after your password. You get 10 recovery codes for when your phone isn’t at hand",
+    "Redesigned avatar picker: a crop preview on top that you can drag and zoom, and below it a choice of uploading an image, a photo from your library, the default avatar or a cartoon",
+    "All dialogs now share one look: a centered icon, title and description, with two equal-width buttons below; deleting a member, album or model uses the same delete confirmation",
+    "With photos selected, More now offers Share…: use the system share sheet to email them (the photos go straight into the attachments), AirDrop them or send them to other apps; the library must be opened over https or localhost",
+    "When sorting by date added, the timeline on the right and the date groups above the photos use the date added too",
+    "Security: repeated wrong passwords now lock sign-in for a while; the site can’t be embedded by other websites, and uploaded files are never run as web pages; the local network domain can be changed right in System settings",
+    "The upload-complete notice now disappears after 10 seconds",
+    "The background stuttered when a confirmation dialog opened",
+  ],
   'v0.3.1': [
     "The Places map can now be zoomed and dragged: zoom with the mouse wheel or trackpad, double-click to zoom in, drag to pan, pinch with two fingers on phones, and use the buttons at the bottom right to zoom in, zoom out or show the whole world; at around country level it switches to a street map (online maps must be on) with cities, roads and place names, and the photo pins keep splitting as you zoom, down to individual spots; coming back from the photos returns you to where you were",
     "Website: the calendar on the releases page is now a month calendar with each day’s version numbers, and clicking a version jumps to its notes; fixed pages occasionally loading with no styling on slow networks or right after a site update",

@@ -3,6 +3,17 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "A interface agora está em 12 idiomas: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Escolha em Minha conta; por padrão segue o idioma do navegador e continua igual ao entrar em outro dispositivo. Datas, números e nomes de lugares também seguem o idioma",
+    "Verificação em duas etapas: ative em Minha conta lendo um QR code com um app autenticador (Google Authenticator, Microsoft Authenticator, 2FAS etc.); ao entrar, é pedido um código de 6 dígitos depois da senha. Você recebe 10 códigos de recuperação para quando estiver sem o celular",
+    "Novo seletor de avatar: em cima, uma prévia de recorte que dá para arrastar e ampliar; embaixo, escolha entre enviar uma imagem, uma foto da biblioteca, o avatar padrão ou um desenho",
+    "Todas as caixas de diálogo agora têm o mesmo visual: ícone, título e descrição centralizados, com dois botões de mesma largura embaixo; excluir membros, álbuns e modelos usa a mesma confirmação",
+    "Com fotos selecionadas, Mais agora tem Compartilhar…: use o menu de compartilhamento do sistema para mandar por e-mail (as fotos já vão anexadas), por AirDrop ou para outros apps; a biblioteca precisa estar aberta por https ou localhost",
+    "Ao ordenar por data de adição, a linha do tempo à direita e os grupos de datas acima das fotos também usam a data de adição",
+    "Segurança: após várias senhas erradas, o login fica bloqueado por um tempo; o site não pode ser incorporado em outros sites e arquivos enviados nunca rodam como páginas web; o domínio da rede local pode ser alterado direto nas configurações do sistema",
+    "O aviso de envio concluído some depois de 10 segundos",
+    "O fundo travava ao abrir uma caixa de confirmação",
+  ],
   'v0.3.1': [
     "O mapa de Lugares agora pode ser ampliado, reduzido e arrastado: zoom com a roda do mouse ou o trackpad, clique duplo para ampliar, arrastar para mover, pinça com dois dedos no celular, e botões no canto inferior direito para ampliar, reduzir ou ver o mundo todo; perto do nível de país ele muda para um mapa de ruas (os mapas on-line precisam estar ativados) com cidades, estradas e nomes de lugares, e os alfinetes de fotos vão se dividindo conforme você amplia, até cada local de foto; ao voltar das fotos, o mapa continua onde estava",
     "Site: o calendário da página de versões agora é um calendário mensal com os números de versão de cada dia, e clicar numa versão leva às notas dela; corrigido o problema de páginas que às vezes carregavam sem estilo em conexões lentas ou logo após uma atualização do site",

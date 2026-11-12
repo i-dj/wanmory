@@ -3,6 +3,17 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "La interfaz ya está en 12 idiomas: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Se elige en Mi cuenta; por defecto sigue el idioma del navegador y se mantiene al iniciar sesión en otro dispositivo. Las fechas, los números y los nombres de lugares también siguen el idioma",
+    "Verificación en dos pasos: actívala en Mi cuenta escaneando un código QR con una app de autenticación (Google Authenticator, Microsoft Authenticator, 2FAS…); al iniciar sesión se pide un código de 6 dígitos después de la contraseña. Recibes 10 códigos de recuperación para cuando no tengas el móvil a mano",
+    "Nuevo selector de avatar: arriba una vista previa de recorte que puedes arrastrar y ampliar, y abajo eliges entre subir una imagen, una foto de la fototeca, el avatar predeterminado o un dibujo",
+    "Todos los diálogos tienen ahora el mismo aspecto: icono, título y descripción centrados, con dos botones del mismo ancho debajo; eliminar un miembro, un álbum o un modelo usa la misma confirmación",
+    "Con fotos seleccionadas, Más ofrece ahora Compartir…: usa el menú de compartir del sistema para enviarlas por correo (las fotos ya van adjuntas), por AirDrop o a otras apps; la fototeca debe abrirse por https o localhost",
+    "Al ordenar por fecha de adición, la línea de tiempo de la derecha y los grupos de fechas sobre las fotos también usan esa fecha",
+    "Seguridad: tras varias contraseñas incorrectas se bloquea el inicio de sesión durante un rato; el sitio no puede incrustarse en otras webs y los archivos subidos nunca se ejecutan como páginas web; el dominio de la red local se cambia directamente en los ajustes del sistema",
+    "El aviso de subida completada desaparece a los 10 segundos",
+    "El fondo daba tirones al abrir un diálogo de confirmación",
+  ],
   'v0.3.1': [
     "El mapa de Lugares ahora se puede ampliar, reducir y arrastrar: zoom con la rueda del ratón o el trackpad, doble clic para ampliar, arrastrar para moverse, pellizcar con dos dedos en el móvil, y botones abajo a la derecha para ampliar, reducir o ver el mundo entero; al acercarse a nivel de país cambia a un mapa de calles (hay que activar los mapas en línea) con ciudades, carreteras y nombres de lugares, y las chinchetas de fotos se van dividiendo al ampliar, hasta cada lugar de toma; al volver de las fotos, el mapa sigue donde estaba",
     "Sitio web: el calendario de la página de versiones ahora es un calendario mensual con los números de versión de cada día, y al hacer clic en una versión se salta a sus notas; corregido que a veces las páginas se cargaran sin estilos con conexiones lentas o justo después de actualizar el sitio",

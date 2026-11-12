@@ -2,6 +2,17 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "Giao diện nay có 12 ngôn ngữ: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Chọn trong Tài khoản của tôi; mặc định theo ngôn ngữ của trình duyệt và giữ nguyên khi đăng nhập trên thiết bị khác. Ngày tháng, con số và tên địa điểm cũng hiển thị theo ngôn ngữ",
+    "Xác minh hai bước: bật trong Tài khoản của tôi bằng cách quét mã QR với ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, 2FAS…); khi đăng nhập, sau mật khẩu cần nhập mã 6 chữ số. Khi bật sẽ có 10 mã dự phòng để dùng lúc không có điện thoại bên cạnh",
+    "Thiết kế lại phần đổi ảnh đại diện: phía trên là khung xem trước để cắt, có thể kéo và phóng to, phía dưới chọn tải ảnh lên, ảnh trong thư viện, ảnh mặc định hoặc ảnh hoạt hình",
+    "Mọi hộp thoại giờ có cùng một kiểu: biểu tượng, tiêu đề và mô tả ở giữa, bên dưới là hai nút rộng bằng nhau; xóa thành viên, album và mô hình dùng chung một hộp xác nhận xóa",
+    "Khi chọn ảnh, mục Thêm có Chia sẻ…: dùng bảng chia sẻ của hệ thống để gửi email (ảnh đã nằm sẵn trong tệp đính kèm), AirDrop hoặc gửi sang ứng dụng khác; cần mở thư viện qua https hoặc localhost",
+    "Khi sắp xếp theo ngày thêm, dòng thời gian bên phải và nhóm ngày phía trên ảnh cũng theo ngày thêm",
+    "Bảo mật: nhập sai mật khẩu nhiều lần sẽ tạm khóa đăng nhập; trang không thể bị nhúng vào trang web khác và tệp tải lên không bao giờ chạy như trang web; có thể đổi tên miền mạng nội bộ ngay trong cài đặt hệ thống",
+    "Thông báo tải lên xong tự biến mất sau 10 giây",
+    "Nền bị giật khi mở hộp xác nhận",
+  ],
   'v0.3.1': [
     "Bản đồ “Hành trình” giờ có thể phóng to, thu nhỏ và kéo: cuộn chuột hoặc dùng bàn di chuột để thu phóng, bấm đúp để phóng to, kéo để di chuyển, trên điện thoại dùng hai ngón tay; góc dưới bên phải có nút phóng to, thu nhỏ và xem toàn thế giới. Khi phóng tới cỡ một quốc gia, bản đồ chuyển sang bản đồ đường phố (cần bật bản đồ trực tuyến) với thành phố, đường sá và địa danh, còn các ghim ảnh tách nhỏ dần khi phóng to, tới từng nơi chụp; quay lại từ ảnh, bản đồ vẫn ở chỗ cũ",
     "Trang web: lịch trên trang phiên bản giờ là lịch tháng, mỗi ngày ghi số phiên bản đã phát hành, bấm vào số phiên bản để tới ghi chú cập nhật; sửa lỗi đôi khi cả trang hiện không có định dạng khi mạng chậm hoặc ngay sau khi trang web cập nhật",

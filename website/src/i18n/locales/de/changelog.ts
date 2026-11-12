@@ -3,6 +3,17 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "Die Oberfläche gibt es jetzt in 12 Sprachen: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Einstellbar unter Mein Konto; standardmäßig folgt sie der Browsersprache und bleibt auch bei der Anmeldung auf einem anderen Gerät gleich. Datumsangaben, Zahlen und Ortsnamen richten sich ebenfalls nach der Sprache",
+    "Zwei-Faktor-Authentifizierung: unter Mein Konto per QR-Code mit einer Authenticator-App (Google Authenticator, Microsoft Authenticator, 2FAS u. a.) einschalten; bei der Anmeldung wird dann nach dem Passwort ein 6-stelliger Code abgefragt. Beim Einschalten gibt es 10 Wiederherstellungscodes für den Fall, dass das Handy nicht zur Hand ist",
+    "Neue Profilbildauswahl: oben eine Zuschnittvorschau zum Verschieben und Zoomen, darunter die Wahl zwischen eigenem Bild, Foto aus der Mediathek, Standardbild oder Cartoon",
+    "Alle Dialoge sehen jetzt gleich aus: zentriertes Symbol, Titel und Beschreibung, darunter zwei gleich breite Schaltflächen; das Löschen von Mitgliedern, Alben und Modellen nutzt dieselbe Löschbestätigung",
+    "Bei ausgewählten Fotos gibt es unter Mehr jetzt Teilen…: über das Teilen-Menü des Systems per E-Mail senden (die Fotos sind gleich angehängt), per AirDrop oder an andere Apps; dazu muss die Mediathek über https oder localhost geöffnet sein",
+    "Bei Sortierung nach Hinzufügedatum nutzen auch die Zeitleiste rechts und die Datumsgruppen über den Fotos das Hinzufügedatum",
+    "Sicherheit: nach mehreren falschen Passwörtern wird die Anmeldung vorübergehend gesperrt; die Seite kann nicht in andere Websites eingebettet werden, und hochgeladene Dateien werden nie als Webseite ausgeführt; die lokale Domain lässt sich direkt in den Systemeinstellungen ändern",
+    "Der Hinweis „Hochladen abgeschlossen“ verschwindet nach 10 Sekunden",
+    "Der Hintergrund ruckelte beim Öffnen eines Bestätigungsdialogs",
+  ],
   'v0.3.1': [
     "Die Karte unter „Orte“ lässt sich jetzt zoomen und verschieben: Zoomen mit Mausrad oder Trackpad, Doppelklick zum Vergrößern, Ziehen zum Verschieben, auf dem Smartphone mit zwei Fingern; unten rechts gibt es Schaltflächen zum Vergrößern, Verkleinern und für die ganze Welt. Ab etwa Landesgröße wechselt sie zu einer Straßenkarte (Online-Karten müssen aktiviert sein) mit Städten, Straßen und Ortsnamen, und die Foto-Stecknadeln teilen sich beim Zoomen immer weiter auf, bis hin zu einzelnen Aufnahmeorten; nach der Rückkehr aus den Fotos steht die Karte wieder an derselben Stelle",
     "Website: Der Kalender auf der Versionsseite ist jetzt ein Monatskalender mit den Versionsnummern jedes Tages, ein Klick auf eine Version springt zu ihren Hinweisen; behoben, dass Seiten bei langsamer Verbindung oder direkt nach einem Website-Update gelegentlich ganz ohne Gestaltung luden",

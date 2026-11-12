@@ -3,6 +3,17 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "L’interface est disponible en 12 langues : 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Réglez-la dans Mon compte ; par défaut elle suit la langue du navigateur, et elle reste la même quand vous vous connectez sur un autre appareil. Les dates, les nombres et les noms de lieux suivent aussi la langue",
+    "Validation en deux étapes : activez-la dans Mon compte en scannant un code QR avec une appli d’authentification (Google Authenticator, Microsoft Authenticator, 2FAS…) ; la connexion demande ensuite un code à 6 chiffres après le mot de passe. Vous recevez 10 codes de secours pour quand votre téléphone n’est pas à portée de main",
+    "Nouveau choix de l’avatar : un aperçu de recadrage en haut, à déplacer et zoomer, et en dessous le choix entre envoyer une image, une photo de la photothèque, l’avatar par défaut ou un dessin",
+    "Toutes les boîtes de dialogue ont désormais le même aspect : icône, titre et description centrés, et deux boutons de même largeur en bas ; la suppression d’un membre, d’un album ou d’un modèle utilise la même confirmation",
+    "Avec des photos sélectionnées, Plus propose désormais Partager… : envoyez-les par e-mail via le menu de partage du système (les photos sont déjà en pièces jointes), par AirDrop ou vers d’autres applis ; la photothèque doit être ouverte en https ou sur localhost",
+    "Avec le tri par date d’ajout, la frise à droite et les groupes de dates au-dessus des photos utilisent aussi la date d’ajout",
+    "Sécurité : après plusieurs mauvais mots de passe, la connexion est bloquée un moment ; le site ne peut pas être intégré dans d’autres sites et les fichiers envoyés ne sont jamais exécutés comme des pages web ; le domaine local se modifie directement dans les réglages système",
+    "La notification de fin d’envoi disparaît au bout de 10 secondes",
+    "L’arrière-plan saccadait à l’ouverture d’une boîte de confirmation",
+  ],
   'v0.3.1': [
     "La carte de Lieux peut maintenant être zoomée et déplacée : zoom à la molette ou au pavé tactile, double-clic pour agrandir, glisser pour se déplacer, pincement à deux doigts sur téléphone, et des boutons en bas à droite pour agrandir, réduire ou afficher le monde entier ; vers l’échelle d’un pays, elle passe à une carte routière (les cartes en ligne doivent être activées) avec villes, routes et noms de lieux, et les épingles photo se divisent au fil du zoom jusqu’aux lieux de prise de vue ; au retour des photos, la carte reste là où vous étiez",
     "Site web : le calendrier de la page des versions devient un calendrier mensuel indiquant les numéros de version de chaque jour, et un clic sur une version mène à ses notes ; correction des pages qui s’affichaient parfois sans mise en forme sur une connexion lente ou juste après une mise à jour du site",

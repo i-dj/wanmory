@@ -3,6 +3,17 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.0': [
+    "L’interfaccia è ora disponibile in 12 lingue: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Si imposta in Il mio account; per impostazione predefinita segue la lingua del browser e resta la stessa quando accedi da un altro dispositivo. Anche date, numeri e nomi dei luoghi seguono la lingua",
+    "Verifica in due passaggi: attivala in Il mio account inquadrando un codice QR con un’app di autenticazione (Google Authenticator, Microsoft Authenticator, 2FAS e altre); all’accesso, dopo la password, viene chiesto un codice di 6 cifre. Ricevi 10 codici di recupero per quando non hai il telefono a portata di mano",
+    "Nuova scelta dell’avatar: in alto un’anteprima di ritaglio da trascinare e ingrandire, sotto la scelta tra caricare un’immagine, una foto della libreria, l’avatar predefinito o un cartone",
+    "Tutte le finestre di dialogo hanno ora lo stesso aspetto: icona, titolo e descrizione centrati, con due pulsanti della stessa larghezza in basso; l’eliminazione di membri, album e modelli usa la stessa conferma",
+    "Con delle foto selezionate, Altro ora offre Condividi…: usa il menu di condivisione del sistema per inviarle via email (le foto sono già allegate), con AirDrop o ad altre app; la libreria deve essere aperta via https o localhost",
+    "Ordinando per data di aggiunta, anche la linea temporale a destra e i gruppi di date sopra le foto usano la data di aggiunta",
+    "Sicurezza: dopo diverse password errate l’accesso viene bloccato per un po’; il sito non può essere incorporato in altri siti e i file caricati non vengono mai eseguiti come pagine web; il dominio della rete locale si modifica direttamente nelle impostazioni di sistema",
+    "L’avviso di caricamento completato scompare dopo 10 secondi",
+    "Lo sfondo scattava all’apertura di una finestra di conferma",
+  ],
   'v0.3.1': [
     "La mappa di Luoghi ora si può ingrandire, rimpicciolire e trascinare: zoom con la rotellina o il trackpad, doppio clic per ingrandire, trascinamento per spostarsi, pizzico con due dita sul telefono, e pulsanti in basso a destra per ingrandire, rimpicciolire o vedere tutto il mondo; intorno al livello di un paese passa a una mappa stradale (servono le mappe online attive) con città, strade e nomi di luoghi, e le puntine con le foto si dividono man mano che si ingrandisce, fino ai singoli luoghi di scatto; tornando dalle foto la mappa resta dov’era",
     "Sito web: il calendario della pagina delle versioni ora è un calendario mensile con i numeri di versione di ogni giorno, e un clic su una versione porta alle sue note; corretto il problema delle pagine che a volte si caricavano senza stile con connessioni lente o subito dopo un aggiornamento del sito",
