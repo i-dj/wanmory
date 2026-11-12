@@ -65,6 +65,41 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+# ---------- welcome ----------
+# The version to install: WANMORY_VERSION if set, otherwise the newest version in CHANGELOG.md (GitHub, then Gitee)
+latest_version() {
+  local url v
+  for url in "https://raw.githubusercontent.com/i-dj/wanmory/main/CHANGELOG.md" \
+    "https://gitee.com/i-dj/wanmory/raw/main/CHANGELOG.md"; do
+    if command -v curl >/dev/null 2>&1; then
+      v=$(curl -fsSL --connect-timeout 5 --max-time 10 "$url" 2>/dev/null | grep -m1 -o '^## v[0-9][0-9.]*' | sed 's/^## //') || true
+    else
+      v=$(wget -q -T 10 "$url" -O - 2>/dev/null | grep -m1 -o '^## v[0-9][0-9.]*' | sed 's/^## //') || true
+    fi
+    [ -n "$v" ] && { printf '%s' "$v"; return; }
+  done
+}
+if [ -n "${WANMORY_VERSION:-}" ] && [ "$WANMORY_VERSION" != latest ]; then
+  INSTALL_VERSION="v${WANMORY_VERSION#v}"
+else
+  INSTALL_VERSION=$(latest_version)
+  INSTALL_VERSION=${INSTALL_VERSION:-latest}
+fi
+printf '%s' "$C_ORANGE$C_BOLD"
+cat <<'BANNER'
+
+ __        __    _    _   _ __  __  ___  ______   __
+ \ \      / /   / \  | \ | |  \/  |/ _ \|  _ \ \ / /
+  \ \ /\ / /   / _ \ |  \| | |\/| | | | | |_) \ V /
+   \ V  V /   / ___ \| |\  | |  | | |_| |  _ < | |
+    \_/\_/   /_/   \_\_| \_|_|  |_|\___/|_| \_\|_|
+
+BANNER
+printf '%s' "$C_RESET"
+printf '  %sWelcome to Wanmory, the AI photo album%s\n' "$C_BOLD" "$C_RESET"
+printf '  %sPrivate, self-hosted, and smart. Your photos stay on your own disk.%s\n\n' "$C_DIM" "$C_RESET"
+printf '  Installing version  %s%s%s\n' "$C_ORANGE$C_BOLD" "$INSTALL_VERSION" "$C_RESET"
+
 TTY=/dev/tty
 if [ "$ASSUME_YES" = 0 ] && ! { [ -r "$TTY" ] && : <"$TTY"; } 2>/dev/null; then
   warn "No interactive terminal available; using defaults"
@@ -152,7 +187,6 @@ tz_alias() {
   esac
 }
 
-printf '\n%sWanmory%s · open-source private AI photo library · installer\n' "$C_BOLD" "$C_RESET"
 
 # ---------- 1. system check ----------
 step "Checking system"

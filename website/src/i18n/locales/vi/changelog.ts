@@ -4,7 +4,7 @@
 const changelog: Record<string, string[]> = {
   'v0.4.2': [
     "Wanmory không khởi động được và liên tục khởi động lại khi thư mục dữ liệu không thuộc về người dùng trong container (ví dụ khi cài bằng sudo hoặc trên Raspberry Pi); giờ đây chủ sở hữu thư mục được tự động sửa khi khởi động, và vẫn hoạt động trên ổ USB hay thư mục chia sẻ mạng không đổi được chủ sở hữu",
-    "Script cài đặt: chờ tối đa 5 phút trước khi kết luận Wanmory đã khởi động hay chưa; nếu liên tục khởi động lại sẽ hiện vài dòng log cuối, và không còn in “Installation complete” khi khởi động thất bại; lời nhắc cuối không còn tiếng Trung",
+    "Script cài đặt: chờ tối đa 5 phút trước khi kết luận Wanmory đã khởi động hay chưa; nếu liên tục khởi động lại sẽ hiện vài dòng log cuối, và không còn in “Installation complete” khi khởi động thất bại; lời nhắc cuối không còn tiếng Trung; khi bắt đầu sẽ hiện màn hình chào mừng và phiên bản sẽ cài đặt",
   ],
   'v0.4.1': [
     "Xác minh hai bước: ứng dụng xác thực nay hiển thị tên là “Wanmory:tên người dùng”, bỏ phần chữ Trung ở đầu; nếu đã bật thì cần tắt rồi quét lại mới đổi tên",

@@ -5,7 +5,7 @@
 const changelog: Record<string, string[]> = {
   'v0.4.2': [
     "Wanmory ne démarrait pas et redémarrait en boucle lorsque le dossier de données n’appartenait pas à l’utilisateur du conteneur (par exemple après une installation avec sudo, ou sur un Raspberry Pi) ; le propriétaire du dossier est maintenant corrigé au démarrage, et cela fonctionne aussi sur les clés USB et partages réseau où le propriétaire ne peut pas être changé",
-    "Script d’installation : attend jusqu’à 5 minutes avant de décider si Wanmory a démarré ; en cas de redémarrages en boucle, les dernières lignes du journal s’affichent, et « Installation complete » n’apparaît plus si le démarrage a échoué ; le message final ne contient plus de chinois",
+    "Script d’installation : attend jusqu’à 5 minutes avant de décider si Wanmory a démarré ; en cas de redémarrages en boucle, les dernières lignes du journal s’affichent, et « Installation complete » n’apparaît plus si le démarrage a échoué ; le message final ne contient plus de chinois ; il commence par une bannière d’accueil et la version installée",
   ],
   'v0.4.1': [
     "Validation en deux étapes : les applis d’authentification affichent désormais « Wanmory:nom d’utilisateur », sans le préfixe chinois ; si elle est déjà activée, désactivez-la puis scannez à nouveau pour obtenir le nouveau nom",

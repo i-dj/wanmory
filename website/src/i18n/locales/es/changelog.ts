@@ -5,7 +5,7 @@
 const changelog: Record<string, string[]> = {
   'v0.4.2': [
     "Wanmory no arrancaba y se reiniciaba sin parar cuando la carpeta de datos no pertenecía al usuario del contenedor (por ejemplo, al instalar con sudo o en una Raspberry Pi); ahora corrige el propietario de la carpeta al arrancar, y también funciona en unidades USB y recursos de red donde no se puede cambiar el propietario",
-    "Script de instalación: espera hasta 5 minutos antes de decidir si Wanmory arrancó; si se reinicia sin parar, muestra las últimas líneas del registro, y ya no muestra «Installation complete» cuando no arrancó; el aviso final ya no contiene chino",
+    "Script de instalación: espera hasta 5 minutos antes de decidir si Wanmory arrancó; si se reinicia sin parar, muestra las últimas líneas del registro, y ya no muestra «Installation complete» cuando no arrancó; el aviso final ya no contiene chino; ahora empieza con un banner de bienvenida y la versión que se instala",
   ],
   'v0.4.1': [
     "Verificación en dos pasos: las apps de autenticación muestran ahora la entrada como «Wanmory:usuario», sin el prefijo en chino; si ya la tenías activada, desactívala y vuelve a escanear para ver el nuevo nombre",
