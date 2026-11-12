@@ -60,7 +60,9 @@ func (s *Service) UploadHandler(dir string) (http.Handler, error) {
 		return nil, err
 	}
 	composer := tusd.NewStoreComposer()
-	filestore.New(dir).UseIn(composer)
+	// 包一层：收分片时顺便算校验值，传完入库不用再读一遍文件（见 tushash.go）
+	s.tusStore = newHashingStore(filestore.New(dir))
+	s.tusStore.UseIn(composer)
 	// 内存锁：只有一个后端进程，用不着文件锁。新请求（例如暂停后继续的 HEAD）来的时候，
 	// 内存锁会让还占着锁的旧请求马上停下，不用等它超时
 	memorylocker.New().UseIn(composer)
@@ -168,7 +170,15 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 	// 数据已经全部收到，客户端这时断开（暂停、断网）也要把入库做完，所以不跟着请求取消
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(hook.Context), ingestTimeout)
 	defer cancel()
-	a, dup, err := s.ingest(ctx, bin, meta["filename"], mtime, nil)
+	// 收的时候算好的校验值（重启过、出过错时没有，ingest 自己读文件算）
+	var sum []byte
+	var started time.Time
+	if s.tusStore != nil {
+		sum, started = s.tusStore.take(hook.Upload.ID, hook.Upload.Size)
+	}
+	saveStart := time.Now()
+	a, dup, err := s.ingest(ctx, bin, meta["filename"], mtime, sum)
+	logUploadTiming(meta["filename"], hook.Upload.Size, started, saveStart, sum != nil)
 	if errors.Is(err, errUnsupported) {
 		return tusd.HTTPResponse{}, tusd.NewError("ERR_UNSUPPORTED_TYPE", err.Error(), http.StatusUnsupportedMediaType)
 	}
@@ -199,6 +209,26 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 		"Wanmory-Asset-Id":  done.AssetID,
 		"Wanmory-Duplicate": strconv.FormatBool(done.Duplicate),
 	}}, nil
+}
+
+// logUploadTiming 大文件（20 MB 以上）传完时记一行：多大、接收用了多久（多快）、入库用了多久，
+// 上传慢的时候看日志就知道是网络慢还是服务器存得慢
+func logUploadTiming(name string, size int64, started, saveStart time.Time, hashed bool) {
+	if size < 20<<20 {
+		return
+	}
+	save := time.Since(saveStart).Round(10 * time.Millisecond)
+	how := "收的时候已算好校验值"
+	if !hashed {
+		how = "重新读文件算校验值"
+	}
+	if started.IsZero() {
+		log.Printf("上传 %s：%.0f MB，入库 %s（%s）", name, float64(size)/1e6, save, how)
+		return
+	}
+	recv := saveStart.Sub(started)
+	log.Printf("上传 %s：%.0f MB，接收 %s（%.1f MB/s），入库 %s（%s）",
+		name, float64(size)/1e6, recv.Round(100*time.Millisecond), float64(size)/1e6/max(recv.Seconds(), 0.001), save, how)
 }
 
 // markFinished 写下入库结果，并把数据文件换成同样大小的空洞文件（稀疏文件，不占磁盘）：

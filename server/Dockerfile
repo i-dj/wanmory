@@ -28,11 +28,14 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags=
 # ---- 运行 ----
 FROM debian:trixie-slim
 # libvips-tools：vipsthumbnail；libheif-plugin-libde265：HEIC 解码（iPhone 照片）
-# libimage-exiftool-perl：exiftool；ffmpeg：视频截帧；tzdata：照片没有时区时按 TZ 解释
+# libimage-exiftool-perl：exiftool；tzdata：照片没有时区时按 TZ 解释
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      libvips-tools libheif-plugin-libde265 libimage-exiftool-perl ffmpeg tzdata ca-certificates \
+      libvips-tools libheif-plugin-libde265 libimage-exiftool-perl tzdata ca-certificates \
  && rm -rf /var/lib/apt/lists/*
+# ffmpeg（视频截帧）用静态编译的单个文件：Debian 的 ffmpeg 包会连带装上 LLVM、显卡驱动、语音合成等
+# 三百多 MB 用不到的库，镜像大一倍。来自 github.com/wader/static-ffmpeg，固定版本和摘要，换版本时一起改
+COPY --from=mwader/static-ffmpeg:7.1.1@sha256:11a44711684c0b9f754c047dcd64235b8b52deab251bd0e0a86f22faa160749c /ffmpeg /usr/local/bin/ffmpeg
 
 # 相册以 wanmory（uid 1000）运行：入口脚本以 root 启动，改好数据目录的归属后降成 wanmory（见 entrypoint.sh）；
 # /data 先建好并改归属，挂载命名卷时会继承这个权限

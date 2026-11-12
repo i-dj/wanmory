@@ -33,7 +33,9 @@ var groups = []group{
 
 type activeGroup struct {
 	Key string `json:"key"`
-	// Done、Remaining 是这一批（从还没做完的里最早排上的那个算起）做完、还剩几张。一张照片有好几项任务，
+	// Done、Remaining 是这一批做完、还剩几张：从还没做完的里最早排上的那个算起，再往前包括最近 10 分钟做完的——
+	// 一边上传一边导入时，每张传完几秒就做完了，只从「还没做完的」算起的话，这一批总是只有一两张，数字一会儿 2 一会儿 10。
+	// 一张照片有好几项任务，
 	// 按做完的任务比例折算成张数，进度条一项一项往前走，不用等一张的几项全做完才动
 	Remaining int `json:"remaining"`
 	Done      int `json:"done"`
@@ -51,7 +53,7 @@ func (h *Handler) active(w http.ResponseWriter, r *http.Request) {
 		var recentSpan *float64
 		err := h.db.QueryRowContext(r.Context(), `
 			WITH act AS (
-				SELECT min(created_at) AS since, count(*) AS jobs, count(DISTINCT asset_id) AS photos
+				SELECT least(min(created_at), now() - interval '10 minutes') AS since, count(*) AS jobs
 				FROM jobs WHERE type = ANY($1) AND status IN ('pending', 'running')
 			), recent AS (
 				SELECT count(*) AS n, extract(epoch FROM now() - min(finished_at)) AS span

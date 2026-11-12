@@ -167,7 +167,7 @@ function ArtPanel() {
           <span className={cx('text-[18px] font-bold', brandTracking())}>{t('万象')}</span>
         </div>
         <div>
-          <p className="text-[30px] leading-snug font-bold">{tx('把家里的每一刻，{br}都好好收着。', { br: <br /> })}</p>
+          <p className="text-[30px] leading-snug font-bold">{tx('拾起散落的时光碎片，{br}编织成岁月的诗篇。', { br: <br /> })}</p>
           <p className="mt-3 text-body text-white/70">{t('照片、视频都在你自己的服务器上，只有家里人能看。')}</p>
         </div>
       </div>

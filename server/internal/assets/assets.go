@@ -23,6 +23,7 @@ type Service struct {
 	categories []SearchCategory                          // 自动分类，见 SetSearch
 	clipModel  func() string                             // 用哪个模型的 CLIP 向量比照片像不像（连拍整理），见 SetSearch；换档位后跟着变
 	hiddenKick chan struct{}                             // 让 RunHiddenSync 马上做一次
+	tusStore   *hashingStore                             // 分片上传的存储，收的时候顺便算校验值，见 tushash.go
 }
 
 // NewExifPool 创建读元数据用的 exiftool 进程池，参数和 readExif 的要求一致。

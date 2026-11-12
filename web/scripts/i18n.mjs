@@ -36,7 +36,7 @@ const unescapeJS = (s) => s.replace(/\\(.)/g, (_, c) => ({ n: '\n', t: '\t' })[c
 export function keys() {
   const set = new Set()
   for (const p of files(join(web, 'src'), /\.(ts|tsx)$/)) {
-    for (const m of readFileSync(p, 'utf8').matchAll(/\b(?:t|tr|st)\(\s*'((?:[^'\\]|\\.)*)'/g)) {
+    for (const m of readFileSync(p, 'utf8').matchAll(/\b(?:t|tr|st|tx)\(\s*'((?:[^'\\]|\\.)*)'/g)) {
       const k = unescapeJS(m[1])
       if (CJK.test(k)) set.add(k)
     }
