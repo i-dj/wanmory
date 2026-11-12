@@ -529,11 +529,17 @@ step "Pulling images and starting (a few minutes on first run)"
 "${COMPOSE[@]}" pull
 "${COMPOSE[@]}" up -d
 
+# 树莓派这类慢机器第一次启动要久一点：最多等 5 分钟。相册程序反复重启（启动就出错）时不用干等，直接把日志贴出来
 printf '  Waiting for Wanmory to start'
 READY=0
-for _ in $(seq 1 60); do
+CRASHED=0
+for i in $(seq 1 150); do
   if curl -fsS -o /dev/null "http://127.0.0.1:$PORT/api/auth/state" 2>/dev/null; then
     READY=1
+    break
+  fi
+  if [ $((i % 10)) = 0 ] && "${COMPOSE[@]}" ps server 2>/dev/null | grep -q 'Restarting'; then
+    CRASHED=1
     break
   fi
   printf '.'
@@ -542,8 +548,14 @@ done
 printf '\n'
 if [ "$READY" = 1 ]; then
   ok "Wanmory is running"
+elif [ "$CRASHED" = 1 ]; then
+  warn "Wanmory keeps restarting. Last log lines:"
+  "${COMPOSE[@]}" logs --tail 15 --no-log-prefix server 2>&1 | sed 's/^/    /'
+  printf '\n  Full logs: cd %s && %s logs server\n' "$INSTALL_DIR" "${COMPOSE[*]}"
+  printf '  Docs: https://wanmory.com/docs/\n\n'
+  exit 1
 else
-  warn "Wanmory is not responding yet. Try again in a moment, or check the logs: ${COMPOSE[*]} logs server"
+  warn "Wanmory is not responding yet (first start can be slow on small devices). Check again in a minute, or look at the logs: cd $INSTALL_DIR && ${COMPOSE[*]} logs server"
 fi
 
 LAN_IP=''
@@ -554,11 +566,15 @@ else
   LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || true)
 fi
 
-printf '\n%s✔ Installation complete%s\n\n' "$C_GREEN$C_BOLD" "$C_RESET"
+if [ "$READY" = 1 ]; then
+  printf '\n%s✔ Installation complete%s\n\n' "$C_GREEN$C_BOLD" "$C_RESET"
+else
+  printf '\n%sInstalled, still starting%s\n\n' "$C_BOLD" "$C_RESET"
+fi
 printf '  LAN address    %shttp://%s:%s%s\n' "$C_BOLD" "$DOMAIN" "$PORT" "$C_RESET"
 [ -n "$LAN_IP" ] && printf '  IP address     http://%s:%s\n' "$LAN_IP" "$PORT"
 printf '  Install dir    %s\n\n' "$INSTALL_DIR"
-printf '  Next: open the page, create the admin account, then download the models in Settings > AI (系统设置 → AI 设置).\n'
+printf '  Next: open the page, create the admin account, then download the AI models in Settings > AI.\n'
 printf '  %sSome Android devices cannot resolve .local names; use the IP address. Docs: https://wanmory.com/docs/%s\n\n' "$C_DIM" "$C_RESET"
 }
 
