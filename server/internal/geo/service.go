@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -55,6 +56,18 @@ func (s *Service) Run(ctx context.Context) {
 				wait = retryAfter
 			case n == batchSize:
 				wait = 0 // 还有没查的，接着查
+			default:
+				// 新地方都查完了，给以前只存了中文的地方补英文写法和国家代码
+				m, err := s.fillEnglish(ctx)
+				switch {
+				case ctx.Err() != nil:
+					return
+				case err != nil:
+					log.Printf("geo: 补英文地名失败，%s后再试: %v", retryAfter, err)
+					wait = retryAfter
+				case m == batchSize:
+					wait = 0
+				}
 			}
 		}
 		select {
@@ -109,21 +122,71 @@ func (s *Service) fill(ctx context.Context) (int, error) {
 
 // save 存一个地方的城市（place 为 nil 是那里没有城市），再把那里的照片标成变过，网页增量刷新时带上城市
 func (s *Service) save(ctx context.Context, key string, place *Place) error {
-	var city, state, country *string
+	var city, state, country, cityEn, stateEn, code *string
 	if place != nil {
 		city, state, country = &place.City, nullIfEmpty(place.State), nullIfEmpty(place.Country)
+		cityEn, stateEn, code = nullIfEmpty(place.CityEn), nullIfEmpty(place.StateEn), &place.CountryCode
 	}
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO geo_places (key, city, state, country) VALUES ($1, $2, $3, $4)
-		ON CONFLICT (key) DO NOTHING`, key, city, state, country); err != nil {
+		INSERT INTO geo_places (key, city, state, country, city_en, state_en, country_code) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (key) DO NOTHING`, key, city, state, country, cityEn, stateEn, code); err != nil {
 		return err
 	}
 	if place == nil {
 		return nil
 	}
+	return s.touch(ctx, key)
+}
+
+// touch 把这个地方的照片标成变过，打开着的网页增量刷新时带上新的地名
+func (s *Service) touch(ctx context.Context, key string) error {
 	_, err := s.db.ExecContext(ctx, `
 		UPDATE assets SET updated_at = now() WHERE `+hasPlace+` AND deleted_at IS NULL AND `+KeyExpr+` = $1`, key)
 	return err
+}
+
+// fillEnglish 给一批以前只存了中文的地方补英文写法和国家代码，返回补了几个
+func (s *Service) fillEnglish(ctx context.Context) (int, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT key FROM geo_places WHERE city IS NOT NULL AND country_code IS NULL ORDER BY created_at DESC LIMIT $1`, batchSize)
+	if err != nil {
+		return 0, err
+	}
+	var keys []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		keys = append(keys, k)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for i, key := range keys {
+		var lat, lon float64
+		if _, err := fmt.Sscanf(key, "%g,%g", &lat, &lon); err != nil {
+			continue
+		}
+		en, err := s.client.LookupEnglish(ctx, lat, lon)
+		if err != nil {
+			return i, err
+		}
+		if en == nil {
+			en = &Place{} // 英文查不到城市：存空的国家代码，不再重问
+		}
+		if _, err := s.db.ExecContext(ctx, `
+			UPDATE geo_places SET city_en = $2, state_en = $3, country_code = $4 WHERE key = $1`,
+			key, nullIfEmpty(en.City), nullIfEmpty(en.State), en.CountryCode); err != nil {
+			return i, err
+		}
+		if err := s.touch(ctx, key); err != nil {
+			return i, err
+		}
+	}
+	return len(keys), nil
 }
 
 // place：POST /api/assets/{id}/place，照片拍摄地点所在的城市。库里有就直接给，没有就当场问 Nominatim 再存进库里。
@@ -136,16 +199,16 @@ func (s *Service) place(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	var (
-		key                  *string
-		lat, lon             *float64
-		known                bool
-		city, state, country *string
+		key                                         *string
+		lat, lon                                    *float64
+		known                                       bool
+		city, state, country, cityEn, stateEn, code *string
 	)
 	err = s.db.QueryRowContext(ctx, `
 		SELECT CASE WHEN `+hasPlace+` THEN `+KeyExpr+` END, latitude, longitude,
-		       g.key IS NOT NULL, g.city, g.state, g.country
+		       g.key IS NOT NULL, g.city, g.state, g.country, g.city_en, g.state_en, g.country_code
 		FROM assets LEFT JOIN geo_places g ON g.key = `+KeyExpr+`
-		WHERE id = $1`, id).Scan(&key, &lat, &lon, &known, &city, &state, &country)
+		WHERE id = $1`, id).Scan(&key, &lat, &lon, &known, &city, &state, &country, &cityEn, &stateEn, &code)
 	if errors.Is(err, sql.ErrNoRows) {
 		httpx.Error(w, http.StatusNotFound, "照片不存在")
 		return
@@ -160,7 +223,8 @@ func (s *Service) place(w http.ResponseWriter, r *http.Request) {
 	case known && city == nil:
 		httpx.JSON(w, http.StatusOK, nil)
 	case known:
-		httpx.JSON(w, http.StatusOK, Place{City: *city, State: deref(state), Country: deref(country)})
+		httpx.JSON(w, http.StatusOK, Place{City: *city, State: deref(state), Country: deref(country),
+			CityEn: deref(cityEn), StateEn: deref(stateEn), CountryCode: deref(code)})
 	case !s.enabled(ctx):
 		httpx.JSON(w, http.StatusOK, nil)
 	default:

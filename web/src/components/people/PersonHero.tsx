@@ -8,6 +8,7 @@ import { useCurrentUser } from '@/lib/session'
 import { personName, type PersonTab } from '@/lib/views'
 import BirthdayDialog from './BirthdayDialog'
 import PersonTabs from './PersonTabs'
+import { t } from '@/i18n'
 
 // PersonHero 是人物页标题的位置，照片、成长、足迹、合影四个标签上一模一样，和其他页面的标题一样不加卡片：
 // 左边圆头像，旁边粗体的名字，名字下面一行灰字：年龄和生日（或照片里出现的时间段）、跨越的年份、照片张数，
@@ -44,11 +45,7 @@ export default function PersonHero({
               <span className="shrink-0 text-[17px] text-muted">{birthdayText(person.birthday)}</span>
             )}
           </div>
-          <SubLine
-            person={person}
-            stats={stats}
-            onEditBirthday={guest ? undefined : () => setEditingBirthday(true)}
-          />
+          <SubLine person={person} stats={stats} onEditBirthday={guest ? undefined : () => setEditingBirthday(true)} />
         </div>
       </div>
       <PersonTabs personId={person.id} tab={tab} navigate={navigate} />
@@ -85,8 +82,8 @@ function SubLine({
   const parts: string[] = []
   if (stats?.years) parts.push(stats.years.value)
   if (stats) {
-    parts.push(`${stats.photos.toLocaleString()} 张照片`)
-    if (stats.videos) parts.push(`${stats.videos.toLocaleString()} 个视频`)
+    parts.push(t('{v0} 张照片', { v0: stats.photos.toLocaleString() }))
+    if (stats.videos) parts.push(t('{v0} 个视频', { v0: stats.videos.toLocaleString() }))
   }
   const text = parts.join(' · ')
   return (
@@ -96,7 +93,7 @@ function SubLine({
         <>
           {text && <span aria-hidden="true">·</span>}
           <button type="button" onClick={onEditBirthday} className="shrink-0 text-accent hover:underline">
-            {person.birthday ? '修改生日' : '设置生日'}
+            {person.birthday ? t('修改生日') : t('设置生日')}
           </button>
         </>
       )}
@@ -115,7 +112,10 @@ function summarize(profile: PersonProfile) {
     const first = new Date(dated[0].taken)
     const last = new Date(dated[dated.length - 1].taken)
     const [a, b] = [first.getFullYear(), last.getFullYear()]
-    years = a === b ? { value: String(a), label: '年份' } : { value: `${a}–${b}`, label: `跨越 ${b - a + 1} 年` }
+    years =
+      a === b
+        ? { value: String(a), label: t('年份') }
+        : { value: `${a}–${b}`, label: t('跨越 {v0} 年', { v0: b - a + 1 }) }
     span = formatMonthSpan(first, last)
   }
   return {

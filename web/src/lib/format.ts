@@ -1,9 +1,10 @@
 // 照片信息的显示格式。
 
 import type { Asset, Camera } from './api'
+import { fmtMonth, locale, t as tr } from '@/i18n'
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('zh-CN', {
+  return new Date(iso).toLocaleString(locale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -16,7 +17,7 @@ export function formatDateTime(iso: string): string {
 // formatLocalClock 显示拍摄地的钟表时间，不按浏览器时区换算。
 // 把不带时区的时间当作 UTC 解析，再按 UTC 格式化，数字就原样保留。
 export function formatLocalClock(local: string, offset: string | null): string {
-  const text = new Date(local + 'Z').toLocaleString('zh-CN', {
+  const text = new Date(local + 'Z').toLocaleString(locale(), {
     timeZone: 'UTC',
     year: 'numeric',
     month: 'long',
@@ -25,7 +26,7 @@ export function formatLocalClock(local: string, offset: string | null): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-  return offset ? `${text}（UTC${offset}）` : text
+  return offset ? tr('{text}（UTC{offset}）', { text, offset }) : text
 }
 
 // 相机名称：型号里已经带了厂商名时（Canon EOS R5、NIKON Z 6）只显示型号。
@@ -64,7 +65,7 @@ export function exposureParts(c: Camera): string[] {
     // 手机的实际焦距很小，等效焦距更直观
     parts.push(
       c.focal_length_35 && Math.round(c.focal_length_35) !== Math.round(c.focal_length)
-        ? `${focal}（等效 ${Math.round(c.focal_length_35)}mm）`
+        ? tr('{focal}（等效 {v1}mm）', { focal, v1: Math.round(c.focal_length_35) })
         : focal,
     )
   }
@@ -100,14 +101,16 @@ export function dimensions(a: Asset): string | null {
 export function formatMonthSpan(first: string | Date, last: string | Date): string {
   const month = (t: string | Date) => {
     const d = new Date(t)
-    return `${d.getFullYear()}年${d.getMonth() + 1}月`
+    return fmtMonth(d)
   }
   return month(first) === month(last) ? month(first) : `${month(first)} – ${month(last)}`
 }
 
 // formatCounts：「34 张照片、1 个视频 · 2.3 GB」。没有照片时为空。
 export function formatCounts({ photos, videos, bytes }: { photos: number; videos: number; bytes: number }): string {
-  const parts = [photos > 0 && `${photos} 张照片`, videos > 0 && `${videos} 个视频`].filter(Boolean).join('、')
+  const parts = [photos > 0 && tr('{photos} 张照片', { photos }), videos > 0 && tr('{videos} 个视频', { videos })]
+    .filter(Boolean)
+    .join(tr('、'))
   return parts ? `${parts} · ${formatSize(bytes)}` : ''
 }
 
@@ -119,9 +122,15 @@ export function viewerDate(a: Asset): { date: string; time: string; day: string;
   const d = new Date(local ? local + 'Z' : a.sort_time)
   const timeZone = local ? 'UTC' : undefined
   return {
-    date: d.toLocaleDateString('zh-CN', { timeZone, year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }),
-    day: d.toLocaleDateString('zh-CN', { timeZone, year: 'numeric', month: 'long', day: 'numeric' }),
-    weekday: d.toLocaleDateString('zh-CN', { timeZone, weekday: 'short' }),
-    time: d.toLocaleTimeString('zh-CN', { timeZone, hour: '2-digit', minute: '2-digit' }),
+    date: d.toLocaleDateString(locale(), {
+      timeZone,
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+    }),
+    day: d.toLocaleDateString(locale(), { timeZone, year: 'numeric', month: 'long', day: 'numeric' }),
+    weekday: d.toLocaleDateString(locale(), { timeZone, weekday: 'short' }),
+    time: d.toLocaleTimeString(locale(), { timeZone, hour: '2-digit', minute: '2-digit' }),
   }
 }

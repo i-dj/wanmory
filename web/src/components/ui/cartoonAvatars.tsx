@@ -1,21 +1,22 @@
 import type { ReactNode } from 'react'
+import { t } from '@/i18n'
 
 // 卡通头像：12 个圆形的小动物，彩色底，画在 64×64 里，纯 SVG（不用下载图片，多大都清楚）。
 // 名字要和后端 auth.Cartoons 一致；存在用户的 avatar_style 里，写成 'cartoon:fox'
 
 export const CARTOONS = [
-  { id: 'cat', label: '小猫' },
-  { id: 'dog', label: '小狗' },
-  { id: 'bear', label: '小熊' },
-  { id: 'rabbit', label: '兔子' },
-  { id: 'panda', label: '熊猫' },
-  { id: 'fox', label: '狐狸' },
-  { id: 'koala', label: '考拉' },
-  { id: 'tiger', label: '老虎' },
-  { id: 'pig', label: '小猪' },
-  { id: 'frog', label: '青蛙' },
-  { id: 'penguin', label: '企鹅' },
-  { id: 'owl', label: '猫头鹰' },
+  { id: 'cat', label: t('小猫') },
+  { id: 'dog', label: t('小狗') },
+  { id: 'bear', label: t('小熊') },
+  { id: 'rabbit', label: t('兔子') },
+  { id: 'panda', label: t('熊猫') },
+  { id: 'fox', label: t('狐狸') },
+  { id: 'koala', label: t('考拉') },
+  { id: 'tiger', label: t('老虎') },
+  { id: 'pig', label: t('小猪') },
+  { id: 'frog', label: t('青蛙') },
+  { id: 'penguin', label: t('企鹅') },
+  { id: 'owl', label: t('猫头鹰') },
 ] as const
 export type CartoonId = (typeof CARTOONS)[number]['id']
 

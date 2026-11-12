@@ -41,6 +41,9 @@ const (
 	staleUploadAge = 7 * 24 * time.Hour
 	// 已经入库的上传记录保留多久
 	finishedUploadAge = 24 * time.Hour
+	// 一个文件最大多少（再长的视频也够）；磁盘上至少留这么多空间，上传不能把磁盘塞满
+	maxUploadBytes = 50 << 30
+	keepFreeBytes  = 2 << 30
 	// 入库最长用多久（大视频要读一遍算校验值）
 	ingestTimeout = 10 * time.Minute
 )
@@ -64,6 +67,7 @@ func (s *Service) UploadHandler(dir string) (http.Handler, error) {
 
 	h, err := tusd.NewHandler(tusd.Config{
 		BasePath:                UploadsPath,
+		MaxSize:                 maxUploadBytes,
 		StoreComposer:           composer,
 		RespectForwardedHeaders: true, // 在反向代理（HTTPS）后面时生成正确的上传地址
 		DisableDownload:         true,
@@ -131,7 +135,24 @@ func (s *Service) checkUpload(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.File
 		return tusd.HTTPResponse{}, tusd.FileInfoChanges{},
 			tusd.NewError("ERR_UNSUPPORTED_TYPE", err.Error(), http.StatusUnsupportedMediaType)
 	}
+	if !hook.Upload.SizeIsDeferred && !s.roomFor(hook.Context, hook.Upload.Size) {
+		return tusd.HTTPResponse{}, tusd.FileInfoChanges{},
+			tusd.NewError("ERR_DISK_FULL", "服务器的磁盘空间不够了", http.StatusInsufficientStorage)
+	}
 	return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, nil
+}
+
+// roomFor 上传目录所在的磁盘放得下 size 字节，而且放完还剩 keepFreeBytes；查不到磁盘空间时不拦
+func (s *Service) roomFor(ctx context.Context, size int64) bool {
+	dir, err := s.uploadDir(ctx)
+	if err != nil {
+		return true
+	}
+	d, err := diskUsage(dir)
+	if err != nil || d == nil || d.Total == 0 {
+		return true
+	}
+	return size < 0 || uint64(size)+keepFreeBytes <= d.Free
 }
 
 // finishUpload 在最后一片收到后、回复客户端之前入库，这样客户端能直接拿到照片 ID。

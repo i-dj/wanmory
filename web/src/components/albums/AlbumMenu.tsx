@@ -6,8 +6,9 @@ import Tooltip from '@/components/ui/Tooltip'
 import { useAnchorPosition } from '@/hooks/useAnchorPosition'
 import { type Album, canManageAlbum } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { askConfirm } from '@/lib/dialog'
+import { askDelete } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
+import { t as tr } from '@/i18n'
 
 // AlbumMenu 是侧边栏相册名字后面的「…」：重命名（智能相册是「设置」，改名字、条件和是否自动同步）、删除相册。
 // 删除要在居中的确认框里再确认一次（askConfirm），照片本身不删。菜单放到 body 下浮在按钮下面，不会被侧边栏的滚动区域裁掉。
@@ -74,11 +75,11 @@ export default function AlbumMenu({
   const manage = canManageAlbum(album, user)
   return (
     <>
-      <Tooltip label={open ? null : '相册操作'}>
+      <Tooltip label={open ? null : tr('相册操作')}>
         <button
           ref={anchor}
           type="button"
-          aria-label={`「${album.name}」的操作`}
+          aria-label={tr('「{name}」的操作', { name: album.name })}
           aria-expanded={open}
           onClick={() => (open ? close() : setOpen(true))}
           className={cx(
@@ -96,7 +97,7 @@ export default function AlbumMenu({
             {onChangeCover && (
               <MenuItem
                 icon={ImageIcon}
-                label="修改封面"
+                label={tr('修改封面')}
                 disabled={album.count === 0}
                 onClick={() => {
                   close()
@@ -107,8 +108,14 @@ export default function AlbumMenu({
             {manage && onPrivacy && (
               <MenuItem
                 icon={album.private ? Lock : Users}
-                label="权限设置"
-                hint={album.private ? '仅自己' : album.members.length ? `${album.members.length} 位成员` : '所有人'}
+                label={tr('权限设置')}
+                hint={
+                  album.private
+                    ? tr('仅自己')
+                    : album.members.length
+                      ? tr('{length} 位成员', { length: album.members.length })
+                      : tr('所有人')
+                }
                 onClick={() => {
                   close()
                   onPrivacy()
@@ -119,7 +126,7 @@ export default function AlbumMenu({
               <>
                 <MenuItem
                   icon={smart ? Settings2 : Pencil}
-                  label={smart ? '设置' : '重命名'}
+                  label={smart ? tr('设置') : tr('重命名')}
                   onClick={() => {
                     close()
                     onEdit()
@@ -127,17 +134,16 @@ export default function AlbumMenu({
                 />
                 <MenuItem
                   icon={Trash2}
-                  label="删除相册"
+                  label={tr('删除相册')}
                   danger
                   onClick={async () => {
                     close()
-                    const ok = await askConfirm(`删除「${album.name}」？`, {
-                      message: album.hide_mine
-                        ? '只删除相册，照片不删；因为它隐藏的照片还在「已隐藏」里。'
-                        : '只删除相册，里面的照片还在图库里。',
-                      confirmLabel: '删除',
-                      danger: true,
-                    })
+                    const ok = await askDelete(
+                      tr('删除「{name}」？', { name: album.name }),
+                      album.hide_mine
+                        ? tr('只删除相册，照片不删；因为它隐藏的照片还在「已隐藏」里。')
+                        : tr('只删除相册，里面的照片还在图库里。'),
+                    )
                     if (ok) onDelete()
                   }}
                 />

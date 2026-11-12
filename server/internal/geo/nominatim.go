@@ -22,12 +22,22 @@ const (
 	userAgent   = "Wanmory/0.1 (self-hosted home media server; https://github.com/wanmory/wanmory)"
 )
 
-// Place 是一个地方所在的城市、省（州）、国家。都是简体中文，没有中文名的是当地文字或英文
+// Place 是一个地方所在的城市、省（州）、国家。City、State、Country 是简体中文，没有中文名的是当地文字或英文；
+// CityEn、StateEn 是英文写法，CountryCode 是两个字母的国家代码（小写），网页界面不是中文时用
 type Place struct {
-	City    string `json:"city"`
-	State   string `json:"state,omitempty"`
-	Country string `json:"country,omitempty"`
+	City        string `json:"city"`
+	State       string `json:"state,omitempty"`
+	Country     string `json:"country,omitempty"`
+	CityEn      string `json:"city_en,omitempty"`
+	StateEn     string `json:"state_en,omitempty"`
+	CountryCode string `json:"country_code,omitempty"`
 }
+
+const (
+	// 要简体：OSM 里很多地方的 name:zh 是繁体，name:zh-Hans 才是简体
+	langZh = "zh-Hans,zh-CN,zh,en"
+	langEn = "en"
+)
 
 // Client 问 Nominatim，所有请求排队，间隔至少 minInterval
 type Client struct {
@@ -47,17 +57,39 @@ type nominatimPlace struct {
 	Error       string            `json:"error"`
 }
 
-// Lookup 返回坐标所在的城市；那里没有城市（海上）时返回 nil, nil
+// Lookup 返回坐标所在的城市（中文和英文写法都有）；那里没有城市（海上）时返回 nil, nil
 func (c *Client) Lookup(ctx context.Context, lat, lon float64) (*Place, error) {
-	p, err := c.reverse(ctx, lat, lon, 10)
+	place, err := c.lookup(ctx, lat, lon, langZh)
+	if err != nil || place == nil {
+		return place, err
+	}
+	en, err := c.lookup(ctx, lat, lon, langEn)
+	if err != nil {
+		return nil, err
+	}
+	if en != nil {
+		place.CityEn, place.StateEn = en.City, en.State
+	}
+	return place, nil
+}
+
+// LookupEnglish 只问英文写法和国家代码（给以前只存了中文的地方补上）
+func (c *Client) LookupEnglish(ctx context.Context, lat, lon float64) (*Place, error) {
+	return c.lookup(ctx, lat, lon, langEn)
+}
+
+// lookup 按一种语言问城市、省州、国家
+func (c *Client) lookup(ctx context.Context, lat, lon float64, lang string) (*Place, error) {
+	p, err := c.reverse(ctx, lat, lon, 10, lang)
 	if err != nil || p == nil {
 		return nil, err
 	}
 	place := placeOf(p)
-	// 中国的数据里区常常写在 city 上（「宝安区」），粗一级再问一次，能拿到上面的市（「深圳市」）
-	if strings.HasSuffix(place.City, "区") && p.Address["country_code"] == "cn" {
-		if up, err := c.reverse(ctx, lat, lon, 8); err == nil && up != nil {
-			if city := first(up.Address["city"]); city != "" && !strings.HasSuffix(city, "区") {
+	place.CountryCode = strings.ToLower(p.Address["country_code"])
+	// 中国的数据里区常常写在 city 上（「宝安区」「Bao'an District」），粗一级再问一次，能拿到上面的市（「深圳市」）
+	if isDistrict(place.City) && place.CountryCode == "cn" {
+		if up, err := c.reverse(ctx, lat, lon, 8, lang); err == nil && up != nil {
+			if city := first(up.Address["city"]); city != "" && !isDistrict(city) {
 				place.City = city
 			}
 		}
@@ -68,18 +100,21 @@ func (c *Client) Lookup(ctx context.Context, lat, lon float64) (*Place, error) {
 	return place, nil
 }
 
-// reverse 问一次 Nominatim。zoom 是要多细：10 是城市，8 是更大一级
-func (c *Client) reverse(ctx context.Context, lat, lon float64, zoom int) (*nominatimPlace, error) {
+func isDistrict(s string) bool {
+	return strings.HasSuffix(s, "区") || strings.HasSuffix(s, " District")
+}
+
+// reverse 问一次 Nominatim。zoom 是要多细：10 是城市，8 是更大一级；lang 是要哪种语言的地名
+func (c *Client) reverse(ctx context.Context, lat, lon float64, zoom int, lang string) (*nominatimPlace, error) {
 	if err := c.wait(ctx); err != nil {
 		return nil, err
 	}
 	q := url.Values{
-		"format": {"jsonv2"},
-		"zoom":   {fmt.Sprint(zoom)},
-		"lat":    {fmt.Sprintf("%.5f", lat)},
-		"lon":    {fmt.Sprintf("%.5f", lon)},
-		// 要简体：OSM 里很多地方的 name:zh 是繁体，name:zh-Hans 才是简体
-		"accept-language": {"zh-Hans,zh-CN,zh,en"},
+		"format":          {"jsonv2"},
+		"zoom":            {fmt.Sprint(zoom)},
+		"lat":             {fmt.Sprintf("%.5f", lat)},
+		"lon":             {fmt.Sprintf("%.5f", lon)},
+		"accept-language": {lang},
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, nominatimURL+"?"+q.Encode(), nil)
 	if err != nil {

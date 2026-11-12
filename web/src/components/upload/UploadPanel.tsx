@@ -19,6 +19,7 @@ import { FINISHED, type UploadItem, type UploadQueue } from '@/lib/uploadQueue'
 import { cx } from '@/lib/cx'
 import Tooltip from '@/components/ui/Tooltip'
 import { askConfirm } from '@/lib/dialog'
+import { t as tr } from '@/i18n'
 
 // UploadPanel 是左下角的上传窗口：顶部是状态图标、标题和「已传多少 / 共多少 · 剩余时间」，下面一条总进度；
 // 展开后每个文件一行，带缩略图、大小和自己的进度条，鼠标移上去可以单独暂停、继续、取消、重试。
@@ -34,6 +35,7 @@ const sentBytes = (u: UploadItem) => u.file.size * (u.state === 'done' || u.stat
 type Phase = 'running' | 'paused' | 'failed' | 'done'
 
 const MINIMIZE_DELAY = 1500 // 毫秒，传完后先让人看一眼「上传完成」再缩小
+const DISMISS_DELAY = 10_000 // 毫秒，缩小成一条「上传完成」后过这么久自己消失
 // 浅色磨砂，和选中照片后底部的操作栏、后台任务面板一样（index.css 的 .frost）
 const GLASS = 'frost'
 
@@ -77,14 +79,23 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
     }, MINIMIZE_DELAY)
     return () => clearTimeout(t)
   }, [phase])
+  // 缩小成「上传完成 · 新增 4 项」那一条以后，10 秒自己消失（和点 × 一样清掉传完的）；失败的不自动消失
+  useEffect(() => {
+    if (!minimized || phase !== 'done') return
+    const t = setTimeout(() => {
+      queue.clearFinished()
+      setMinimized(false)
+    }, DISMISS_DELAY)
+    return () => clearTimeout(t)
+  }, [minimized, phase, queue])
 
   if (items.length === 0) return null
 
   const title = {
-    running: `正在上传 ${counted.length - finished} 个文件`,
-    paused: `已暂停，还有 ${unfinished} 个没传完`,
-    failed: `${failed} 个文件上传失败`,
-    done: counted.length === 0 ? '已全部取消' : '上传完成',
+    running: tr('正在上传 {v0} 个文件', { v0: counted.length - finished }),
+    paused: tr('已暂停，还有 {unfinished} 个没传完', { unfinished }),
+    failed: tr('{failed} 个文件上传失败', { failed }),
+    done: counted.length === 0 ? tr('已全部取消') : tr('上传完成'),
   }[phase]
 
   // 第二行：传输中显示进度和剩余时间；结束后是「新增 243 项 · 17 项已存在」，要短，面板窄放不下长句
@@ -94,9 +105,9 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
           .filter(Boolean)
           .join(' · ')
       : [
-          added > 0 && `新增 ${added} 项`,
-          duplicates > 0 && `${duplicates} 项已存在`,
-          phase === 'failed' && added + duplicates > 0 && `${added + duplicates} 项成功`,
+          added > 0 && tr('新增 {added} 项', { added }),
+          duplicates > 0 && tr('{duplicates} 项已存在', { duplicates }),
+          phase === 'failed' && added + duplicates > 0 && tr('{v0} 项成功', { v0: added + duplicates }),
         ]
           .filter(Boolean)
           .join(' · ')
@@ -119,7 +130,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
         <button
           type="button"
           onClick={() => setMinimized(false)}
-          aria-label="展开上传窗口"
+          aria-label={tr('展开上传窗口')}
           className="flex min-w-0 items-center gap-2 rounded-full py-0.5 pr-2 hover:opacity-80"
         >
           <CircleCheck className="size-5 shrink-0 text-ok" strokeWidth={2} />
@@ -128,7 +139,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
             {detail && <span className="font-normal text-muted"> · {detail}</span>}
           </span>
         </button>
-        <HeaderButton label="关闭" onClick={close}>
+        <HeaderButton label={tr('关闭')} onClick={close}>
           <X className="size-4" />
         </HeaderButton>
       </div>
@@ -150,20 +161,20 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
           </Tooltip>
         </div>
         {phase === 'running' && (
-          <HeaderButton label="全部暂停" onClick={() => queue.pauseAll()}>
+          <HeaderButton label={tr('全部暂停')} onClick={() => queue.pauseAll()}>
             <Pause className="size-4" />
           </HeaderButton>
         )}
         {phase === 'paused' && (
-          <HeaderButton label="全部继续" onClick={() => queue.resumeAll()}>
+          <HeaderButton label={tr('全部继续')} onClick={() => queue.resumeAll()}>
             <Play className="size-4" />
           </HeaderButton>
         )}
-        <HeaderButton label={expanded ? '收起列表' : '展开列表'} onClick={() => setExpanded((e) => !e)}>
+        <HeaderButton label={expanded ? tr('收起列表') : tr('展开列表')} onClick={() => setExpanded((e) => !e)}>
           {expanded ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
         </HeaderButton>
         {(phase === 'done' || phase === 'failed') && (
-          <HeaderButton label="关闭" onClick={close}>
+          <HeaderButton label={tr('关闭')} onClick={close}>
             <X className="size-4" />
           </HeaderButton>
         )}
@@ -189,9 +200,9 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
                   type="button"
                   onClick={async () => {
                     if (
-                      await askConfirm(`取消还没传完的 ${unfinished} 个文件？`, {
-                        message: '已经上传的部分会被删除。',
-                        confirmLabel: '全部取消',
+                      await askConfirm(tr('取消还没传完的 {unfinished} 个文件？', { unfinished }), {
+                        message: tr('已经上传的部分会被删除。'),
+                        confirmLabel: tr('全部取消'),
                         danger: true,
                       })
                     )
@@ -199,7 +210,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
                   }}
                   className="text-caption text-muted hover:text-danger"
                 >
-                  全部取消
+                  {tr('全部取消')}
                 </button>
               ) : (
                 <span />
@@ -207,7 +218,7 @@ export default function UploadPanel({ items, queue }: { items: UploadItem[]; que
               {retryable && phase !== 'running' && (
                 <Button small primary onClick={() => queue.resumeAll()}>
                   <RotateCw className="size-3.5" />
-                  重试失败的
+                  {tr('重试失败的')}
                 </Button>
               )}
             </div>
@@ -285,9 +296,9 @@ function useRemainingTime(sent: number, total: number, running: boolean): string
   const seconds = (performance.now() - first.t) / 1000
   if (seconds < 3 || last.sent <= first.sent) return null
   const left = (total - sent) / ((last.sent - first.sent) / seconds)
-  if (left < 60) return '不到 1 分钟'
-  if (left < 3600) return `约 ${Math.round(left / 60)} 分钟`
-  return `约 ${(left / 3600).toFixed(1).replace(/\.0$/, '')} 小时`
+  if (left < 60) return tr('不到 1 分钟')
+  if (left < 3600) return tr('约 {v0} 分钟', { v0: Math.round(left / 60) })
+  return tr('约 {v0} 小时', { v0: (left / 3600).toFixed(1).replace(/\.0$/, '') })
 }
 
 const ROW_HEIGHT = 60 // 像素，每行固定高度，才能只渲染看得见的行
@@ -338,7 +349,7 @@ function UploadRow({ u, queue }: { u: UploadItem; queue: UploadQueue }) {
               <Bar ratio={u.progress} tone={u.state === 'paused' ? 'muted' : 'accent'} thin />
             </div>
             <span className="w-9 text-right text-micro text-muted tabular-nums">
-              {saving(u) ? '保存中' : `${Math.round(u.progress * 100)}%`}
+              {saving(u) ? tr('保存中') : `${Math.round(u.progress * 100)}%`}
             </span>
           </div>
         ) : (
@@ -351,17 +362,17 @@ function UploadRow({ u, queue }: { u: UploadItem; queue: UploadQueue }) {
       <div className="flex shrink-0 items-center">
         <div className="hidden items-center group-hover:flex">
           {canPause && (
-            <RowButton label="暂停" onClick={() => queue.pause(u.key)}>
+            <RowButton label={tr('暂停')} onClick={() => queue.pause(u.key)}>
               <Pause className="size-4" />
             </RowButton>
           )}
           {canResume && (
-            <RowButton label={u.state === 'paused' ? '继续' : '重试'} onClick={() => queue.resume(u.key)}>
+            <RowButton label={u.state === 'paused' ? tr('继续') : tr('重试')} onClick={() => queue.resume(u.key)}>
               {u.state === 'paused' ? <Play className="size-4" /> : <RotateCw className="size-4" />}
             </RowButton>
           )}
           {canCancel && (
-            <RowButton label="取消" onClick={() => queue.cancel(u.key)}>
+            <RowButton label={tr('取消')} onClick={() => queue.cancel(u.key)}>
               <X className="size-4" />
             </RowButton>
           )}
@@ -383,15 +394,15 @@ function rowDetail(u: UploadItem): string {
   const size = formatSize(u.file.size)
   switch (u.state) {
     case 'waiting':
-      return `${size} · 等待中`
+      return tr('{size} · 等待中', { size })
     case 'done':
-      return `${size} · 已上传`
+      return tr('{size} · 已上传', { size })
     case 'duplicate':
-      return `${size} · 已存在，跳过`
+      return tr('{size} · 已存在，跳过', { size })
     case 'error':
-      return u.error ?? '上传失败'
+      return u.error ? tr(u.error) : tr('上传失败')
     case 'canceled':
-      return '已取消'
+      return tr('已取消')
     default:
       return size
   }
@@ -400,13 +411,13 @@ function rowDetail(u: UploadItem): string {
 function StatusIcon({ u }: { u: UploadItem }) {
   switch (u.state) {
     case 'done':
-      return <CircleCheck className="size-5 fill-ok text-surface" strokeWidth={2.25} aria-label="已上传" />
+      return <CircleCheck className="size-5 fill-ok text-surface" strokeWidth={2.25} aria-label={tr('已上传')} />
     case 'duplicate':
-      return <CircleCheck className="size-5 fill-muted/60 text-surface" strokeWidth={2.25} aria-label="已存在" />
+      return <CircleCheck className="size-5 fill-muted/60 text-surface" strokeWidth={2.25} aria-label={tr('已存在')} />
     case 'error':
-      return <CircleAlert className="size-5 text-danger" strokeWidth={2} aria-label="失败" />
+      return <CircleAlert className="size-5 text-danger" strokeWidth={2} aria-label={tr('失败')} />
     case 'paused':
-      return <CirclePause className="size-5 text-muted" strokeWidth={1.75} aria-label="已暂停" />
+      return <CirclePause className="size-5 text-muted" strokeWidth={1.75} aria-label={tr('已暂停')} />
     case 'uploading':
       return saving(u) ? <Spinner /> : null
     default:
@@ -444,7 +455,7 @@ function Thumb({ file, dim }: { file: File; dim?: boolean }) {
 
 function Spinner() {
   return (
-    <svg viewBox="0 0 20 20" className="size-5 animate-spin" aria-label="保存中">
+    <svg viewBox="0 0 20 20" className="size-5 animate-spin" aria-label={tr('保存中')}>
       <circle cx="10" cy="10" r="8" fill="none" strokeWidth="2.5" className="stroke-line" />
       <path d="M10 2a8 8 0 0 1 8 8" fill="none" strokeWidth="2.5" strokeLinecap="round" className="stroke-accent" />
     </svg>

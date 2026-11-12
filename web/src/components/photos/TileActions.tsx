@@ -1,9 +1,10 @@
 import { Check, Heart } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useMarks } from '@/hooks/useMarks'
-import { type Asset, assetPlace, type GeoPlace } from '@/lib/api'
+import { type Asset, assetPlace, type GeoPlace, localGeo } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import Tooltip from '@/components/ui/Tooltip'
+import { t as tr } from '@/i18n'
 
 const CITY_DELAY_MS = 150 // 库里还没有城市时，鼠标停这么久才让服务器去查，划过一排照片时不会每张都排队问
 
@@ -37,7 +38,7 @@ export default function TileActions({
           data-no-marquee
           type="button"
           onClick={onToggleSelect}
-          aria-label={selected ? '取消选择' : '选择'}
+          aria-label={selected ? tr('取消选择') : tr('选择')}
           aria-pressed={selected}
           className={cx(
             'pointer-events-auto absolute top-1.5 left-1.5 z-20 flex size-5 items-center justify-center rounded-full transition',
@@ -53,12 +54,12 @@ export default function TileActions({
         </button>
       )}
 
-      <Tooltip label={favorite ? '取消收藏' : '收藏'}>
+      <Tooltip label={favorite ? tr('取消收藏') : tr('收藏')}>
         <button
           data-no-marquee
           type="button"
           onClick={() => save({ favorite: !favorite })}
-          aria-label={favorite ? '取消收藏' : '收藏'}
+          aria-label={favorite ? tr('取消收藏') : tr('收藏')}
           aria-pressed={favorite}
           className={cx(
             'pointer-events-auto absolute top-1.5 right-1.5 z-20 flex size-6 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition hover:bg-black/50 active:scale-95',
@@ -88,7 +89,8 @@ export default function TileActions({
 
 // captionLines 是照片底下的两行：有说明时「说明 / 城市 · 省」，没有时「城市 / 省 · 国家」。
 // 改位置时选过地名的，地名代替城市。没有位置也没有说明就不写
-function captionLines(asset: Asset, city: GeoPlace | null): [string, string?] | null {
+function captionLines(asset: Asset, geo: GeoPlace | null): [string, string?] | null {
+  const city = geo && localGeo(geo)
   const place = asset.place_name || city?.city
   const region = [city?.state, city?.country].filter((s, i, all) => s && s !== place && all.indexOf(s) === i)
   if (asset.description) return [asset.description, [place, region[0]].filter(Boolean).join(' · ') || undefined]

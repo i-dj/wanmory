@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
 	"sync/atomic"
 	"time"
@@ -13,7 +14,8 @@ import (
 )
 
 // runMDNS 是 wanmory mdns：Docker 里单独跑的小服务（主机网络，收得到局域网的组播），
-// 隔一会儿问相册程序现在的访问域名（WANMORY_URL，默认 http://127.0.0.1:8080），在局域网里报这个名字。
+// 隔一会儿问相册程序现在的访问域名（WANMORY_URL，默认 http://127.0.0.1:8080），在局域网里报这个名字，
+// 问的时候报上这台机器的局域网 IP。
 // 相册程序本身在 Docker 的内部网络里，收不到局域网的组播，所以分开跑
 func runMDNS(ctx context.Context) error {
 	base := os.Getenv("WANMORY_URL")
@@ -24,7 +26,8 @@ func runMDNS(ctx context.Context) error {
 	name.Store(netaccess.InitialDomain())
 	refresh := func() {
 		client := http.Client{Timeout: 3 * time.Second}
-		res, err := client.Get(base + "/api/net/mdns")
+		// 顺便报上这台机器的局域网 IP：相册在 Docker 内部网络里看不到，设置页要显示用 IP 打开的网址
+		res, err := client.Get(base + "/api/net/mdns?ip=" + url.QueryEscape(netaccess.LocalIP()))
 		if err != nil {
 			return
 		}

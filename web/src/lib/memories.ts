@@ -3,10 +3,13 @@
 // 只算文件里有拍摄时间的照片，截图的文件时间不准
 
 import type { DateCount } from './api'
+import { fmtDay, fmtDayRange, fmtMonth, fmtMonthName, locale, t } from '@/i18n'
 
 const WINDOW = 3 // 今天前后几天也算「这一周」
 
+// 中文里一到十年前写汉字（「两年前」），其他语言写数字
 const CHINESE = ['', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十']
+const yearsNum = (n: number) => (locale().startsWith('zh') ? (CHINESE[n] ?? n) : n)
 const MONTHS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
 
 export interface Memory {
@@ -32,13 +35,13 @@ export function findMemories(days: DateCount[], today = new Date()): Memory[] {
   for (let n = 1; today.getFullYear() - n >= oldest; n++) {
     // 那一年的今天；2 月 29 日在平年落到 3 月 1 日，没关系
     const day = new Date(today.getFullYear() - n, today.getMonth(), today.getDate())
-    const ago = `${CHINESE[n] ?? n}年前`
+    const ago = t('{n}年前', { n: yearsNum(n) })
     const exact = counts.get(dayKey(day)) ?? 0
     if (exact > 0) {
       list.push({
         key: `${n}-day`,
-        label: `${ago}的今天`,
-        detail: `${day.getFullYear()}年${day.getMonth() + 1}月${day.getDate()}日`,
+        label: t('{ago}的今天', { ago }),
+        detail: fmtDay(day),
         from: day,
         to: addDays(day, 1),
         count: exact,
@@ -60,8 +63,11 @@ export function findMemories(days: DateCount[], today = new Date()): Memory[] {
       if (inMonth > 0)
         list.push({
           key: `${n}-month`,
-          label: `${ago}的${MONTHS[day.getMonth()]}月`,
-          detail: `${day.getFullYear()}年${day.getMonth() + 1}月`,
+          label: t('{ago}的{month}', {
+            ago,
+            month: locale().startsWith('zh') ? `${MONTHS[day.getMonth()]}月` : fmtMonthName(day),
+          }),
+          detail: fmtMonth(day),
           from: monthStart,
           to: monthEnd,
           count: inMonth,
@@ -70,11 +76,8 @@ export function findMemories(days: DateCount[], today = new Date()): Memory[] {
       const last = addDays(to, -1)
       list.push({
         key: `${n}-week`,
-        label: `${ago}的这一周`,
-        detail:
-          from.getMonth() === last.getMonth()
-            ? `${from.getFullYear()}年${from.getMonth() + 1}月${from.getDate()}日 – ${last.getDate()}日`
-            : `${from.getFullYear()}年${from.getMonth() + 1}月${from.getDate()}日 – ${last.getMonth() + 1}月${last.getDate()}日`,
+        label: t('{ago}的这一周', { ago }),
+        detail: fmtDayRange(from, last),
         from,
         to,
         count,

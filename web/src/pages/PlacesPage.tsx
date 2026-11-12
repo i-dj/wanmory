@@ -15,11 +15,12 @@ import { cityInfo, type CityInfo, useMapsEnabled } from '@/lib/geo'
 import { type City, cityFilter, citySpec, groupByCity, mergeCities } from '@/lib/places'
 import type { Point } from '@/lib/pins'
 import { cityPath } from '@/lib/views'
+import { t } from '@/i18n'
 
 type Mode = 'map' | 'grid'
 const MODES: { value: Mode; label: string }[] = [
-  { value: 'map', label: '地图' },
-  { value: 'grid', label: '网格' },
+  { value: 'map', label: t('地图') },
+  { value: 'grid', label: t('网格') },
 ]
 const MODE_KEY = 'wanmory.places.view' // 上次选的是地图还是网格
 
@@ -72,7 +73,7 @@ export default function PlacesPage({ navigate }: { navigate: (to: string) => voi
     // 地图占满一屏（抵掉 main 底下的留白），网格照常往下排
     <section className={cx(onMap && '-mb-16 flex h-dvh flex-col pb-6')}>
       <PageHeader
-        title="足迹"
+        title={t('足迹')}
         // 标题后面紧跟着筛选：只按成员筛（谁传的）
         beside={
           <FilterMenu
@@ -84,13 +85,20 @@ export default function PlacesPage({ navigate }: { navigate: (to: string) => voi
           />
         }
         subtitle={count ? summary(countryCount, merged.length, count) : ''}
-        right={<Segmented label="显示方式" segments={MODES} value={mode} onChange={setMode} />}
+        right={<Segmented label={t('显示方式')} segments={MODES} value={mode} onChange={setMode} />}
       />
-      {error && <p className="mt-6 text-body text-danger">没有读到：{error}</p>}
+      {error && (
+        <p className="mt-6 text-body text-danger">
+          {t('没有读到：')}
+          {error}
+        </p>
+      )}
 
       {points && points.length === 0 && (
         <Empty>
-          {all?.length ? '没有符合筛选的照片。' : '还没有带地点的照片。手机拍照时打开定位，照片里就会记下拍摄地点。'}
+          {all?.length
+            ? t('没有符合筛选的照片。')
+            : t('还没有带地点的照片。手机拍照时打开定位，照片里就会记下拍摄地点。')}
         </Empty>
       )}
       {onMap && count > 0 && (
@@ -127,8 +135,8 @@ export default function PlacesPage({ navigate }: { navigate: (to: string) => voi
 
 // summary：「3 个国家 · 20 个城市 · 533 项」（照片和视频一起算），还没查到国家时先不写国家
 function summary(countries: number, cities: number, items: number): string {
-  const parts = [`${cities.toLocaleString()} 个城市`, `${items.toLocaleString()} 项`]
-  if (countries > 0) parts.unshift(`${countries.toLocaleString()} 个国家`)
+  const parts = [t('{v0} 个城市', { v0: cities.toLocaleString() }), t('{v0} 项', { v0: items.toLocaleString() })]
+  if (countries > 0) parts.unshift(t('{v0} 个国家', { v0: countries.toLocaleString() }))
   return parts.join(' · ')
 }
 
@@ -155,13 +163,13 @@ function groupCities(cities: City[], infos: Record<string, CityInfo>): Group[] {
   const map = new Map<string, Group>()
   for (const c of cities) {
     const i = infos[c.key]
-    const label = (byCountry ? i?.country : (i?.state ?? i?.country)) ?? '其他地方'
+    const label = (byCountry ? i?.country : (i?.state ?? i?.country)) ?? t('其他地方')
     let g = map.get(label)
     if (!g) map.set(label, (g = { label, cities: [], count: 0 }))
     g.cities.push(c)
     g.count += c.count
   }
   return [...map.values()].sort((a, b) =>
-    a.label === '其他地方' ? 1 : b.label === '其他地方' ? -1 : b.count - a.count,
+    a.label === t('其他地方') ? 1 : b.label === t('其他地方') ? -1 : b.count - a.count,
   )
 }

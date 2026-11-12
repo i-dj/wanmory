@@ -127,7 +127,7 @@ func (s *Service) searchPlace(ctx context.Context, text string) ([]uuid.UUID, er
 		}
 		args = append(args, "%"+escapeLike(term)+"%")
 		n := len(args)
-		conds = append(conds, fmt.Sprintf(`(g.city ILIKE $%d OR g.state ILIKE $%d OR g.country ILIKE $%d OR a.place_name ILIKE $%d)`, n, n, n, n))
+		conds = append(conds, fmt.Sprintf(`(g.city ILIKE $%d OR g.state ILIKE $%d OR g.country ILIKE $%d OR g.city_en ILIKE $%d OR g.state_en ILIKE $%d OR a.place_name ILIKE $%d)`, n, n, n, n, n, n))
 	}
 	args = append(args, maxTextMatches)
 	rows, err := s.db.QueryContext(ctx, `

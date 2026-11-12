@@ -23,13 +23,13 @@ func TestPasswordHash(t *testing.T) {
 }
 
 func TestCheckUser(t *testing.T) {
-	if _, err := checkUser("  ", "1234"); err != ErrBadName {
+	if _, err := checkUser("  ", "12345678"); err != ErrBadName {
 		t.Errorf("空名字应该报 ErrBadName，得到 %v", err)
 	}
-	if _, err := checkUser("小明", "123"); err != ErrWeakPassword {
+	if _, err := checkUser("小明", "1234567"); err != ErrWeakPassword {
 		t.Errorf("太短的密码应该报 ErrWeakPassword，得到 %v", err)
 	}
-	if name, err := checkUser(" 小明 ", "1234"); err != nil || name != "小明" {
+	if name, err := checkUser(" 小明 ", "12345678"); err != nil || name != "小明" {
 		t.Errorf("checkUser = %q, %v", name, err)
 	}
 }

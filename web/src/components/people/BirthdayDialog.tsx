@@ -5,6 +5,7 @@ import Select from '@/components/ui/Select'
 import { faceThumbUrl, type Person, setBirthday } from '@/lib/api'
 import { ageAt } from '@/lib/age'
 import { personName } from '@/lib/views'
+import { fmtDayOfMonth, fmtMonthName, t } from '@/i18n'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const daysIn = (y: number, m: number) => new Date(y, m, 0).getDate()
@@ -51,59 +52,69 @@ export default function BirthdayDialog({
 
   const years = Array.from({ length: 100 }, (_, i) => today.getFullYear() - i)
   return (
-    <Modal title={person.birthday ? '修改生日' : '设置生日'} subtitle={personName(person)} onClose={onClose}>
+    <Modal title={person.birthday ? t('修改生日') : t('设置生日')} subtitle={personName(person)} onClose={onClose}>
       <div className="flex flex-col items-center text-center">
         <span className="size-20 overflow-hidden rounded-full bg-line shadow-md">
           {person.cover && <img src={faceThumbUrl(person.cover)} alt="" className="size-full object-cover" />}
         </span>
-        <p className="mt-3 text-caption text-muted">设置后，「成长」按年龄分段：两岁前每个月，之后每半年、每年</p>
+        <p className="mt-3 text-caption text-muted">
+          {t('设置后，「成长」按年龄分段：两岁前每个月，之后每半年、每年')}
+        </p>
 
         <div className="mt-5 flex items-center gap-2">
           <Select
-            label="年"
+            label={t('年')}
             value={String(year)}
             onChange={(v) => setYear(Number(v))}
-            options={years.map((y) => [String(y), `${y}年`])}
+            options={years.map((y) => [String(y), t('{y}年', { y })])}
             className="w-28"
           />
           <Select
-            label="月"
+            label={t('月')}
             value={String(month)}
             onChange={(v) => setMonth(Number(v))}
-            options={Array.from({ length: 12 }, (_, i) => [String(i + 1), `${i + 1}月`])}
+            options={Array.from({ length: 12 }, (_, i) => [String(i + 1), fmtMonthName(new Date(2000, i, 1))])}
             className="w-22"
           />
           <Select
-            label="日"
+            label={t('日')}
             value={String(d)}
             onChange={(v) => setDay(Number(v))}
-            options={Array.from({ length: daysIn(year, month) }, (_, i) => [String(i + 1), `${i + 1}日`])}
+            options={Array.from({ length: daysIn(year, month) }, (_, i) => [
+              String(i + 1),
+              fmtDayOfMonth(new Date(2000, 0, i + 1)),
+            ])}
             className="w-22"
           />
         </div>
         <p className="mt-4 h-5 text-body tabular-nums">
           {future ? (
-            <span className="text-danger">生日不能晚于今天</span>
+            <span className="text-danger">{t('生日不能晚于今天')}</span>
           ) : (
             age && (
               <>
-                现在 <span className="font-semibold text-accent">{age}</span>
+                {t('现在')} <span className="font-semibold text-accent">{age}</span>
               </>
             )
           )}
         </p>
-        {error && <p className="mt-2 text-caption text-danger">没有保存成功：{error}</p>}
+        {error && (
+          <p className="mt-2 text-caption text-danger">
+            {t('没有保存成功：')}
+            {error}
+          </p>
+        )}
       </div>
       <DialogActions>
         {person.birthday ? (
           <DialogButton variant="danger" disabled={busy} onClick={() => void save('')}>
-            去掉生日
+            {t('去掉生日')}
           </DialogButton>
         ) : (
-          <DialogButton onClick={onClose}>取消</DialogButton>
+          <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
         )}
         <DialogButton variant="primary" disabled={busy || future} onClick={() => void save(value)}>
-          {busy ? '保存中…' : '保存'}
+          {busy ? t('保存中…') : t('保存')}
         </DialogButton>
       </DialogActions>
     </Modal>

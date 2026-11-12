@@ -18,6 +18,7 @@ import {
   textValues,
   UNITS,
 } from '@/lib/smartRules'
+import { t as tr } from '@/i18n'
 
 const MAX_RULES = 20
 
@@ -42,18 +43,18 @@ export default function SmartRulesEditor({
 
   return (
     <div>
-      <p className="mb-2 text-body text-muted">条件</p>
+      <p className="mb-2 text-body text-muted">{tr('条件')}</p>
       <div className="flex gap-2">
         {multiple && (
           // 「并且 / 或者」和串起各条条件的线：线从按钮下面开始，拐到最后一条条件的中间
           <div className="relative flex w-17 shrink-0 flex-col items-start">
-            <Tooltip label={value.match === 'all' ? '每条都满足' : '满足任一条'}>
+            <Tooltip label={value.match === 'all' ? tr('每条都满足') : tr('满足任一条')}>
               <button
                 type="button"
                 onClick={() => onChange({ ...value, match: value.match === 'all' ? 'any' : 'all' })}
                 className="flex h-9 w-full items-center justify-center gap-1 rounded-control bg-line/60 text-caption font-semibold tracking-wide transition hover:bg-line active:scale-95"
               >
-                {value.match === 'all' ? '并且' : '或者'}
+                {value.match === 'all' ? tr('并且') : tr('或者')}
                 <ArrowUpDown className="size-3" strokeWidth={2.4} />
               </button>
             </Tooltip>
@@ -82,7 +83,7 @@ export default function SmartRulesEditor({
         className="mt-3 inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-fg/[0.04] px-3.5 text-body font-medium whitespace-nowrap text-fg transition-colors hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus className="size-4" strokeWidth={2.2} />
-        添加条件
+        {tr('添加条件')}
       </button>
     </div>
   )
@@ -105,7 +106,7 @@ function RuleRow({
     <div className="flex h-9 min-w-0 items-stretch divide-x divide-line rounded-control border border-line focus-within:border-line-strong hover:border-line-strong">
       <Select
         bare
-        label="字段"
+        label={tr('字段')}
         value={rule.field}
         onChange={(f) => onChange(defaultRule(f, undefined, albums))}
         options={FIELD_GROUPS.flatMap((group, g) => [
@@ -116,7 +117,7 @@ function RuleRow({
       />
       <Select
         bare
-        label="比较方式"
+        label={tr('比较方式')}
         value={rule.op}
         onChange={(op) => onChange(keepValue(rule, op, albums))}
         options={OPS[FIELDS[rule.field].kind]}
@@ -126,10 +127,10 @@ function RuleRow({
         <ValueInput rule={rule} albums={albums} onChange={onChange} />
       </div>
       {onRemove && (
-        <Tooltip label="删除条件">
+        <Tooltip label={tr('删除条件')}>
           <button
             type="button"
-            aria-label="删除这条条件"
+            aria-label={tr('删除这条条件')}
             onClick={onRemove}
             className="flex w-9 shrink-0 items-center justify-center rounded-r-control text-muted transition-colors hover:bg-line/40 hover:text-fg"
           >
@@ -174,12 +175,12 @@ function ValueInput({
               min={1}
               value={rule.value}
               onChange={(e) => set({ value: e.target.value })}
-              aria-label="数量"
+              aria-label={tr('数量')}
               className={bareInput}
             />
             <Select
               bare
-              label="单位"
+              label={tr('单位')}
               value={rule.unit ?? 'day'}
               onChange={(unit) => set({ unit })}
               options={UNITS}
@@ -194,15 +195,15 @@ function ValueInput({
               type="date"
               value={rule.value}
               onChange={(e) => set({ value: e.target.value })}
-              aria-label="开始日期"
+              aria-label={tr('开始日期')}
               className={bareInput}
             />
-            <span className="shrink-0 text-caption text-muted">至</span>
+            <span className="shrink-0 text-caption text-muted">–</span>
             <input
               type="date"
               value={rule.value2 ?? ''}
               onChange={(e) => set({ value2: e.target.value })}
-              aria-label="结束日期"
+              aria-label={tr('结束日期')}
               className={bareInput}
             />
           </>
@@ -212,35 +213,40 @@ function ValueInput({
           type="date"
           value={rule.value}
           onChange={(e) => set({ value: e.target.value })}
-          aria-label="日期"
+          aria-label={tr('日期')}
           className={bareInput}
         />
       )
     case 'photo':
       return (
-        <BareSelect label="照片类型" value={rule.value} onChange={(value) => set({ value })} options={PHOTO_TYPES} />
+        <BareSelect
+          label={tr('照片类型')}
+          value={rule.value}
+          onChange={(value) => set({ value })}
+          options={PHOTO_TYPES}
+        />
       )
     case 'flash':
       return (
         <BareSelect
-          label="闪光灯"
+          label={tr('闪光灯')}
           value={rule.value}
           onChange={(value) => set({ value })}
-          options={[['fired', '闪光']]}
+          options={[['fired', tr('闪光')]]}
         />
       )
     case 'rating':
-      return <BareSelect label="星级" value={rule.value} onChange={(value) => set({ value })} options={RATINGS} />
+      return <BareSelect label={tr('星级')} value={rule.value} onChange={(value) => set({ value })} options={RATINGS} />
     case 'album':
       return albums.length > 0 ? (
         <BareSelect
-          label="相册"
+          label={tr('相册')}
           value={rule.value}
           onChange={(value) => set({ value })}
           options={albums.map((a) => [a.id, a.name])}
         />
       ) : (
-        <span className="px-3 text-caption text-muted">还没有可以选的相册</span>
+        <span className="px-3 text-caption text-muted">{tr('还没有可以选的相册')}</span>
       )
     case 'number':
       return (
@@ -368,7 +374,7 @@ function TagInput({
             <span className="truncate">{v}</span>
             <button
               type="button"
-              aria-label={`去掉 ${v}`}
+              aria-label={tr('去掉 {v}', { v })}
               onClick={(e) => {
                 e.stopPropagation()
                 toggle(v)
@@ -381,7 +387,7 @@ function TagInput({
         </Tooltip>
       ))}
       {more > 0 && (
-        <Tooltip label={values.slice(2).join('、')}>
+        <Tooltip label={values.slice(2).join(tr('、'))}>
           <span className="shrink-0 rounded-item bg-line/70 px-1.5 py-0.5 text-caption font-medium text-fg/80 tabular-nums">
             +{more}
           </span>
@@ -411,7 +417,7 @@ function TagInput({
         }}
         onFocus={() => setOpen(true)}
         onBlur={commit}
-        placeholder={values.length ? '' : suggest ? '输入或从列表里选，可以选多个' : '输入后回车，可以填多个'}
+        placeholder={values.length ? '' : suggest ? tr('输入或从列表里选，可以选多个') : tr('输入后回车，可以填多个')}
         aria-label={label}
         className="h-full min-w-12 flex-1 bg-transparent px-1 text-body outline-none placeholder:text-muted"
       />
@@ -419,7 +425,7 @@ function TagInput({
         <button
           type="button"
           tabIndex={-1}
-          aria-label="显示可选的值"
+          aria-label={tr('显示可选的值')}
           onClick={(e) => {
             e.stopPropagation()
             setOpen((o) => !o)

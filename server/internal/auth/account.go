@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"crypto/sha256"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -58,20 +57,6 @@ const touchEvery = 5 * time.Minute
 
 var touched sync.Map // 会话令牌 → 上次写最近使用时间的时候
 
-// clientIP 是请求从哪来的：前面有反向代理时看它转过来的 X-Forwarded-For / X-Real-IP（只用来显示，不做判断）
-func clientIP(r *http.Request) string {
-	if f := r.Header.Get("X-Forwarded-For"); f != "" {
-		return strings.TrimSpace(strings.Split(f, ",")[0])
-	}
-	if ip := r.Header.Get("X-Real-IP"); ip != "" {
-		return strings.TrimSpace(ip)
-	}
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
-}
-
 func currentToken(r *http.Request) string {
 	if c, err := r.Cookie(CookieName); err == nil {
 		return c.Value
@@ -96,6 +81,12 @@ func (s *Service) account(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp["uploaded"], resp["hidden"] = uploaded, hidden
+	on, left, err := s.TOTPStatus(ctx, u.ID)
+	if err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
+	resp["totp"] = map[string]any{"enabled": on, "recovery_left": left}
 
 	sum := sha256.Sum256([]byte(currentToken(r)))
 	rows, err := s.db.QueryContext(ctx, `

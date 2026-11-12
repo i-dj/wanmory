@@ -65,6 +65,10 @@ func demoBlocked(r *http.Request) (blocked bool, del demoDelete) {
 		return true, demoDelete{}
 	case r.Method == http.MethodDelete && p == "/api/auth/sessions": // 退出其他设备
 		return true, demoDelete{}
+	case r.Method == http.MethodPut && p == "/api/auth/locale": // 界面语言（大家共用这个账号，只存在各自的浏览器里）
+		return true, demoDelete{}
+	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/auth/totp/"): // 开启、关掉两步验证（大家共用这个账号，开了别人就登不上）
+		return true, demoDelete{}
 	case r.Method == http.MethodDelete && !strings.HasPrefix(p, demoUploadDir): // 删相册、成员、模型、设置……
 		return true, demoDelete{}
 	case r.Method == http.MethodPost && (p == "/api/bursts/review" || albumRemove.MatchString(p)):

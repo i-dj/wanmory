@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 //	POST   /api/auth/logout    退出登录
 //	PUT    /api/auth/password  {"old", "new"} 改自己的密码
 //	PUT    /api/auth/avatar    {"asset_id"} 用一张照片当自己的头像（null 是不用照片）
+//	PUT    /api/auth/locale    {"locale"} 自己的界面语言（"" 是跟着浏览器）
 //	GET    /api/users          家庭成员列表
 //	POST   /api/users          {"name", "password"} 加家庭成员（管理员）
 //	DELETE /api/users/{id}     删家庭成员（管理员）
@@ -29,9 +31,11 @@ func (s *Service) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/setup", s.setup)
 	mux.HandleFunc("POST /api/auth/login", s.login)
 	mux.HandleFunc("POST /api/auth/logout", s.logout)
+	s.totpRoutes(mux) // 两步验证：登录的第二步、开启、关掉（totp_login.go）
 	mux.HandleFunc("PUT /api/auth/password", s.changePassword)
 	mux.HandleFunc("PUT /api/auth/avatar", s.setAvatar)
 	mux.HandleFunc("PUT /api/auth/avatar/image", s.uploadAvatar)
+	mux.HandleFunc("PUT /api/auth/locale", s.setLocale)
 	mux.HandleFunc("GET /api/users/{id}/avatar", s.serveAvatar)
 	s.accountRoutes(mux)
 	mux.HandleFunc("GET /api/users", s.listUsers)
@@ -43,11 +47,12 @@ func (s *Service) Routes(mux *http.ServeMux) {
 
 // public 是不用登录也能访问的接口
 var public = map[string]bool{
-	"/api/health":     true,
-	"/api/auth/state": true,
-	"/api/version":    true, // 菜单顶上显示版本号
-	"/api/auth/setup": true,
-	"/api/auth/login": true,
+	"/api/health":          true,
+	"/api/auth/state":      true,
+	"/api/version":         true, // 菜单顶上显示版本号
+	"/api/auth/setup":      true,
+	"/api/auth/login":      true,
+	"/api/auth/login/totp": true, // 登录的第二步（两步验证），带着第一步给的票
 }
 
 // AddPublic 加几个不用登录也能用的接口（别的包的，例如下载 HTTPS 的 CA 证书）。启动时调，之后不再改
@@ -220,28 +225,61 @@ func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, pas
 	if !remember {
 		ttl = shortTTL
 	}
+	// 输错太多次的 IP、名字先不让试（见 limit.go），同时算密码哈希的个数有上限
+	ip := clientIP(r)
+	if wait, blocked := logins.blocked(ip, name); blocked {
+		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
+		httpx.Error(w, http.StatusTooManyRequests, waitMessage(wait))
+		return
+	}
+	hashSlots <- struct{}{}
 	u, token, err := s.Login(r.Context(), name, password, ttl)
+	<-hashSlots
 	if errors.Is(err, ErrBadLogin) {
+		logins.fail(ip, name)
 		s.noteLogin(r.Context(), r, name, false)
 	}
 	if s.fail(w, err) {
 		return
 	}
+	// 开着两步验证：密码对了还不算登录，刚建的会话作废，给一张票让网页接着要验证码（见 totp_login.go）。
+	// 这时也不清掉输错的次数，免得知道密码的人靠反复输密码一直猜验证码
+	if on, err := s.totpEnabled(r.Context(), u.ID); err != nil || on {
+		_ = s.Logout(r.Context(), token)
+		if err != nil {
+			httpx.InternalError(w, err)
+			return
+		}
+		ticket, err := newTicket(u, remember)
+		if err != nil {
+			httpx.InternalError(w, err)
+			return
+		}
+		httpx.JSON(w, http.StatusOK, map[string]any{"totp_required": true, "ticket": ticket})
+		return
+	}
+	logins.succeed(ip, name)
 	s.noteLogin(r.Context(), r, u.Name, true)
+	s.issueCookie(w, r, token, remember)
+	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
+}
+
+// issueCookie 发登录 cookie。remember 时记 90 天；不记住时不写过期时间（浏览器关了就没了）
+func (s *Service) issueCookie(w http.ResponseWriter, r *http.Request, token string, remember bool) {
 	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true, // 网页里的脚本读不到，被注入了脚本也偷不走
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		// 用 HTTPS 打开时只在 HTTPS 下发送；前面是反向代理（HTTPS 在代理那里）时看它转过来的 X-Forwarded-Proto
+		Secure: r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https"),
 	}
 	if remember {
 		cookie.Expires = time.Now().Add(sessionTTL)
 	}
 	http.SetCookie(w, cookie)
 	s.noteDevice(r.Context(), token, r)
-	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
 }
 
 func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
@@ -359,7 +397,8 @@ func (s *Service) resetPassword(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if s.fail(w, s.SetPassword(r.Context(), id, req.Password, "")) {
+	// 管理员重置：这个人所有设备上的登录失效，两步验证也关掉，要本人重新开启
+	if s.fail(w, s.ResetPassword(r.Context(), id, req.Password)) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -382,4 +421,45 @@ func (s *Service) fail(w http.ResponseWriter, err error) bool {
 		httpx.InternalError(w, err)
 	}
 	return true
+}
+
+// AdminOnly 包一层：只有管理员能用（别的包的接口用，例如系统设置、浏览服务器目录）；不是管理员回答 403
+func AdminOnly(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if u := UserFrom(r.Context()); u == nil || !u.IsAdmin {
+			httpx.Error(w, http.StatusForbidden, "只有管理员能做这件事")
+			return
+		}
+		h(w, r)
+	}
+}
+
+// locales 是网页支持的界面语言（和 web/src/i18n 的 LOCALES 一致）
+var locales = map[string]bool{
+	"en": true, "zh-CN": true, "zh-TW": true, "ja": true, "ko": true, "de": true,
+	"fr": true, "es": true, "pt-BR": true, "ru": true, "it": true, "vi": true,
+}
+
+// setLocale：PUT /api/auth/locale {"locale": "ja"}，存自己的界面语言；"" 是跟着浏览器
+func (s *Service) setLocale(w http.ResponseWriter, r *http.Request) {
+	u := UserFrom(r.Context())
+	if u == nil {
+		httpx.Error(w, http.StatusUnauthorized, "还没登录")
+		return
+	}
+	var req struct {
+		Locale string `json:"locale"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	if req.Locale != "" && !locales[req.Locale] {
+		httpx.Error(w, http.StatusBadRequest, "不支持这种语言")
+		return
+	}
+	if _, err := s.db.ExecContext(r.Context(), `UPDATE users SET locale = $2 WHERE id = $1`, u.ID, req.Locale); err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

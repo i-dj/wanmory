@@ -1,5 +1,6 @@
 import { Images, Lock, Sparkles } from 'lucide-react'
 import { type Album, type Asset, previewUrl } from '@/lib/api'
+import { t } from '@/i18n'
 
 const LANDSCAPE = 1.3 // 宽比高大这么多才算横图，放进又宽又矮的横幅不会裁得太狠
 
@@ -41,12 +42,12 @@ export default function AlbumHero({
         <div className="min-w-0 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
           <p className="flex items-center gap-1.5 text-caption font-medium text-white/85">
             <Icon className="size-3.5" strokeWidth={2} />
-            {smart ? '智能相册' : '相册'}
+            {smart ? t('智能相册') : t('相册')}
             {album.private && (
               <>
                 <span aria-hidden="true">·</span>
                 <Lock className="size-3" strokeWidth={2.2} />
-                私有
+                {t('私有')}
               </>
             )}
           </p>

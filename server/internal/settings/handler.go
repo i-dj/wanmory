@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/wanmory/wanmory/server/internal/auth"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
@@ -22,9 +23,10 @@ func NewHandler(store *Store, registry *Registry) *Handler {
 }
 
 func (h *Handler) Routes(mux *http.ServeMux) {
+	// 读：登录的成员都能读（网页要知道在线地图开没开、用哪个地图）；改、恢复默认只有管理员
 	mux.HandleFunc("GET /api/settings", h.list)
-	mux.HandleFunc("PUT /api/settings/{key}", h.put)
-	mux.HandleFunc("DELETE /api/settings/{key}", h.reset)
+	mux.HandleFunc("PUT /api/settings/{key}", auth.AdminOnly(h.put))
+	mux.HandleFunc("DELETE /api/settings/{key}", auth.AdminOnly(h.reset))
 }
 
 // view 是返回给网页的一个设置项：说明、当前值、默认值。

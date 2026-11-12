@@ -1,6 +1,7 @@
 // 智能相册的条件：有哪些字段，每种字段能怎么比较，值怎么填。和后端 internal/assets/smart.go 对应。
 
 import type { SmartRule } from './api'
+import { t } from '@/i18n'
 
 export type FieldKind = 'date' | 'text' | 'number' | 'rating' | 'photo' | 'flash' | 'album'
 
@@ -17,22 +18,22 @@ export interface FieldDef {
 // 字段分两组，和 macOS「照片」一样：常用的在上面，拍摄参数在下面
 export const FIELD_GROUPS: FieldDef[][] = [
   [
-    { key: 'album', label: '相册', kind: 'album' },
-    { key: 'taken', label: '拍摄日期', kind: 'date' },
-    { key: 'added', label: '添加日期', kind: 'date' },
-    { key: 'filename', label: '文件名', kind: 'text' },
-    { key: 'photo', label: '照片', kind: 'photo' },
-    { key: 'rating', label: '星级', kind: 'rating' },
+    { key: 'album', label: t('相册'), kind: 'album' },
+    { key: 'taken', label: t('拍摄日期'), kind: 'date' },
+    { key: 'added', label: t('添加日期'), kind: 'date' },
+    { key: 'filename', label: t('文件名'), kind: 'text' },
+    { key: 'photo', label: t('照片'), kind: 'photo' },
+    { key: 'rating', label: t('星级'), kind: 'rating' },
   ],
   [
-    { key: 'aperture', label: '光圈', kind: 'number', placeholder: '2.8', prefix: 'f/' },
-    { key: 'camera', label: '相机型号', kind: 'text', suggest: 'camera' },
-    { key: 'make', label: '相机品牌', kind: 'text', suggest: 'make' },
-    { key: 'flash', label: '闪光灯', kind: 'flash' },
-    { key: 'focal', label: '焦距', kind: 'number', placeholder: '35', suffix: 'mm' },
+    { key: 'aperture', label: t('光圈'), kind: 'number', placeholder: '2.8', prefix: 'f/' },
+    { key: 'camera', label: t('相机型号'), kind: 'text', suggest: 'camera' },
+    { key: 'make', label: t('相机品牌'), kind: 'text', suggest: 'make' },
+    { key: 'flash', label: t('闪光灯'), kind: 'flash' },
+    { key: 'focal', label: t('焦距'), kind: 'number', placeholder: '35', suffix: 'mm' },
     { key: 'iso', label: 'ISO', kind: 'number', placeholder: '400' },
-    { key: 'lens', label: '镜头', kind: 'text', suggest: 'lens' },
-    { key: 'shutter', label: '快门速度', kind: 'number', placeholder: '1/125', suffix: '秒' },
+    { key: 'lens', label: t('镜头'), kind: 'text', suggest: 'lens' },
+    { key: 'shutter', label: t('快门速度'), kind: 'number', placeholder: '1/125', suffix: t('秒') },
   ],
 ]
 
@@ -40,73 +41,73 @@ export const FIELDS: Record<string, FieldDef> = Object.fromEntries(FIELD_GROUPS.
 
 export const OPS: Record<FieldKind, [op: string, label: string][]> = {
   date: [
-    ['is', '是'],
-    ['is_not', '不是'],
-    ['after', '晚于'],
-    ['before', '早于'],
-    ['in_last', '在最近'],
-    ['not_in_last', '不在最近'],
-    ['in_range', '在范围内'],
+    ['is', t('是')],
+    ['is_not', t('不是')],
+    ['after', t('晚于')],
+    ['before', t('早于')],
+    ['in_last', t('在最近')],
+    ['not_in_last', t('不在最近')],
+    ['in_range', t('在范围内')],
   ],
   text: [
-    ['includes', '包含'],
-    ['excludes', '不包含'],
-    ['is', '是'],
-    ['is_not', '不是'],
-    ['starts', '开头是'],
-    ['ends', '结尾是'],
-    ['empty', '为空'],
-    ['not_empty', '不为空'],
+    ['includes', t('包含')],
+    ['excludes', t('不包含')],
+    ['is', t('是')],
+    ['is_not', t('不是')],
+    ['starts', t('开头是')],
+    ['ends', t('结尾是')],
+    ['empty', t('为空')],
+    ['not_empty', t('不为空')],
   ],
   number: [
-    ['is', '是'],
-    ['is_not', '不是'],
-    ['gt', '大于'],
-    ['lt', '小于'],
+    ['is', t('是')],
+    ['is_not', t('不是')],
+    ['gt', t('大于')],
+    ['lt', t('小于')],
   ],
   rating: [
-    ['is', '是'],
-    ['is_not', '不是'],
-    ['gt', '高于'],
-    ['lt', '低于'],
+    ['is', t('是')],
+    ['is_not', t('不是')],
+    ['gt', t('高于')],
+    ['lt', t('低于')],
   ],
   photo: [
-    ['is', '是'],
-    ['is_not', '不是'],
+    ['is', t('是')],
+    ['is_not', t('不是')],
   ],
   flash: [
-    ['is', '是'],
-    ['is_not', '不是'],
+    ['is', t('是')],
+    ['is_not', t('不是')],
   ],
   album: [
-    ['is', '是'],
-    ['is_not', '不是'],
+    ['is', t('是')],
+    ['is_not', t('不是')],
   ],
 }
 
 export const PHOTO_TYPES: [value: string, label: string][] = [
-  ['favorite', '收藏'],
-  ['video', '视频'],
+  ['favorite', t('收藏')],
+  ['video', t('视频')],
   ['raw', 'RAW'],
-  ['screenshot', '截图'],
-  ['gps', '带位置信息'],
-  ['panorama', '全景'],
+  ['screenshot', t('截图')],
+  ['gps', t('带位置信息')],
+  ['panorama', t('全景')],
 ]
 
 export const RATINGS: [value: string, label: string][] = [
-  ['0', '无星级'],
-  ['1', '1 星'],
-  ['2', '2 星'],
-  ['3', '3 星'],
-  ['4', '4 星'],
-  ['5', '5 星'],
+  ['0', t('无星级')],
+  ['1', t('1 星')],
+  ['2', t('2 星')],
+  ['3', t('3 星')],
+  ['4', t('4 星')],
+  ['5', t('5 星')],
 ]
 
 export const UNITS: [value: string, label: string][] = [
-  ['day', '天'],
-  ['week', '周'],
-  ['month', '个月'],
-  ['year', '年'],
+  ['day', t('天')],
+  ['week', t('周')],
+  ['month', t('个月')],
+  ['year', t('年')],
 ]
 
 const today = () => {

@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import { authState, logout, type User } from '@/lib/api'
 import { GUEST, setCurrentUserId, UserContext } from '@/lib/session'
+import { savedLocale, setLocale, t } from '@/i18n'
 import LoginDialog from './LoginDialog'
 import LoginPage from './LoginPage'
 
@@ -9,6 +10,11 @@ import LoginPage from './LoginPage'
 // 访客模式开着时（设置里的「访客浏览」），没登录也显示应用，只能浏览；点「登录」弹出登录窗口（LoginDialog），
 // 登录后重新加载当前页面，停在原来的地方。
 // 任何请求回答 401（会话过期、在别处改了密码）都会回到登录页（访客模式开着时回到访客）
+// 账号上存的语言和这个浏览器里的不一样时，用账号上的（换了会重新加载页面）
+function syncLocale(user: User | null) {
+  if (user?.locale && user.locale !== savedLocale()) setLocale(user.locale as Parameters<typeof setLocale>[0])
+}
+
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{ setup: boolean; user: User | null; guest: boolean } | null>(null)
   const [signingIn, setSigningIn] = useState(false) // 访客点了「登录」：弹出登录窗口
@@ -18,6 +24,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     try {
       const s = await authState()
       setCurrentUserId(s.user?.id ?? null)
+      syncLocale(s.user)
       setState({ setup: s.setup_needed, user: s.user, guest: s.guest })
       setError('')
     } catch (e) {
@@ -37,6 +44,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
   const signedIn = (user: User) => {
     setCurrentUserId(user.id)
+    syncLocale(user)
     // 换了人，或者原来是访客：整页重新加载（地址不变，还停在原来的页面），上一个人、访客时的照片列表、缓存一点不留
     if ((state?.user && state.user.id !== user.id) || (!state?.user && state?.guest)) location.reload()
     else setState({ setup: false, user, guest: state?.guest ?? false })
@@ -49,7 +57,8 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   if (error)
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-center text-body text-muted">
-        连不上服务器：{error}
+        {t('连不上服务器：')}
+        {error}
       </div>
     )
   if (!state) return null

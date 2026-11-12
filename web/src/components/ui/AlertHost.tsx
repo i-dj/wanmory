@@ -14,6 +14,7 @@ import {
   subscribeAlerts,
   subscribeNotices,
 } from '@/lib/dialog'
+import { t } from '@/i18n'
 
 const TONES: Record<AlertTone, { icon: LucideIcon; circle: string; bar: string }> = {
   danger: { icon: CircleAlert, circle: 'bg-danger/15 text-danger', bar: 'bg-danger' },
@@ -79,11 +80,11 @@ function NoticeCard({ notice }: { notice: Notice }) {
                 <p className="text-body font-semibold">{notice.title}</p>
                 {notice.detail && <p className="mt-0.5 text-caption text-muted">{notice.detail}</p>}
               </div>
-              <Tooltip label="关闭">
+              <Tooltip label={t('关闭')}>
                 <button
                   type="button"
                   onClick={() => dismissNotice(notice.id)}
-                  aria-label="关闭"
+                  aria-label={t('关闭')}
                   className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-line hover:text-fg"
                 >
                   <X className="size-4" />
@@ -132,7 +133,7 @@ function ConfirmDialog() {
       }}
     >
       {/* 压暗、模糊的那层单独垫着，不加在外层上：外层带 backdrop-filter 时卡片自己的磨砂会失灵 */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/25 backdrop-blur-[6px]" />
+      <div aria-hidden="true" className="dialog-dim pointer-events-none absolute inset-0" />
       <div
         role="alertdialog"
         aria-modal="true"

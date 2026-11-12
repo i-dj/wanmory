@@ -2,6 +2,7 @@ import { Monitor, Smartphone, Tablet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { type LoginEvent, loginEvents } from '@/lib/api'
 import { ago, describeDevice, ipKind } from '@/lib/device'
+import { locale, t } from '@/i18n'
 
 export const FIRST = 10 // 先列几条，多的点「显示全部」
 
@@ -21,7 +22,11 @@ export function useLoginEvents(enabled: boolean) {
 // loginSummary 是卡片底栏左边那句：「共 12 次登录，其中 2 次密码错误」
 export const loginSummary = (list: LoginEvent[]) => {
   const failed = list.filter((e) => !e.ok).length
-  return list.length > 0 ? `共 ${list.length} 次登录${failed ? `，其中 ${failed} 次密码错误` : ''}` : ''
+  return list.length > 0
+    ? failed
+      ? t('共 {length} 次登录，其中 {failed} 次密码错误', { length: list.length, failed })
+      : t('共 {length} 次登录', { length: list.length })
+    : ''
 }
 
 // LoginLogList 是日志列表。每行：设备图标，名字和设备（Mac · Chrome），密码不对的标红「密码错误」；
@@ -31,7 +36,7 @@ export function LoginLogList({ list, all }: { list: LoginEvent[]; all: boolean }
   return (
     <>
       {list.length === 0 ? (
-        <p className="px-5 py-5 text-body text-muted md:px-6">还没有登录记录</p>
+        <p className="px-5 py-5 text-body text-muted md:px-6">{t('还没有登录记录')}</p>
       ) : (
         <ul className="divide-y divide-line">
           {shown.map((e, i) => {
@@ -44,19 +49,21 @@ export function LoginLogList({ list, all }: { list: LoginEvent[]; all: boolean }
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="truncate font-medium">{e.name || '（没填名字）'}</span>
+                    <span className="truncate font-medium">{e.name || t('（没填名字）')}</span>
                     <span className="shrink-0 text-caption text-muted">{dev.label}</span>
                     {!e.ok && (
-                      <span className="shrink-0 rounded-full bg-danger/12 px-2 text-caption text-danger">密码错误</span>
+                      <span className="shrink-0 rounded-full bg-danger/12 px-2 text-caption text-danger">
+                        {t('密码错误')}
+                      </span>
                     )}
                   </div>
                   <div className="truncate text-caption text-muted">
-                    {[e.location || (e.ip && ipKind(e.ip)), e.ip].filter(Boolean).join(' · ')}
+                    {[(e.location && t(e.location)) || (e.ip && ipKind(e.ip)), e.ip].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <time
                   dateTime={e.time}
-                  title={new Date(e.time).toLocaleString('zh-CN')}
+                  title={new Date(e.time).toLocaleString(locale())}
                   className="shrink-0 text-caption text-muted tabular-nums"
                 >
                   {ago(e.time)}

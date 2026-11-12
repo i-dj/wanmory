@@ -4,6 +4,7 @@ import DialogButton from '@/components/ui/DialogButton'
 import { type Album, type Asset, listAssets, setAlbumCover, thumbnailUrl } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import Modal, { DialogActions } from '@/components/ui/Modal'
+import { t } from '@/i18n'
 
 const PAGE = 120 // 一次读多少张；相册很大时点「加载更多」
 
@@ -51,22 +52,22 @@ export default function CoverPicker({
       onDone()
       onClose()
     } catch (e) {
-      setError(`封面没有保存成功：${e instanceof Error ? e.message : e}`)
+      setError(t('封面没有保存成功：{v0}', { v0: e instanceof Error ? e.message : e }))
       setSaving(false)
     }
   }
 
   return (
     <Modal
-      title="修改封面"
-      subtitle={`点一张照片，设为「${album.name}」的封面`}
+      title={t('修改封面')}
+      subtitle={t('点一张照片，设为「{name}」的封面', { name: album.name })}
       icon={ImageIcon}
       onClose={onClose}
       width="max-w-180"
     >
       <div className="-mx-1 min-h-40 px-1 py-1">
         {error && <p className="text-body text-danger">{error}</p>}
-        {!photos && !error && <p className="text-body text-muted">加载中…</p>}
+        {!photos && !error && <p className="text-body text-muted">{t('加载中…')}</p>}
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
           {photos?.map((a) => {
             const current = a.id === album.cover
@@ -76,7 +77,7 @@ export default function CoverPicker({
                   type="button"
                   disabled={saving}
                   onClick={() => void choose(a.id)}
-                  aria-label={current ? '现在的封面' : '设为封面'}
+                  aria-label={current ? t('现在的封面') : t('设为封面')}
                   aria-pressed={current}
                   className={cx(
                     'group relative block aspect-square w-full overflow-hidden rounded-item bg-line outline-none focus-visible:ring-2 focus-visible:ring-accent',
@@ -106,16 +107,16 @@ export default function CoverPicker({
             onClick={() => void loadMore()}
             className="mt-3 w-full rounded-control py-1.5 text-body text-accent hover:bg-accent-soft"
           >
-            加载更多
+            {t('加载更多')}
           </button>
         )}
       </div>
 
       <DialogActions>
-        <DialogButton onClick={onClose}>取消</DialogButton>
+        <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
         {album.cover_set && (
           <DialogButton icon={RotateCcw} disabled={saving} onClick={() => void choose(null)}>
-            恢复默认
+            {t('恢复默认')}
           </DialogButton>
         )}
       </DialogActions>

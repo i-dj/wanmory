@@ -9,6 +9,7 @@ import { attachBaseLayer } from '@/lib/mapSource'
 import type { City } from '@/lib/places'
 import { clusterPoints, openPin, type Pin as PhotoPin, type Point } from '@/lib/pins'
 import { contains, loadWorldMap, type WorldMap } from '@/lib/worldMap'
+import { t } from '@/i18n'
 
 // WorldFootprint 是「足迹」的「地图」（Leaflet）：
 // - 整个世界时是一张平铺的世界地图，去过的国家颜色暖一点（各国轮廓，不用在线地图也能画，见 lib/worldMap）；
@@ -174,14 +175,14 @@ export default function WorldFootprint({
       {/* 右下角：放大、缩小、回到整个世界（都以地图中心为准） */}
       {map && (
         <div className="absolute right-3 bottom-3 z-[1000] flex flex-col overflow-hidden rounded-xl border border-line bg-surface/85 shadow-[0_4px_16px_rgba(0,0,0,0.25)] backdrop-blur-md">
-          <MapButton label="放大" disabled={zoom.now >= zoom.max} onClick={() => map.zoomIn(1)}>
+          <MapButton label={t('放大')} disabled={zoom.now >= zoom.max} onClick={() => map.zoomIn(1)}>
             <Plus className="size-4.5" strokeWidth={2} />
           </MapButton>
-          <MapButton label="缩小" disabled={zoom.now <= zoom.min} onClick={() => map.zoomOut(1)}>
+          <MapButton label={t('缩小')} disabled={zoom.now <= zoom.min} onClick={() => map.zoomOut(1)}>
             <Minus className="size-4.5" strokeWidth={2} />
           </MapButton>
           <MapButton
-            label="显示整个世界"
+            label={t('显示整个世界')}
             disabled={zoom.now <= zoom.min}
             onClick={() => map.flyToBounds(WORLD, { duration: 0.6 })}
           >
@@ -236,7 +237,7 @@ function describe(pin: PhotoPin, cityOf: Map<Point, City>, infos: Record<string,
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
   const info = top ? infos[top.key] : undefined
   const n = counts.size
-  const sub = [info?.country, n > 1 ? `${n} 个城市` : ''].filter(Boolean).join(' · ')
+  const sub = [info?.country, n > 1 ? t('{n} 个城市', { n }) : ''].filter(Boolean).join(' · ')
   return { pin, name: info?.city ?? '', sub, side: 'r' }
 }
 

@@ -21,7 +21,7 @@ import (
 
 // resetPassword 是 `wanmory reset-password [名字]`：忘了密码（连唯一的管理员也忘了）时，在运行相册的机器上重置。
 // 不带名字时先列出所有账号（名字、是不是管理员、什么时候建的、最近一次登录），输入序号选一个；带名字时直接改那个人。
-// 新密码输两遍（不显示在屏幕上），改好后这个人在所有设备上的登录都失效。
+// 新密码输两遍（不显示在屏幕上），改好后这个人在所有设备上的登录都失效，两步验证也关掉（手机丢了也能靠这个进来）。
 // 只有能在这台机器上运行程序的人（例如 `docker compose exec server wanmory reset-password`）才能用，网页上没有这个入口
 func resetPassword(ctx context.Context, args []string) error {
 	cfg, err := config.Load()
@@ -87,10 +87,10 @@ func resetPassword(ctx context.Context, args []string) error {
 		return errors.New("两次输入的密码不一样，没有改。再运行一次吧")
 	}
 	// keep 为空：这个人所有设备上的登录都失效，要用新密码重新登录
-	if err := auth.NewService(conn).SetPassword(ctx, target.id, password, ""); err != nil {
+	if err := auth.NewService(conn).ResetPassword(ctx, target.id, password); err != nil {
 		return err
 	}
-	fmt.Printf("已重置「%s」的密码，请用新密码登录（所有设备上的登录都已退出）。\n", target.name)
+	fmt.Printf("已重置「%s」的密码，请用新密码登录（所有设备上的登录都已退出，两步验证也已关闭，需要的话登录后重新开启）。\n", target.name)
 	return nil
 }
 

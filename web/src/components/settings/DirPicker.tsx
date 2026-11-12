@@ -2,10 +2,11 @@ import { Folder } from 'lucide-react'
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { createDir, type DirListing, listDirs } from '@/lib/api'
 import DialogButton from '@/components/ui/DialogButton'
-import Modal, { Button, DialogActions } from '@/components/ui/Modal'
+import Modal, { Button, DialogFooter } from '@/components/ui/Modal'
 import { cx } from '@/lib/cx'
 import TextField from '@/components/ui/TextField'
 import Tooltip from '@/components/ui/Tooltip'
+import { t } from '@/i18n'
 
 // DirPicker 浏览服务器上的目录并选择一个，可以新建文件夹。只能浏览后端允许的范围。
 export default function DirPicker({
@@ -79,20 +80,20 @@ export default function DirPicker({
         <div className="flex items-center gap-2 border-b border-line px-3 py-2">
           <Button
             small
-            label="上一级"
+            label={t('上一级')}
             onClick={() => listing && listing.parent !== null && open(listing.parent)}
             disabled={!listing || listing.parent === null || loading}
           >
-            ↑ 上一级
+            {t('↑ 上一级')}
           </Button>
           <Tooltip label={listing?.path}>
             <div className="min-w-0 flex-1 truncate font-mono text-body">
-              {listing ? listing.path || '可以浏览的目录' : '加载中…'}
+              {listing ? listing.path || t('可以浏览的目录') : t('加载中…')}
             </div>
           </Tooltip>
           {!atRoots && listing && newName === null && (
             <Button small onClick={() => setNewName('')}>
-              ＋ 新建文件夹
+              {t('＋ 新建文件夹')}
             </Button>
           )}
         </div>
@@ -102,7 +103,7 @@ export default function DirPicker({
         {newName !== null && (
           <form onSubmit={submitNewFolder} className="flex items-center gap-2 border-b border-line px-3 pt-4 pb-3">
             <TextField
-              label="新文件夹名称"
+              label={t('新文件夹名称')}
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -110,9 +111,9 @@ export default function DirPicker({
               className="min-w-0 flex-1"
             />
             <Button type="submit" primary disabled={busy || !newName.trim()}>
-              创建
+              {t('创建')}
             </Button>
-            <Button onClick={() => setNewName(null)}>取消</Button>
+            <Button onClick={() => setNewName(null)}>{t('取消')}</Button>
           </form>
         )}
 
@@ -132,25 +133,26 @@ export default function DirPicker({
             </li>
           ))}
           {listing && listing.dirs.length === 0 && (
-            <li className="px-4 py-6 text-center text-body text-muted">这里没有子文件夹</li>
+            <li className="px-4 py-6 text-center text-body text-muted">{t('这里没有子文件夹')}</li>
           )}
         </ul>
       </div>
       <p className="mt-4 min-w-0 text-body text-muted">
         {atRoots || !listing ? (
-          '先进入一个目录'
+          t('先进入一个目录')
         ) : (
           <>
-            将使用：<span className="font-mono break-all text-fg">{listing.path}</span>
+            {t('将使用：')}
+            <span className="font-mono break-all text-fg">{listing.path}</span>
           </>
         )}
       </p>
-      <DialogActions className="mt-4">
-        <DialogButton onClick={onCancel}>取消</DialogButton>
+      <DialogFooter>
+        <DialogButton onClick={onCancel}>{t('取消')}</DialogButton>
         <DialogButton variant="primary" onClick={confirm} disabled={busy || loading || !listing || atRoots}>
-          确认
+          {t('确认')}
         </DialogButton>
-      </DialogActions>
+      </DialogFooter>
     </Modal>
   )
 }

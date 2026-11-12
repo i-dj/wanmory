@@ -16,6 +16,8 @@ func TestDemoBlocked(t *testing.T) {
 		{"PUT", "/api/auth/password", `{"old":"a","new":"b"}`, true, nil},
 		{"PUT", "/api/users/x/password", `{"password":"b"}`, true, nil},
 		{"DELETE", "/api/auth/sessions", ``, true, nil},
+		{"POST", "/api/auth/totp/setup", `{}`, true, nil},
+		{"POST", "/api/auth/totp/disable", `{"password":"x"}`, true, nil},
 		{"DELETE", "/api/albums/abc", ``, false, nil}, // 删相册交给 recentlyMine，见下面 album
 		{"DELETE", "/api/albums/abc/members/x", ``, true, nil},
 		{"DELETE", "/api/users/abc", ``, true, nil},

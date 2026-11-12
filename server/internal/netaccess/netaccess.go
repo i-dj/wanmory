@@ -27,19 +27,26 @@ const (
 type Settings func(ctx context.Context) string
 
 type Service struct {
-	settings Settings
-	httpPort string // 浏览器里用的端口（Docker 里映射成别的端口时不一样），80 时网址里不写
+	settings   Settings
+	httpPort   string // 浏览器里用的端口（Docker 里映射成别的端口时不一样），80 时网址里不写
+	docker     bool   // 在 Docker 里：端口由 docker-compose 的端口映射定，相册改不了
+	installDir string // Docker 安装的目录（安装脚本写进 .env 的 WANMORY_INSTALL_DIR），设置页的改端口命令要 cd 过去
 
-	mu     sync.RWMutex
-	domain string
+	mu         sync.RWMutex
+	domain     string
+	reportedIP string // Docker 里 mdns 小服务（主机网络）报上来的局域网 IP，相册自己在内部网络里看不到
+	reportedAt time.Time
 }
 
 // New 准备好。httpAddr 是相册监听的地址（算网址里的端口）
 func New(httpAddr string, settings Settings) *Service {
+	_, err := os.Stat("/.dockerenv")
 	return &Service{
-		settings: settings,
-		httpPort: envOr("WANMORY_HTTP_PUBLIC_PORT", portOf(httpAddr)),
-		domain:   InitialDomain(),
+		settings:   settings,
+		httpPort:   envOr("WANMORY_HTTP_PUBLIC_PORT", portOf(httpAddr)),
+		docker:     err == nil || os.Getenv("WANMORY_HTTP_PUBLIC_PORT") != "",
+		installDir: os.Getenv("WANMORY_INSTALL_DIR"),
+		domain:     InitialDomain(),
 	}
 }
 
@@ -66,11 +73,41 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 // url 是浏览器里打开的网址：http://wanmory.local:8080（端口是 80 时不写）
-func (s *Service) url(domain string) string {
-	if s.httpPort == "" || s.httpPort == "80" {
-		return "http://" + domain
+func (s *Service) url(host string) string {
+	if host == "" {
+		return ""
 	}
-	return "http://" + net.JoinHostPort(domain, s.httpPort)
+	if s.httpPort == "" || s.httpPort == "80" {
+		return "http://" + host
+	}
+	return "http://" + net.JoinHostPort(host, s.httpPort)
+}
+
+// lanIP 是局域网里用 IP 打开相册的地址：直接跑在主机上时自己查；Docker 里用 mdns 小服务最近两分钟报上来的
+func (s *Service) lanIP() string {
+	if !s.docker {
+		return LocalIP()
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if time.Since(s.reportedAt) > 2*time.Minute {
+		return ""
+	}
+	return s.reportedIP
+}
+
+// LocalIP 是这台机器在局域网里的 IP：往外连的时候用哪个地址（UDP 不真的发包），不是局域网地址时为空
+func LocalIP() string {
+	c, err := net.Dial("udp4", "1.1.1.1:80")
+	if err != nil {
+		return ""
+	}
+	defer c.Close()
+	ip := c.LocalAddr().(*net.UDPAddr).IP
+	if !ip.IsPrivate() {
+		return ""
+	}
+	return ip.String()
 }
 
 func (s *Service) Routes(mux *http.ServeMux) {
@@ -81,14 +118,26 @@ func (s *Service) Routes(mux *http.ServeMux) {
 // PublicPaths 是不用登录也能用的：Docker 里单独跑的 mdns 小服务问现在报哪个名字
 var PublicPaths = []string{"/api/net/mdns"}
 
-// status：GET /api/net，设置页显示用：{"domain", "url"}
+// status：GET /api/net，设置页显示用：域名和用它打开的网址、局域网 IP 和用它打开的网址、端口，
+// 在不在 Docker 里（在的话端口要在服务器上改 .env）、Docker 安装的目录（不知道时为空）
 func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 	d := s.Domain()
-	httpx.JSON(w, http.StatusOK, map[string]string{"domain": d, "url": s.url(d)})
+	ip := s.lanIP()
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"domain": d, "url": s.url(d),
+		"ip": ip, "ip_url": s.url(ip),
+		"port": s.httpPort, "docker": s.docker, "install_dir": s.installDir,
+	})
 }
 
-// mdnsName：GET /api/net/mdns，{"name": "wanmory.local"}；Docker 里单独跑的 mdns 小服务隔一会儿问一次
+// mdnsName：GET /api/net/mdns?ip=192.168.1.20，回答 {"name": "wanmory.local"}。Docker 里单独跑的 mdns 小服务
+// 隔一会儿问一次，顺便报上它（主机网络）看到的局域网 IP。不用登录，所以只收局域网地址（10.x、172.16-31.x、192.168.x）
 func (s *Service) mdnsName(w http.ResponseWriter, r *http.Request) {
+	if ip := net.ParseIP(r.URL.Query().Get("ip")); ip != nil && ip.To4() != nil && ip.IsPrivate() {
+		s.mu.Lock()
+		s.reportedIP, s.reportedAt = ip.To4().String(), time.Now()
+		s.mu.Unlock()
+	}
 	httpx.JSON(w, http.StatusOK, map[string]string{"name": s.Domain()})
 }
 

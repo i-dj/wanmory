@@ -1,10 +1,20 @@
 import { ChevronLeft, ChevronRight, EyeOff, Play } from 'lucide-react'
 import { type CSSProperties, useEffect, useState } from 'react'
-import { type Asset, type Filter, highlights, largeUrl, previewUrl, skipHighlight, thumbnailUrl } from '@/lib/api'
+import {
+  type Asset,
+  type Filter,
+  highlights,
+  largeUrl,
+  previewUrl,
+  skipHighlight,
+  thumbnailUrl,
+  localGeo,
+} from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { showError } from '@/lib/dialog'
 import { cameraName, formatExposure, lensName, viewerDate } from '@/lib/format'
 import { useCurrentUser } from '@/lib/session'
+import { t as tr } from '@/i18n'
 
 const INTERVAL = 6000 // 每张停多久
 const SHOWN = 8 // 最多放几张（多要几张，铺不满的拿掉后还够）
@@ -46,8 +56,8 @@ export default function HighlightsCarousel({
 
   return (
     <section
-      aria-label="精选照片"
-      aria-roledescription="轮播"
+      aria-label={tr('精选照片')}
+      aria-roledescription={tr('轮播')}
       className="mt-7 overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_24px_rgba(30,24,20,0.1)]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -63,7 +73,7 @@ export default function HighlightsCarousel({
             type="button"
             tabIndex={i === current ? 0 : -1}
             aria-hidden={i !== current}
-            aria-label="打开这张照片"
+            aria-label={tr('打开这张照片')}
             onClick={() => onOpen(list, i)}
             className={cx(
               'absolute inset-0 cursor-pointer transition-opacity duration-700 ease-out',
@@ -92,13 +102,13 @@ export default function HighlightsCarousel({
             onClick={() => {
               skipHighlight(asset.id).then(
                 () => remove(asset.id),
-                (e) => showError('没有改成功', e),
+                (e) => showError(tr('没有改成功'), e),
               )
             }}
             className="absolute top-4 right-4 z-[3] flex items-center gap-1.5 rounded-full border border-white/20 bg-black/35 px-3 py-1.5 text-chip text-white/90 opacity-0 backdrop-blur-md transition group-hover:opacity-100 hover:bg-black/55 focus-visible:opacity-100 md:top-5 md:right-6"
           >
             <EyeOff className="size-3.5" />
-            不再精选
+            {tr('不再精选')}
           </button>
         )}
 
@@ -110,21 +120,21 @@ export default function HighlightsCarousel({
           type="button"
           onClick={onPlay}
           className="flex shrink-0 items-center gap-2 rounded-full py-1 pr-2 text-body font-medium text-fg/85 transition-colors hover:text-fg"
-          title="播放精选幻灯片（最多 100 张）"
+          title={tr('播放精选幻灯片（最多 100 张）')}
         >
           <span className="grid size-7 place-items-center rounded-full bg-accent text-on-accent">
             <Play className="size-3.5 translate-x-px" fill="currentColor" strokeWidth={0} />
           </span>
-          AI 精选
+          {tr('AI 精选')}
         </button>
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="切换精选">
+        <div className="flex items-center gap-1.5" role="tablist" aria-label={tr('切换精选')}>
           {list.map((a, i) => (
             <button
               key={a.id}
               type="button"
               role="tab"
               aria-selected={i === current}
-              aria-label={`第 ${i + 1} 张`}
+              aria-label={tr('第 {v0} 张', { v0: i + 1 })}
               onClick={() => setIndex(i)}
               className={cx(
                 'h-1.5 rounded-full transition-all duration-300',
@@ -139,7 +149,7 @@ export default function HighlightsCarousel({
               key={a.id}
               type="button"
               tabIndex={-1}
-              aria-label={`第 ${i + 1} 张`}
+              aria-label={tr('第 {v0} 张', { v0: i + 1 })}
               onClick={() => setIndex(i)}
               className={cx(
                 'h-11 w-16 overflow-hidden rounded-lg ring-offset-2 ring-offset-surface transition',
@@ -241,7 +251,7 @@ function ArrowButton({ side, onClick }: { side: 'left' | 'right'; onClick: () =>
     <button
       type="button"
       onClick={onClick}
-      aria-label={side === 'left' ? '上一张' : '下一张'}
+      aria-label={side === 'left' ? tr('上一张') : tr('下一张')}
       className={cx(
         'absolute top-1/2 z-[3] grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/30 text-white opacity-70 backdrop-blur-md transition group-hover:opacity-100 hover:bg-black/50 md:size-12',
         side === 'left' ? 'left-4 md:left-6' : 'right-4 md:right-6',
@@ -273,7 +283,7 @@ function Caption({ asset, n }: { asset: Asset; n: number }) {
       <div className="min-w-0">
         <div className="flex items-center gap-2.5 text-body">
           <span className="rounded-full bg-accent px-2.5 py-0.5 text-chip font-semibold text-on-accent">
-            精选 · {String(n).padStart(2, '0')}
+            {tr('精选 ·')} {String(n).padStart(2, '0')}
           </span>
           <span className="text-white/85 tabular-nums">
             {place ? when.day : when.weekday} {when.time}
@@ -299,7 +309,10 @@ function Caption({ asset, n }: { asset: Asset; n: number }) {
 
 // placeOf：「佛罗里达州 · Bay Lake」，没有州就写国家；没查到城市时为空
 function placeOf(a: Asset): string | null {
-  if (a.geo?.city) return [a.geo.state ?? a.geo.country, a.geo.city].filter(Boolean).join(' · ')
+  if (a.geo?.city) {
+    const g = localGeo(a.geo)
+    return [g.state ?? g.country, g.city].filter(Boolean).join(' · ')
+  }
   return a.place_name || null
 }
 

@@ -2,6 +2,7 @@ import { ImagePlus, Library, type LucideIcon, MonitorUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Popover from '@/components/ui/Popover'
 import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
+import { t } from '@/i18n'
 
 // AddPhotosButton 是相册里工具栏右边的「添加照片」，样子和相册页的「新建相册」一样（实心主按钮）：弹出两个选择，从图库挑已有的照片，或者从电脑上传新的。
 // 刚建好相册时自动弹出（autoOpen），直接接着加照片。
@@ -39,15 +40,15 @@ export default function AddPhotosButton({
             className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-fg px-3.5 text-body font-medium whitespace-nowrap text-page transition-colors hover:bg-fg/85 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ImagePlus className="size-4" strokeWidth={2} />
-            添加照片
+            {t('添加照片')}
           </button>
         }
       >
-        <p className="px-2.5 pt-1 pb-2 text-caption font-semibold text-muted">添加照片到这个相册</p>
+        <p className="px-2.5 pt-1 pb-2 text-caption font-semibold text-muted">{t('添加照片到这个相册')}</p>
         <Choice
           icon={Library}
-          title="从图库添加"
-          detail="挑选已经上传过的照片"
+          title={t('从图库添加')}
+          detail={t('挑选已经上传过的照片')}
           onClick={() => {
             setOpen(false)
             onPickFromLibrary()
@@ -55,8 +56,8 @@ export default function AddPhotosButton({
         />
         <Choice
           icon={MonitorUp}
-          title="从电脑添加"
-          detail="上传新的照片和视频，传完自动放进相册"
+          title={t('从电脑添加')}
+          detail={t('上传新的照片和视频，传完自动放进相册')}
           onClick={() => {
             setOpen(false)
             openFilePicker(input.current)

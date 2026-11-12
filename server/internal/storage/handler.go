@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wanmory/wanmory/server/internal/auth"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
@@ -21,8 +22,9 @@ func NewHandler(roots Roots) *Handler {
 }
 
 func (h *Handler) Routes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/storage/dirs", h.listDirs)
-	mux.HandleFunc("POST /api/storage/dirs", h.createDir)
+	// 浏览、新建服务器上的目录（选上传目录用）：只有管理员
+	mux.HandleFunc("GET /api/storage/dirs", auth.AdminOnly(h.listDirs))
+	mux.HandleFunc("POST /api/storage/dirs", auth.AdminOnly(h.createDir))
 }
 
 type dirEntry struct {

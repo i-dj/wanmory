@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Modal'
 import { type Album, assetThumbUrl } from '@/lib/api'
 import { useCurrentUser } from '@/lib/session'
 import { albumPath } from '@/lib/views'
+import { t } from '@/i18n'
 
 // AlbumsPage 是「相册」：所有相册一张张方形封面卡片，名字和张数写在封面下方。
 // 点卡片打开相册；鼠标移上去右上角出现「…」，在卡片上右键也是同一个菜单（修改封面、重命名 / 智能相册的条件、删除）。
@@ -36,14 +37,14 @@ export default function AlbumsPage({
   return (
     <section>
       <PageHeader
-        title="相册"
-        subtitle={albums?.length ? `${albums.length.toLocaleString()} 个相册` : ''}
+        title={t('相册')}
+        subtitle={albums?.length ? t('{v0} 个相册', { v0: albums.length.toLocaleString() }) : ''}
         right={
           !guest && (
             <Button primary onClick={onNew}>
               <span className="flex items-center gap-1">
                 <Plus className="size-4" strokeWidth={2.2} />
-                新建相册
+                {t('新建相册')}
               </span>
             </Button>
           )
@@ -54,7 +55,7 @@ export default function AlbumsPage({
         <div className="mt-16 flex flex-col items-center text-center text-muted">
           <ImageIcon className="size-12" strokeWidth={1.2} />
           <p className="mt-3 max-w-md text-body">
-            还没有相册。点右上角「新建相册」，或者在图库里选中照片后放进新相册。
+            {t('还没有相册。点右上角「新建相册」，或者在图库里选中照片后放进新相册。')}
           </p>
         </div>
       )}
@@ -81,37 +82,37 @@ export default function AlbumsPage({
             >
               {/* 封面 */}
               <span className="relative block aspect-square overflow-hidden rounded-[16px] bg-line ring-accent ring-offset-2 ring-offset-page transition group-has-[a:focus-visible]:ring-2">
-              {album.cover ? (
-                <img
-                  src={assetThumbUrl(album.cover)}
-                  alt=""
-                  loading="lazy"
-                  draggable={false}
-                  className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              ) : (
-                <ImageIcon className="m-auto size-full p-10 text-muted" strokeWidth={1.2} />
-              )}
-              {/* 私有相册：封面左上角一把锁 */}
-              {album.private && (
-                <span
-                  className="absolute top-2 left-2 flex size-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md"
-                  aria-label="仅自己可见"
-                >
-                  <Lock className="size-3.5" strokeWidth={2.2} />
-                </span>
-              )}
+                {album.cover ? (
+                  <img
+                    src={assetThumbUrl(album.cover)}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <ImageIcon className="m-auto size-full p-10 text-muted" strokeWidth={1.2} />
+                )}
+                {/* 私有相册：封面左上角一把锁 */}
+                {album.private && (
+                  <span
+                    className="absolute top-2 left-2 flex size-7 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md"
+                    aria-label={t('仅自己可见')}
+                  >
+                    <Lock className="size-3.5" strokeWidth={2.2} />
+                  </span>
+                )}
               </span>
               {/* 名字和张数在封面下方 */}
               <span className="mt-3 block px-0.5">
                 <span className="flex items-center gap-1.5">
                   <span className="truncate text-[17px] font-semibold">{album.name}</span>
                   {album.kind === 'smart' && (
-                    <Sparkles className="size-4 shrink-0 text-accent" strokeWidth={2} aria-label="智能相册" />
+                    <Sparkles className="size-4 shrink-0 text-accent" strokeWidth={2} aria-label={t('智能相册')} />
                   )}
                 </span>
                 <span className="mt-0.5 block truncate text-body text-muted tabular-nums">
-                  {album.count.toLocaleString()} 项
+                  {t('{n} 项', { n: album.count })}
                   {album.owner && album.owner !== user.id && album.owner_name && ` · ${album.owner_name}`}
                 </span>
               </span>

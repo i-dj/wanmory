@@ -1,8 +1,9 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { type Asset, assetDates, type Filter, listAssets, previewUrl, thumbnailUrl } from '@/lib/api'
+import { type Asset, assetDates, type Filter, listAssets, previewUrl, thumbnailUrl, localGeo } from '@/lib/api'
 import { findMemories, type Memory } from '@/lib/memories'
 import { memoryPath } from '@/lib/views'
+import { t } from '@/i18n'
 
 // MemoriesStrip 是图库精选轮播下面的「那年今天」：往年今天前后拍的照片，一年一张卡片，近的在前。
 // 卡片一起撑满一行、两端对齐；多到每张窄于 w-72 时不再缩，改成左右滑。
@@ -18,10 +19,10 @@ export default function MemoriesStrip({
   const memories = useMemories(filter)
   if (!memories?.length) return null
   return (
-    <section aria-label="那年今天" className="mt-9 mb-6">
+    <section aria-label={t('那年今天')} className="mt-9 mb-6">
       <h2 className="flex items-center gap-2 text-[20px] font-bold tracking-tight">
         <Sparkles className="size-5 text-accent" strokeWidth={2} />
-        那年今天
+        {t('那年今天')}
       </h2>
       {/* 横着滚的一排会把超出的部分裁掉：四周留出 6 像素，指上去时卡片外面那圈框（隔 2 像素、粗 2 像素）不被切掉 */}
       <ul className="-mx-1.5 mt-3 flex snap-x scroll-px-1.5 gap-4.5 overflow-x-auto p-1.5 pb-2.5">
@@ -42,7 +43,8 @@ export default function MemoriesStrip({
 // MemoryCard：一张照片铺满大圆角卡片，下面压一层渐暗，写「三年前的今天」、地点和日期
 function MemoryCard({ memory, covers, onOpen }: { memory: Memory; covers: Asset[]; onOpen: () => void }) {
   const [main] = covers
-  const place = main?.geo?.city ? [main.geo.city, main.geo.country].filter(Boolean).join(' · ') : null
+  const geo = main?.geo?.city ? localGeo(main.geo) : null
+  const place = geo ? [geo.city, geo.country].filter(Boolean).join(' · ') : null
   return (
     <button
       type="button"

@@ -9,6 +9,7 @@ import {
   Heart,
   MapPin,
   RotateCcw,
+  Share,
   Star,
   Trash2,
   UserMinus,
@@ -30,8 +31,10 @@ import {
   type Person,
 } from '@/lib/api'
 import { cx } from '@/lib/cx'
+import { shareAssets } from '@/lib/share'
 import { useCurrentUser } from '@/lib/session'
 import DeleteConfirm from './DeleteConfirm'
+import { t } from '@/i18n'
 
 export type Scope = 'normal' | 'hidden' | 'deleted'
 
@@ -77,8 +80,8 @@ export default function SelectionActions({
   if (scope === 'deleted') {
     return (
       <div className="flex items-center gap-0.5">
-        <ToolbarButton icon={RotateCcw} label="恢复" disabled={busy} onClick={() => onApply({ deleted: false })} />
-        <ToolbarButton icon={Download} label="下载" onClick={onDownload} />
+        <ToolbarButton icon={RotateCcw} label={t('恢复')} disabled={busy} onClick={() => onApply({ deleted: false })} />
+        <ToolbarButton icon={Download} label={t('下载')} onClick={onDownload} />
         {onPurge && <DeleteButton assets={assets} permanent disabled={busy} onConfirm={onPurge} />}
         {menuExtra && <MenuButton>{menuExtra}</MenuButton>}
       </div>
@@ -92,7 +95,7 @@ export default function SelectionActions({
       <DeleteButton assets={assets} disabled={busy} onConfirm={() => onApply({ deleted: true })} />
       <ToolbarButton
         icon={Heart}
-        label={allFavorite ? '取消收藏' : '收藏'}
+        label={allFavorite ? t('取消收藏') : t('收藏')}
         filled={allFavorite}
         disabled={busy}
         onClick={() => onApply({ favorite: !allFavorite })}
@@ -108,6 +111,7 @@ export default function SelectionActions({
         inAlbum={!!album && !isSynced(album)} // 自动同步的智能相册不能手动移除
         disabled={busy}
         onDownload={onDownload}
+        onShare={() => shareAssets(assets, onDownload)}
         onHide={(hidden) => onApply({ hidden })}
         onRemoveFromAlbum={onRemoveFromAlbum}
         onEditDate={onEditDate}
@@ -157,7 +161,7 @@ export function DeleteButton({
       ) : (
         <ToolbarButton
           icon={Trash2}
-          label={permanent ? '永久删除' : '删除'}
+          label={permanent ? t('永久删除') : t('删除')}
           disabled={disabled}
           pressed={open}
           onClick={() => setOpen((o) => !o)}
@@ -203,7 +207,7 @@ function RatingButton({
       trigger={
         <ToolbarButton
           icon={Star}
-          label="星级"
+          label={t('星级')}
           filled={rating > 0}
           disabled={disabled}
           pressed={open}
@@ -216,7 +220,7 @@ function RatingButton({
           <button
             key={n}
             type="button"
-            aria-label={`${n} 星`}
+            aria-label={t('{n} 星', { n })}
             onMouseEnter={() => setHover(n)}
             onClick={() => rate(n)}
             className="flex size-7 items-center justify-center text-accent hover:scale-110"
@@ -230,7 +234,7 @@ function RatingButton({
         onClick={() => rate(0)}
         className="mt-2 w-full rounded-control py-1 text-caption text-muted hover:bg-line/60 hover:text-fg"
       >
-        清除星级
+        {t('清除星级')}
       </button>
     </Popover>
   )
@@ -264,18 +268,18 @@ function AlbumButton({
       trigger={
         <ToolbarButton
           icon={FolderPlus}
-          label="添加到相册"
+          label={t('添加到相册')}
           disabled={disabled}
           pressed={open}
           onClick={() => setOpen((o) => !o)}
         />
       }
     >
-      <MenuItem icon={FolderPlus} label="新建相册…" onClick={pick(onCreate)} />
+      <MenuItem icon={FolderPlus} label={t('新建相册…')} onClick={pick(onCreate)} />
       {others.length > 0 && (
         <>
           <MenuDivider />
-          <p className="px-3 pt-1.5 pb-1 text-caption font-medium text-muted">添加到</p>
+          <p className="px-3 pt-1.5 pb-1 text-caption font-medium text-muted">{t('添加到')}</p>
           <div className="max-h-64 overflow-y-auto">
             {others.map((a) => (
               <button
@@ -316,7 +320,7 @@ function PersonButton({
     onMove(target)
   }
   const others = people.filter((p) => p.id !== person.id)
-  const name = person.name || '这个人'
+  const name = person.name || t('这个人')
   return (
     <Popover
       open={open}
@@ -325,17 +329,17 @@ function PersonButton({
       trigger={
         <ToolbarButton
           icon={UserRoundCog}
-          label="人物"
+          label={t('人物')}
           disabled={disabled}
           pressed={open}
           onClick={() => setOpen((o) => !o)}
         />
       }
     >
-      <MenuItem icon={UserMinus} label={`不是「${name}」`} onClick={pick(null)} />
+      <MenuItem icon={UserMinus} label={t('不是「{name}」', { name })} onClick={pick(null)} />
       <MenuDivider />
-      <p className="px-3 pt-1.5 pb-1 text-caption font-medium text-muted">移到</p>
-      <MenuItem icon={UserPlus} label="新的人物" onClick={pick({ newName: '' })} />
+      <p className="px-3 pt-1.5 pb-1 text-caption font-medium text-muted">{t('移到')}</p>
+      <MenuItem icon={UserPlus} label={t('新的人物')} onClick={pick({ newName: '' })} />
       <div className="max-h-64 overflow-y-auto">
         {others.map((p) => (
           <button
@@ -352,7 +356,7 @@ function PersonButton({
                 <UserRound className="size-4 text-muted" />
               )}
             </span>
-            <span className={cx('min-w-0 flex-1 truncate', !p.name && 'text-muted')}>{p.name || '未命名的人'}</span>
+            <span className={cx('min-w-0 flex-1 truncate', !p.name && 'text-muted')}>{p.name || t('未命名的人')}</span>
             <span className="text-caption text-muted tabular-nums">{p.assets}</span>
           </button>
         ))}
@@ -361,13 +365,14 @@ function PersonButton({
   )
 }
 
-// MoreButton 是「更多」菜单：下载、调整日期和时间、修改位置、隐藏（或取消隐藏）、从相册移除；extra 放在最上面
+// MoreButton 是「更多」菜单：下载、分享、调整日期和时间、修改位置、隐藏（或取消隐藏）、从相册移除；extra 放在最上面
 function MoreButton({
   count,
   hidden,
   inAlbum,
   disabled,
   onDownload,
+  onShare,
   onHide,
   onRemoveFromAlbum,
   onEditDate,
@@ -379,6 +384,7 @@ function MoreButton({
   inAlbum: boolean
   disabled: boolean
   onDownload: () => void
+  onShare: () => void
   onHide: (hidden: boolean) => void
   onRemoveFromAlbum: () => void
   onEditDate?: () => void
@@ -400,24 +406,34 @@ function MoreButton({
                 <MenuDivider />
               </>
             )}
-            <MenuItem icon={Download} label={count > 1 ? `下载 ${count} 项` : '下载原图'} onClick={pick(onDownload)} />
+            <MenuItem
+              icon={Download}
+              label={count > 1 ? t('下载 {count} 项', { count }) : t('下载原图')}
+              onClick={pick(onDownload)}
+            />
+            <MenuItem icon={Share} label={t('分享…')} onClick={pick(onShare)} />
             {onEditDate && (
-              <MenuItem icon={CalendarClock} label="调整日期和时间" disabled={disabled} onClick={pick(onEditDate)} />
+              <MenuItem
+                icon={CalendarClock}
+                label={t('调整日期和时间')}
+                disabled={disabled}
+                onClick={pick(onEditDate)}
+              />
             )}
             {onEditLocation && (
-              <MenuItem icon={MapPin} label="修改位置" disabled={disabled} onClick={pick(onEditLocation)} />
+              <MenuItem icon={MapPin} label={t('修改位置')} disabled={disabled} onClick={pick(onEditLocation)} />
             )}
             {hidden ? (
-              <MenuItem icon={Eye} label="取消隐藏" disabled={disabled} onClick={pick(() => onHide(false))} />
+              <MenuItem icon={Eye} label={t('取消隐藏')} disabled={disabled} onClick={pick(() => onHide(false))} />
             ) : (
-              <MenuItem icon={EyeOff} label="隐藏" disabled={disabled} onClick={pick(() => onHide(true))} />
+              <MenuItem icon={EyeOff} label={t('隐藏')} disabled={disabled} onClick={pick(() => onHide(true))} />
             )}
             {inAlbum && (
               <>
                 <MenuDivider />
                 <MenuItem
                   icon={FolderMinus}
-                  label="从相册移除"
+                  label={t('从相册移除')}
                   danger
                   disabled={disabled}
                   onClick={pick(onRemoveFromAlbum)}
@@ -441,7 +457,7 @@ function MenuButton({ children }: { children: (close: () => void) => ReactNode }
       onClose={close}
       align="end"
       className="w-48 p-1"
-      trigger={<ToolbarButton icon={Ellipsis} label="更多" pressed={open} onClick={() => setOpen((o) => !o)} />}
+      trigger={<ToolbarButton icon={Ellipsis} label={t('更多')} pressed={open} onClick={() => setOpen((o) => !o)} />}
     >
       {children(close)}
     </Popover>

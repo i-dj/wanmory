@@ -9,6 +9,7 @@ import { cx } from '@/lib/cx'
 import { personPath } from '@/lib/views'
 import { showError } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
+import { t } from '@/i18n'
 
 const POLL_MS = 4000 // 还在识别时多久刷新一次进度和人物
 
@@ -43,21 +44,21 @@ export default function PeoplePage({
       await renamePerson(person.id, name)
       await onChanged()
     } catch (e) {
-      showError('名字没有保存成功', e)
+      showError(t('名字没有保存成功'), e)
     }
   }
 
   return (
     <section>
-      <PageHeader title="人物" subtitle={status ? statusLine(status) : ''} />
+      <PageHeader title={t('人物')} subtitle={status ? statusLine(status) : ''} />
 
       {people && people.length === 0 && (
         <div className="mt-16 flex flex-col items-center text-center text-muted">
           <UserRound className="size-12" strokeWidth={1.2} />
           <p className="mt-3 text-body">
             {status && status.pending > 0
-              ? '正在找照片里的人脸，同一个人出现几次以后就会出现在这里。'
-              : '还没有认出人物。同一个人至少要在 3 张照片里出现，才会单独列出来。'}
+              ? t('正在找照片里的人脸，同一个人出现几次以后就会出现在这里。')
+              : t('还没有认出人物。同一个人至少要在 3 张照片里出现，才会单独列出来。')}
           </p>
         </div>
       )}
@@ -71,8 +72,8 @@ export default function PeoplePage({
                 e.preventDefault()
                 navigate(personPath(p.id))
               }}
-              aria-label={p.name || '未命名的人'}
-              className="block aspect-3/4 overflow-hidden rounded-[16px] bg-line ring-accent ring-offset-2 ring-offset-page outline-none transition focus-visible:ring-2"
+              aria-label={p.name || t('未命名的人')}
+              className="block aspect-3/4 overflow-hidden rounded-[16px] bg-line ring-accent ring-offset-2 ring-offset-page transition outline-none focus-visible:ring-2"
             >
               {p.cover ? (
                 <img
@@ -89,7 +90,7 @@ export default function PeoplePage({
             {/* 照片下方：名字（可以改）和照片张数 */}
             <div className="mt-3 px-0.5">
               <PersonName person={p} readOnly={guest} onRename={(name) => rename(p, name)} />
-              <div className="mt-0.5 truncate text-body text-muted tabular-nums">{p.assets.toLocaleString()} 项</div>
+              <div className="mt-0.5 truncate text-body text-muted tabular-nums">{t('{n} 项', { n: p.assets })}</div>
             </div>
           </li>
         ))}
@@ -130,7 +131,7 @@ function PersonName({
     return person.name ? (
       <div className="h-6 truncate text-[17px] font-semibold">{person.name}</div>
     ) : (
-      <div className="h-6 text-[17px] text-muted">未命名</div>
+      <div className="h-6 text-[17px] text-muted">{t('未命名')}</div>
     )
   const save = async () => {
     setEditing(false)
@@ -145,7 +146,7 @@ function PersonName({
         autoFocus
         value={name}
         maxLength={40}
-        placeholder="名字"
+        placeholder={t('名字')}
         onChange={(e) => setName(e.target.value)}
         onBlur={save}
         onKeyDown={(e) => {
@@ -171,7 +172,7 @@ function PersonName({
         !person.name && 'font-normal text-muted',
       )}
     >
-      {person.name || '添加名字'}
+      {person.name || t('添加名字')}
     </button>
   )
 }
@@ -201,12 +202,12 @@ function DuplicateNameDialog({
       await mergePeople([person.id, other.id], into.id, name)
       await onMerged()
     } catch (e) {
-      showError('没有合并成功', e)
+      showError(t('没有合并成功'), e)
       setBusy(false)
     }
   }
   return (
-    <Modal title={`已经有叫「${name}」的人了`} onClose={onClose}>
+    <Modal title={t('已经有叫「{name}」的人了', { name })} onClose={onClose}>
       <div>
         <div className="flex gap-3">
           {[person, other].map((p) => (
@@ -216,15 +217,15 @@ function DuplicateNameDialog({
           ))}
         </div>
         <p className="mt-3 text-body">
-          是同一个人吗？合并后他们的 {(person.assets + other.assets).toLocaleString()} 张照片会归到「{name}」下面。
+          {t('是同一个人吗？合并后他们的 {n} 张照片会归到「{name}」下面。', { n: person.assets + other.assets, name })}
         </p>
       </div>
       <DialogActions>
         <DialogButton disabled={busy} onClick={() => void onSeparate()}>
-          不是同一个人
+          {t('不是同一个人')}
         </DialogButton>
         <DialogButton variant="primary" disabled={busy} onClick={merge}>
-          {busy ? '合并中…' : '是，合并'}
+          {busy ? t('合并中…') : t('是，合并')}
         </DialogButton>
       </DialogActions>
     </Modal>
@@ -263,8 +264,12 @@ function useFaceStatus(onProgress: () => Promise<void>) {
 }
 
 function statusLine(s: FaceStatus): string {
-  if (!s.healthy && s.pending > 0) return `AI 服务连不上（${s.ai}），人脸识别暂停，连上后会自动继续`
-  if (s.pending > 0) return `正在识别人脸：已看过 ${s.done.toLocaleString()} 张，还有 ${s.pending.toLocaleString()} 张`
-  if (s.people === 0) return s.done > 0 ? `已看过 ${s.done.toLocaleString()} 张照片` : ''
-  return `已认出 ${s.people.toLocaleString()} 个人`
+  if (!s.healthy && s.pending > 0) return t('AI 服务连不上（{ai}），人脸识别暂停，连上后会自动继续', { ai: s.ai })
+  if (s.pending > 0)
+    return t('正在识别人脸：已看过 {v0} 张，还有 {v1} 张', {
+      v0: s.done.toLocaleString(),
+      v1: s.pending.toLocaleString(),
+    })
+  if (s.people === 0) return s.done > 0 ? t('已看过 {v0} 张照片', { v0: s.done.toLocaleString() }) : ''
+  return t('已认出 {v0} 个人', { v0: s.people.toLocaleString() })
 }

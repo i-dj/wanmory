@@ -3,6 +3,7 @@
 
 import type { Moment } from './api'
 import { ageAt } from './age'
+import { fmtMonth } from '@/i18n'
 
 const MAX_FRAMES = 90 // 太多了看着累：照片跨的月数多时几个月取一张
 
@@ -34,7 +35,7 @@ export function pickFrames(moments: Moment[], birthday: string | null): Frame[] 
     .sort((a, b) => a[0] - b[0])
     .map(([, m]) => {
       const d = new Date(m.taken)
-      const date = `${d.getFullYear()}年${d.getMonth() + 1}月`
+      const date = fmtMonth(d)
       const age = birthday ? ageAt(birthday, d) : ''
       return { moment: m, label: age || date, date }
     })

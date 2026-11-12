@@ -1,6 +1,7 @@
 // 网页左侧的分类：图库、最近添加、收藏、各星级、媒体类型、自动分类、已隐藏、最近删除。路径就是网址。
 
 import type { Album, Asset, AssetStats, Filter, Person } from './api'
+import { t } from '@/i18n'
 
 export interface View {
   path: string
@@ -17,53 +18,53 @@ export interface View {
 
 export const LIBRARY: View = {
   path: '/',
-  title: '图库',
+  title: t('图库'),
   filter: {},
-  empty: '还没有照片。点左边的「上传文件」，或者把照片、视频拖进窗口。',
+  empty: t('还没有照片。点左边的「上传文件」，或者把照片、视频拖进窗口。'),
   layout: 'timeline',
 }
 
 export const RECENT: View = {
   path: '/recent',
-  title: '最近添加',
+  title: t('最近添加'),
   filter: { view: 'recent' },
-  empty: '最近 30 天没有上传照片。',
+  empty: t('最近 30 天没有上传照片。'),
   layout: 'days',
   dayOf: (a) => a.created_at,
-  note: '最近 30 天',
+  note: t('最近 30 天'),
 }
 
 export const FAVORITES: View = {
   path: '/favorites',
-  title: '收藏',
+  title: t('收藏'),
   filter: { favorite: true },
-  empty: '还没有收藏的照片。鼠标移到照片上，点左下角的 ♡ 就能收藏。',
+  empty: t('还没有收藏的照片。鼠标移到照片上，点左下角的 ♡ 就能收藏。'),
   layout: 'timeline',
 }
 
 export const RATINGS: View[] = [5, 4, 3, 2, 1].map((n) => ({
   path: `/rating/${n}`,
-  title: `${n} 星`,
+  title: t('{n} 星', { n }),
   filter: { rating: n },
-  empty: `还没有 ${n} 星的照片。鼠标移到照片上，点右下角的星星就能评级。`,
+  empty: t('还没有 {n} 星的照片。鼠标移到照片上，点右下角的星星就能评级。', { n }),
   count: (s: AssetStats) => s.ratings[n] ?? 0,
   layout: 'timeline',
 }))
 
 export const HIDDEN: View = {
   path: '/hidden',
-  title: '已隐藏',
+  title: t('已隐藏'),
   filter: { view: 'hidden' },
-  empty: '没有隐藏的照片。选中照片后在「更多」里点「隐藏」，它们就只会出现在这里。',
+  empty: t('没有隐藏的照片。选中照片后在「更多」里点「隐藏」，它们就只会出现在这里。'),
   layout: 'days',
   dayOf: (a) => a.sort_time, // 按拍摄的日子
 }
 
 export const DELETED: View = {
   path: '/deleted',
-  title: '最近删除',
+  title: t('最近删除'),
   filter: { view: 'deleted' },
-  empty: '最近删除是空的。删除的照片会先放在这里，随时可以恢复。',
+  empty: t('最近删除是空的。删除的照片会先放在这里，随时可以恢复。'),
   layout: 'days',
   dayOf: (a) => a.deleted_at ?? a.sort_time, // 按删除的日子
 }
@@ -71,38 +72,41 @@ export const DELETED: View = {
 // 自动分类：AI 看照片内容分出来的（截图还认文件名和 iPhone 的标记）。键和后端 clip 包里的一致。
 // more 的几类（截图、文档、证件）在菜单「分类」里收在「更多」下面
 export const CATEGORIES: { key: string; label: string; more?: boolean }[] = [
-  { key: 'scenery', label: '风景' },
-  { key: 'food', label: '美食' },
-  { key: 'pet', label: '动物' }, // 键还叫 pet（以前叫「宠物」），猫狗以外的鸟、动物园里的动物也算
-  { key: 'plant', label: '植物' },
-  { key: 'screenshot', label: '截图', more: true }, // 手机、电脑、网页、聊天的截图
-  { key: 'document', label: '文档', more: true },
-  { key: 'id', label: '证件', more: true },
+  { key: 'scenery', label: t('风景') },
+  { key: 'food', label: t('美食') },
+  { key: 'pet', label: t('动物') }, // 键还叫 pet（以前叫「宠物」），猫狗以外的鸟、动物园里的动物也算
+  { key: 'plant', label: t('植物') },
+  { key: 'screenshot', label: t('截图'), more: true }, // 手机、电脑、网页、聊天的截图
+  { key: 'document', label: t('文档'), more: true },
+  { key: 'id', label: t('证件'), more: true },
 ]
 export const CATEGORY_VIEWS: View[] = CATEGORIES.map((c) => ({
   path: `/category/${c.key}`,
   title: c.label,
   filter: { tag: c.key },
-  empty: `还没有认出${c.label}。AI 服务看过照片内容以后，${c.label}会自动出现在这里。`,
+  empty: t('还没有认出{label}。AI 服务看过照片内容以后，{label1}会自动出现在这里。', {
+    label: c.label,
+    label1: c.label,
+  }),
   layout: 'timeline',
 }))
 
 // 视频：按文件类型分，不用等 AI。菜单「分类」里的一项
 export const VIDEOS: View = {
   path: '/videos',
-  title: '视频',
+  title: t('视频'),
   filter: { kind: 'video' },
-  empty: '还没有视频。',
+  empty: t('还没有视频。'),
   layout: 'timeline',
 }
 
 // 媒体类型：按文件本身分，不用等 AI。照片不含动图。工具栏的「筛选」菜单、搜索框的「类型」用
 export const MEDIA_KINDS: { kind: NonNullable<Filter['kind']>; label: string }[] = [
-  { kind: 'photo', label: '照片' },
-  { kind: 'video', label: '视频' },
-  { kind: 'gif', label: '动图' },
+  { kind: 'photo', label: t('照片') },
+  { kind: 'video', label: t('视频') },
+  { kind: 'gif', label: t('动图') },
 ]
-export const kindLabel = (kind: Filter['kind']) => MEDIA_KINDS.find((k) => k.kind === kind)?.label ?? '照片'
+export const kindLabel = (kind: Filter['kind']) => MEDIA_KINDS.find((k) => k.kind === kind)?.label ?? t('照片')
 export const PHOTO_VIEWS = [LIBRARY, RECENT, FAVORITES, VIDEOS, ...RATINGS, HIDDEN, DELETED, ...CATEGORY_VIEWS]
 
 // SearchQuery 是搜索框里的搜索词和筛选条件，可以只有其中几样
@@ -121,7 +125,7 @@ export function describeSearch(query: SearchQuery, people: Person[]): string[] {
   if (query.q) parts.push(`“${query.q}”`)
   if (query.person) {
     const p = people.find((x) => x.id === query.person)
-    parts.push(p ? personName(p) : '某个人')
+    parts.push(p ? personName(p) : t('某个人'))
   }
   if (query.tag) parts.push(CATEGORIES.find((c) => c.key === query.tag)?.label ?? query.tag)
   if (query.camera) parts.push(query.camera)
@@ -140,15 +144,15 @@ function searchRoute(path: string, people: Person[]): Route | undefined {
     if (v) (query as Record<string, string>)[k] = v
   }
   if (query.kind && !MEDIA_KINDS.some((k) => k.kind === query.kind)) delete query.kind
-  const [title = '搜索', ...rest] = describeSearch(query, people)
+  const [title = t('搜索'), ...rest] = describeSearch(query, people)
   return {
     view: {
       path,
       title,
       filter: query,
       empty: query.q
-        ? '没有搜到。换个说法试试，比如「海边」「生日蛋糕」「在游泳的宝宝」。'
-        : '没有符合这些条件的照片。',
+        ? t('没有搜到。换个说法试试，比如「海边」「生日蛋糕」「在游泳的宝宝」。')
+        : t('没有符合这些条件的照片。'),
       layout: 'timeline',
       note: rest.join(' · '),
     },
@@ -171,10 +175,10 @@ function memoryRoute(path: string): Route | undefined {
       path,
       title: label,
       filter: { from, to, dated: true },
-      empty: '那几天的照片已经不在了。',
+      empty: t('那几天的照片已经不在了。'),
       layout: 'days',
       dayOf: (a) => a.sort_time,
-      note: '那年今天',
+      note: t('那年今天'),
     },
     back: LIBRARY.path,
     sidebar: LIBRARY.path,
@@ -200,9 +204,9 @@ function areaRoute(path: string): Route | undefined {
       path,
       title: decodeURIComponent(m[6]),
       filter: m[5] ? { near: box, city: decodeURIComponent(m[5]) } : { near: box },
-      empty: '这里的照片已经不在了。',
+      empty: t('这里的照片已经不在了。'),
       layout: 'timeline',
-      note: '足迹',
+      note: t('足迹'),
     },
     back: PLACES_PATH,
     sidebar: PLACES_PATH,
@@ -219,7 +223,7 @@ export function albumView(album: Album): View {
     path: albumPath(album.id),
     title: album.name,
     filter: { album: album.id },
-    empty: '相册里还没有照片。点右上角的「添加照片」，从图库里挑，或者从电脑上传。',
+    empty: t('相册里还没有照片。点右上角的「添加照片」，从图库里挑，或者从电脑上传。'),
     layout: 'timeline',
   }
 }
@@ -229,10 +233,10 @@ export const PEOPLE_PATH = '/people' // 人物列表
 // 人物页的几个标签：照片、成长（按年龄）、足迹（去过的地方）、合影（常一起出现的人）
 export type PersonTab = 'photos' | 'growth' | 'places' | 'friends'
 export const PERSON_TABS: { tab: PersonTab; label: string }[] = [
-  { tab: 'photos', label: '照片' },
-  { tab: 'growth', label: '成长' },
-  { tab: 'places', label: '足迹' },
-  { tab: 'friends', label: '合影' },
+  { tab: 'photos', label: t('照片') },
+  { tab: 'growth', label: t('成长') },
+  { tab: 'places', label: t('足迹') },
+  { tab: 'friends', label: t('合影') },
 ]
 export const personPath = (id: string, tab: PersonTab = 'photos') =>
   tab === 'photos' ? `/person/${id}` : `/person/${id}/${tab}`
@@ -243,7 +247,7 @@ export const placePath = (id: string, box: [number, number, number, number], lab
   `/person/${id}/place/${box.map((n) => n.toFixed(4)).join(',')}/${encodeURIComponent(label)}`
 export const withPath = (id: string, other: string) => `/person/${id}/with/${other}`
 
-export const personName = (p: Person) => p.name || '未命名的人'
+export const personName = (p: Person) => p.name || t('未命名的人')
 
 // personView 是一个人的照片；part 给了时只是其中一部分（标题后面接上它的名字）
 function personView(person: Person, part?: { path: string; title: string; filter: Filter }): View {
@@ -251,7 +255,7 @@ function personView(person: Person, part?: { path: string; title: string; filter
     path: part?.path ?? personPath(person.id),
     title: part?.title ?? personName(person),
     filter: { person: person.id, ...part?.filter },
-    empty: part ? '这里没有照片了。' : '还没有找到这个人的照片。',
+    empty: part ? t('这里没有照片了。') : t('还没有找到这个人的照片。'),
     layout: 'timeline',
   }
 }
@@ -299,7 +303,7 @@ function findPersonRoute(path: string, people: Person[]): Route | undefined {
     case 'with': {
       const other = people.find((x) => x.id === rest[1])
       if (!other) return undefined
-      return part('friends', `${name} 和 ${personName(other)}`, { with: other.id })
+      return part('friends', t('{name} 和 {v1}', { name, v1: personName(other) }), { with: other.id })
     }
   }
   return undefined

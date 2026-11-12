@@ -6,12 +6,13 @@ import { cx } from '@/lib/cx'
 import { TrackPlayer, trackFor } from '@/lib/musicLibrary'
 import { eyeTransform, type Frame } from '@/lib/timelapse'
 import { showAlert } from '@/lib/dialog'
+import { t as tr } from '@/i18n'
 
 // 画在视频上的字和网页用同一套字体（index.css 的 --font-sans）
 const font = () => getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim() || 'sans-serif'
 const SPEEDS = { slow: 1500, normal: 900, fast: 500 } as const // 每张停多久（毫秒），淡入另算
 type Speed = keyof typeof SPEEDS
-const SPEED_LABELS: Record<Speed, string> = { slow: '慢', normal: '中', fast: '快' }
+const SPEED_LABELS: Record<Speed, string> = { slow: tr('慢'), normal: tr('中速'), fast: tr('快') }
 const FADE_MS = 450
 const PRELOAD = 6 // 提前加载后面几张
 
@@ -132,7 +133,7 @@ export default function GrowthTimelapse({
       MediaRecorder.isTypeSupported(t),
     )
     if (!type) {
-      showAlert('这个浏览器不支持录制视频', '换用新版的 Chrome、Edge 或 Safari 试试', 'warn')
+      showAlert(tr('这个浏览器不支持录制视频'), tr('换用新版的 Chrome、Edge 或 Safari 试试'), 'warn')
       return
     }
     const chunks: Blob[] = []
@@ -144,7 +145,7 @@ export default function GrowthTimelapse({
       const blob = new Blob(chunks, { type })
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
-      a.download = `${title}的成长.${type.startsWith('video/mp4') ? 'mp4' : 'webm'}`
+      a.download = `${tr('{name}的成长', { name: title })}.${type.startsWith('video/mp4') ? 'mp4' : 'webm'}`
       a.click()
       setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
     }
@@ -181,18 +182,22 @@ export default function GrowthTimelapse({
 
   const progress = frames.length > 1 ? index / (frames.length - 1) : 1
   return createPortal(
-    <div role="dialog" aria-label="成长延时" className="theme-dark fixed inset-0 z-45 bg-black text-white select-none">
+    <div
+      role="dialog"
+      aria-label={tr('成长延时')}
+      className="theme-dark fixed inset-0 z-45 bg-black text-white select-none"
+    >
       <canvas ref={canvas} className="absolute inset-0 size-full" onClick={toggle} />
 
       <div className="absolute top-4 right-4 left-4 flex items-center gap-2">
-        <RoundButton label="关闭" onClick={onClose}>
+        <RoundButton label={tr('关闭')} onClick={onClose}>
           <X className="size-5" />
         </RoundButton>
         <div className="ml-auto flex items-center gap-2">
           {recording ? (
             <span className="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-body backdrop-blur-xl">
               <span className="size-2.5 animate-pulse rounded-full bg-red-500" />
-              正在录制，放完自动保存…
+              {tr('正在录制，放完自动保存…')}
             </span>
           ) : (
             <>
@@ -212,13 +217,13 @@ export default function GrowthTimelapse({
                 ))}
               </div>
               <RoundButton
-                label={musicOn ? '关掉配乐' : '打开配乐'}
+                label={musicOn ? tr('关掉配乐') : tr('打开配乐')}
                 active={musicOn}
                 onClick={() => setMusicOn((m) => !m)}
               >
                 <Music className="size-5" />
               </RoundButton>
-              <RoundButton label="保存视频（没有配乐）" onClick={record}>
+              <RoundButton label={tr('保存视频（没有配乐）')} onClick={record}>
                 <Download className="size-5" />
               </RoundButton>
             </>
@@ -227,7 +232,7 @@ export default function GrowthTimelapse({
       </div>
 
       <div className="absolute right-6 bottom-6 left-6 flex items-center gap-4">
-        <RoundButton label={playing ? '暂停' : '播放'} onClick={toggle}>
+        <RoundButton label={playing ? tr('暂停') : tr('播放')} onClick={toggle}>
           {playing ? <Pause className="size-5 fill-current" /> : <Play className="size-5 fill-current" />}
         </RoundButton>
         <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">

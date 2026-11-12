@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -178,11 +179,11 @@ func (s *Service) stats(w http.ResponseWriter, r *http.Request) {
 // {"description": "第一次去海边", "taken_at": {"local": "2026-10-27T13:01:23", "offset": "-04:00"},
 // "location": {"latitude": 28.35, "longitude": -81.56}, "reset": ["location"]}。
 func (s *Service) update(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(r.PathValue("id"))
-	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, "照片 ID 格式不对")
+	a, ok := s.loadAsset(w, r) // 别人隐藏的照片当作没有
+	if !ok {
 		return
 	}
+	id := a.ID
 	var req struct {
 		Favorite *bool `json:"favorite"`
 		Rating   *int  `json:"rating"`
@@ -258,9 +259,21 @@ func (s *Service) serveFile(kind fileKind) http.HandlerFunc {
 		if kind != fileOriginal {
 			// 缩略图和预览图生成后基本不变，让浏览器缓存一天
 			w.Header().Set("Cache-Control", "private, max-age=86400")
+		} else {
+			w.Header().Set("Content-Type", safeType(a.MimeType))
 		}
 		http.ServeFile(w, r, *path)
 	}
+}
+
+// safeType 是原图返回时声明的类型：入库时按扩展名定的 image/…、video/…；别的一律当成下载的文件。
+// 一定要自己写：http.ServeFile 认不出 .mkv、.heic 这类扩展名时会去「猜」内容，把改了扩展名的网页当成 text/html，
+// 成员上传一个这样的文件，别人点开就会在相册的网址下运行里面的脚本
+func safeType(mime string) string {
+	if strings.HasPrefix(mime, "image/") || strings.HasPrefix(mime, "video/") {
+		return mime
+	}
+	return "application/octet-stream"
 }
 
 func (s *Service) loadAsset(w http.ResponseWriter, r *http.Request) (*Asset, bool) {
@@ -278,7 +291,23 @@ func (s *Service) loadAsset(w http.ResponseWriter, r *http.Request) (*Asset, boo
 		httpx.InternalError(w, err)
 		return nil, false
 	}
+	if !visibleTo(a, auth.UserFrom(r.Context())) {
+		httpx.Error(w, http.StatusNotFound, ErrNotFound.Error())
+		return nil, false
+	}
 	return a, true
+}
+
+// visibleTo 这张照片 u 能不能按 ID 打开（u 为空是访客），和列表里的规则一样：
+// 隐藏了的只有隐藏它的人看得到；「最近删除」里的只有登录的成员看得到，访客看不到
+func visibleTo(a *Asset, u *auth.User) bool {
+	if a.Hidden && (u == nil || a.HiddenBy == nil || *a.HiddenBy != u.ID) {
+		return false
+	}
+	if a.DeletedAt != nil && u == nil {
+		return false
+	}
+	return true
 }
 
 // queryInt 读取整数查询参数，没有或格式不对时用 def，并限制在 [lo, hi] 之间。

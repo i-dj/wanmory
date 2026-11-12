@@ -6,9 +6,11 @@ import { cx } from '@/lib/cx'
 import { lockScroll } from '@/lib/scrollLock'
 
 // Modal 是所有弹出窗口的外框（重置密码、删除成员、设置生日、选目录、选头像……都用它）：
-//   压暗的背景上居中一张磨砂半透明的卡片（.glass-dialog），右上角圆形「×」；
-//   顶上可以有圆形图标（icon），旁边标题，标题下面一行小字（subtitle）；
-//   下面是 children，最后一般放 <DialogActions>（等宽的按钮，左边取消、右边主要操作）。
+//   压暗的背景上居中一张磨砂半透明的卡片（.glass-dialog），不放右上角的「×」（下面都有「取消」，按 Esc、点外面也关）；
+//   没有按钮的窗口（扫码开启两步验证这种）传 closable 才显示「×」；
+//   和删除确认框（AlertHost）一个样子：最上面居中一个圆形图标（icon，tone="danger" 时是红的），
+//   下面居中的标题，标题下面一行说明（subtitle）；
+//   下面是 children，最后一般放 <DialogFooter>（等宽的两个按钮，左边取消、右边主要操作）。
 // 按 Esc、点背景关闭；弹出时背后的页面不滚动。width 是卡片最宽多少（默认 420px）；
 // inline 时不挂到 body 下，就地渲染（大图查看器里的编辑窗口，跟着查看器用深色主题）
 export default function Modal({
@@ -19,6 +21,8 @@ export default function Modal({
   children,
   width = 'max-w-105',
   inline,
+  tone,
+  closable,
 }: {
   title: string
   subtitle?: ReactNode
@@ -27,6 +31,8 @@ export default function Modal({
   children: ReactNode
   width?: string
   inline?: boolean
+  tone?: 'danger'
+  closable?: boolean
 }) {
   const titleId = useId()
   useEffect(() => {
@@ -49,28 +55,32 @@ export default function Modal({
       }}
     >
       {/* 压暗、模糊的那层单独垫着（外层带 backdrop-filter 时卡片自己的磨砂会失灵） */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/25 backdrop-blur-[6px]" />
+      <div aria-hidden="true" className="dialog-dim pointer-events-none absolute inset-0" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         className={cx('dialog-card glass-dialog max-h-[90vh] w-full overflow-y-auto rounded-dialog p-6', width)}
       >
-        <DialogClose onClose={onClose} />
-        <div className="flex min-h-10 items-center gap-3 pr-8">
+        {closable && <DialogClose onClose={onClose} />}
+        <div className="text-center">
           {Icon && (
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
-              <Icon className="size-4.5" strokeWidth={1.9} />
+            <div
+              className={cx(
+                'mx-auto mb-4 flex size-11 items-center justify-center rounded-full',
+                tone === 'danger' ? 'bg-danger/15 text-danger' : 'bg-accent/15 text-accent',
+              )}
+            >
+              <Icon className="size-5.5" strokeWidth={2} />
             </div>
           )}
-          <div className="min-w-0">
-            <h2 id={titleId} className="text-heading font-semibold">
-              {title}
-            </h2>
-            {subtitle && <p className="truncate text-caption text-muted">{subtitle}</p>}
-          </div>
+          <h2 id={titleId} className={cx('text-heading font-semibold', closable && 'px-8')}>
+            {title}
+          </h2>
+          {subtitle && <p className="mt-1.5 text-body text-muted">{subtitle}</p>}
         </div>
-        <div className="mt-5">{children}</div>
+        {/* 只有按钮时（删除确认这种）按钮直接接在说明下面，不多空一截 */}
+        <div className="mt-5 *:first:mt-0">{children}</div>
       </div>
     </div>
   )
@@ -80,6 +90,12 @@ export default function Modal({
 // DialogActions 是弹出窗口最下面那排按钮：等宽，左边次要（取消）、右边主要。放在 children 的最后（表单里也行，提交按钮要在 form 里）
 export function DialogActions({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cx('mt-6 grid auto-cols-fr grid-flow-col gap-2.5', className)}>{children}</div>
+}
+
+// DialogFooter 是弹出窗口最下面的两个按钮，和删除确认框一样：等宽、铺满整行，左边次要（取消）、右边主要。
+// 放在 children 的最后（表单里也行，提交按钮要在 form 里）
+export function DialogFooter({ children }: { children: ReactNode }) {
+  return <div className="mt-5 grid auto-cols-fr grid-flow-col gap-2.5">{children}</div>
 }
 
 // DialogError 是按钮上方那一行红字（没填、密码太短、名字重了……），不用浏览器自带的气泡。

@@ -36,6 +36,7 @@ import SettingsPage from '@/pages/SettingsPage'
 import AccountPage from '@/pages/AccountPage'
 import { showError } from '@/lib/dialog'
 import { SearchScope } from '@/components/photos/GlobalSearch'
+import { t } from '@/i18n'
 
 // 相册对话框：新建（可以带上选中的照片）或编辑（重命名、改智能相册的条件）
 type AlbumDialogState = { mode: 'create'; assetIds: string[] } | { mode: 'edit'; album: Album }
@@ -113,7 +114,7 @@ export default function App() {
         navigate(ALBUMS_PATH)
         await refreshAlbums()
       } catch (e) {
-        showError('删除相册没有成功', e)
+        showError(t('删除相册没有成功'), e)
       }
     },
     [navigate, refreshAlbums],

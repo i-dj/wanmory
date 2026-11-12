@@ -12,6 +12,7 @@ import {
   lensName,
 } from '@/lib/format'
 import { cx } from '@/lib/cx'
+import { t } from '@/i18n'
 
 const CARD_WIDTH = 280
 const GAP = 8
@@ -61,17 +62,19 @@ export function PhotoDetails({ asset }: { asset: Asset }) {
         {asset.file_name}
       </p>
       <dl className="grid grid-cols-[3.5em_1fr] gap-x-2 gap-y-1.5">
-        <Row label="拍摄">
+        <Row label={t('拍摄')}>
           {asset.taken_at_local ? (
             formatLocalClock(asset.taken_at_local, asset.taken_at_offset)
           ) : (
-            <span className="text-muted">没有记录（文件时间 {formatDateTime(asset.file_mtime)}）</span>
+            <span className="text-muted">
+              {t('没有记录（文件时间 {time}）', { time: formatDateTime(asset.file_mtime) })}
+            </span>
           )}
         </Row>
-        {camera && <Row label="相机">{camera}</Row>}
-        {lens && <Row label="镜头">{lens}</Row>}
+        {camera && <Row label={t('相机')}>{camera}</Row>}
+        {lens && <Row label={t('镜头')}>{lens}</Row>}
         {params.length > 0 && (
-          <Row label="参数">
+          <Row label={t('参数')}>
             <span className="flex flex-wrap gap-1">
               {params.map((p) => (
                 <span key={p} className="rounded bg-accent-soft px-1.5 text-accent">
@@ -81,19 +84,19 @@ export function PhotoDetails({ asset }: { asset: Asset }) {
             </span>
           </Row>
         )}
-        {asset.duration_ms != null && <Row label="时长">{formatDuration(asset.duration_ms)}</Row>}
-        <Row label="位置">
+        {asset.duration_ms != null && <Row label={t('时长')}>{formatDuration(asset.duration_ms)}</Row>}
+        <Row label={t('位置')}>
           {asset.latitude != null && asset.longitude != null ? (
             formatCoords(asset.latitude, asset.longitude)
           ) : (
-            <span className="text-muted">没有位置信息</span>
+            <span className="text-muted">{t('没有位置信息')}</span>
           )}
         </Row>
-        <Row label="文件">
+        <Row label={t('文件')}>
           <span className="text-muted">{size}</span>
         </Row>
       </dl>
-      {!c && <p className="mt-2 text-caption text-muted">这张照片没有相机信息，可能是截图或导出时去掉了。</p>}
+      {!c && <p className="mt-2 text-caption text-muted">{t('这张照片没有相机信息，可能是截图或导出时去掉了。')}</p>}
     </>
   )
 }

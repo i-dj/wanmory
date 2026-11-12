@@ -12,6 +12,7 @@ import Filmstrip from './Filmstrip'
 import PhotoInfoPanel from './PhotoInfoPanel'
 import Slideshow from './Slideshow'
 import { lockScroll } from '@/lib/scrollLock'
+import { t } from '@/i18n'
 
 const MAX_ZOOM = 4
 const SWIPE = 60 // 没放大时左右拖这么远就换上一张、下一张（手机上滑动）
@@ -223,7 +224,10 @@ export default function PhotoViewer({
 
   if (!asset) return null
   const { date, time } = viewerDate(asset)
-  const position = `第 ${(index + 1).toLocaleString()} 张，共 ${Math.max(total ?? 0, assets.length).toLocaleString()} 张`
+  const position = t('第 {v0} 张，共 {v1} 张', {
+    v0: (index + 1).toLocaleString(),
+    v1: Math.max(total ?? 0, assets.length).toLocaleString(),
+  })
 
   // 顶栏和缩略图条不加底色、不模糊，只在照片上下边叠一层渐暗，照片原样透出来。
   // 渐变那一截不挡鼠标（还能点照片翻页），里面的按钮和缩略图才接收点击；隐藏时都不接收
@@ -302,12 +306,12 @@ export default function PhotoViewer({
         <header className={cx(scrim, 'top-0 bg-linear-to-b pb-10')}>
           <div className={cx('grid h-13 grid-cols-[1fr_auto_1fr] items-center gap-3 px-3', interactive)} data-chrome>
             <div className="flex items-center gap-1">
-              <ToolbarButton icon={ChevronLeft} label="返回" onClick={close} />
+              <ToolbarButton icon={ChevronLeft} label={t('返回')} onClick={close} />
               {document.fullscreenEnabled && (
                 <div className="hidden sm:block">
                   <ToolbarButton
                     icon={fullscreen ? Minimize2 : Maximize2}
-                    label={fullscreen ? '退出全屏' : '全屏'}
+                    label={fullscreen ? t('退出全屏') : t('全屏')}
                     onClick={toggleFullscreen}
                   />
                 </div>
@@ -327,17 +331,17 @@ export default function PhotoViewer({
             <div className="flex items-center justify-end gap-0.5">
               <ToolbarButton
                 icon={Play}
-                label="播放幻灯片"
+                label={t('播放幻灯片')}
                 onClick={() => {
                   unlockAudio() // 必须在这次点击里同步解锁声音，进了幻灯片（还会请求全屏）再放就可能被浏览器挡掉
                   setSlideshow(true)
                 }}
               />
-              <ToolbarButton icon={Info} label="信息" pressed={showInfo} onClick={() => setShowInfo((s) => !s)} />
+              <ToolbarButton icon={Info} label={t('信息')} pressed={showInfo} onClick={() => setShowInfo((s) => !s)} />
               {actions(asset, (closeMenu) => (
                 <MenuItem
                   icon={ExternalLink}
-                  label="打开原图"
+                  label={t('打开原图')}
                   onClick={() => {
                     closeMenu()
                     window.open(originalUrl(asset), '_blank', 'noreferrer')
@@ -383,7 +387,7 @@ function SideArrow({ side, className, onClick }: { side: 'left' | 'right'; class
   return (
     <button
       type="button"
-      aria-label={side === 'left' ? '上一张' : '下一张'}
+      aria-label={side === 'left' ? t('上一张') : t('下一张')}
       data-chrome
       onClick={onClick}
       className={cx(
@@ -408,7 +412,9 @@ function PhotoLayers({ asset, hires, onRatio }: { asset: Asset; hires: boolean; 
   if (hires && !wantHires) setWantHires(true)
 
   if (!asset.has_thumbnail)
-    return <p className="flex size-full items-center justify-center text-body text-muted">这张照片还没有生成预览</p>
+    return (
+      <p className="flex size-full items-center justify-center text-body text-muted">{t('这张照片还没有生成预览')}</p>
+    )
   const layer = 'pointer-events-none absolute inset-0 size-full object-contain'
   return (
     <>
@@ -462,7 +468,7 @@ function ZoomControl({
     <div className={cx('flex items-center gap-2', disabled && 'opacity-40')}>
       <button
         type="button"
-        aria-label="缩小"
+        aria-label={t('缩小')}
         disabled={disabled || zoom <= 1}
         onClick={() => onChange(zoom - 0.5)}
         className={step}
@@ -477,13 +483,13 @@ function ZoomControl({
         value={zoom}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        aria-label={`放大 ${zoom.toFixed(1)} 倍`}
+        aria-label={t('放大 {v0} 倍', { v0: zoom.toFixed(1) })}
         className="zoom-range w-24"
         style={{ '--filled': `${filled}%` } as CSSProperties}
       />
       <button
         type="button"
-        aria-label="放大"
+        aria-label={t('放大')}
         disabled={disabled || zoom >= MAX_ZOOM}
         onClick={() => onChange(zoom + 0.5)}
         className={step}

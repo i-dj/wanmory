@@ -55,6 +55,7 @@ import {
 } from '@/lib/views'
 import Tooltip from '@/components/ui/Tooltip'
 import OverlayScrollbar from '@/components/ui/OverlayScrollbar'
+import { t, brandTracking } from '@/i18n'
 
 export const SETTINGS_PATH = '/settings'
 export const ACCOUNT_PATH = '/account'
@@ -150,11 +151,11 @@ export default function Sidebar({
 
   // 收起按钮（方框里一道竖线）。收起后不显示它，点标志就展开
   const collapse = (
-    <Tooltip label="收起菜单" side="bottom">
+    <Tooltip label={t('收起菜单')} side="bottom">
       <button
         type="button"
         onClick={() => setCollapsed(true)}
-        aria-label="收起菜单"
+        aria-label={t('收起菜单')}
         className="flex size-8 shrink-0 items-center justify-center rounded-full text-fg/50 transition-colors hover:bg-fg/[0.07] hover:text-fg"
       >
         <PanelLeft className="size-4.5" strokeWidth={1.6} />
@@ -182,18 +183,20 @@ export default function Sidebar({
               e.preventDefault()
               go(LIBRARY.path)
             }}
-            aria-label="万象首页"
+            aria-label={t('万象首页')}
             className="flex min-w-0 items-center gap-2.5"
           >
             <Logo className="size-8 shrink-0 text-fg" />
             <span className="min-w-0 leading-tight">
               <span className="flex items-center gap-2 text-[17px] font-bold">
-                万象
+                {t('万象')}
                 <span className="rounded bg-accent-soft px-1.5 py-px text-[10px] font-semibold tracking-wider whitespace-nowrap text-accent">
                   OPEN EDITION
                 </span>
               </span>
-              <span className="block truncate text-[10.5px] tracking-widest text-muted">WANMORY · 私有 AI 相册</span>
+              <span className="block truncate text-[10.5px] tracking-widest text-muted">
+                {t('WANMORY · 私有 AI 相册')}
+              </span>
             </span>
           </a>
           <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -201,7 +204,7 @@ export default function Sidebar({
             <button
               type="button"
               onClick={() => setOpen(true)}
-              aria-label="打开菜单"
+              aria-label={t('打开菜单')}
               aria-expanded={open}
               className="flex size-9 items-center justify-center rounded-lg text-fg/80 transition-colors hover:bg-fg/[0.06] hover:text-fg"
             >
@@ -222,7 +225,7 @@ export default function Sidebar({
           关的时候往右滑回去。中间的菜单太长时上下滚，账号那一行一直在最底下 */}
         <div
           role={desktop ? undefined : 'dialog'}
-          aria-label={desktop ? undefined : '菜单'}
+          aria-label={desktop ? undefined : t('菜单')}
           aria-hidden={desktop ? undefined : !open}
           className={cx(
             'flex flex-col md:h-full',
@@ -234,11 +237,11 @@ export default function Sidebar({
           {/* 抽屉顶上：标志和名字，右边关闭 */}
           <div className="flex h-16 shrink-0 items-center gap-2.5 pr-3 pl-5 md:hidden">
             <Logo className="size-8 shrink-0 text-fg" />
-            <span className="text-[17px] font-bold">万象</span>
+            <span className="text-[17px] font-bold">{t('万象')}</span>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="关闭菜单"
+              aria-label={t('关闭菜单')}
               className="ml-auto flex size-9 items-center justify-center rounded-full text-fg/70 transition-colors hover:bg-fg/[0.06] hover:text-fg"
             >
               <X className="size-5" />
@@ -248,11 +251,11 @@ export default function Sidebar({
             收起时只有标志（点了展开），后台任务图标挪到底部头像上面 */}
           <div className="hidden h-20 shrink-0 items-center gap-3 pr-3 pl-3.5 md:flex">
             {collapsed ? (
-              <Tooltip label="展开菜单" side="right">
+              <Tooltip label={t('展开菜单')} side="right">
                 <button
                   type="button"
                   onClick={() => setCollapsed(false)}
-                  aria-label="展开菜单"
+                  aria-label={t('展开菜单')}
                   className="rounded-full transition-opacity hover:opacity-75"
                 >
                   <Logo className="size-9 text-fg" />
@@ -262,7 +265,7 @@ export default function Sidebar({
               <>
                 <Logo className="size-9 shrink-0 text-fg" />
                 <div className="min-w-0 leading-tight">
-                  <div className="text-[19px] font-bold tracking-[0.3em]">万象</div>
+                  <div className={cx('text-[19px] font-bold', brandTracking())}>{t('万象')}</div>
                   <VersionLine guest={guest} onUpdate={() => go(`${SETTINGS_PATH}#update`)} />
                 </div>
                 <div className="ml-auto flex items-center">
@@ -285,25 +288,43 @@ export default function Sidebar({
               {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频和 AI 自动分的类（截图、文档、证件收在「更多」里）；
               「整理」：最近添加、连拍、隐藏、删除 */}
               {viewItem(LIBRARY, Images)}
-              <NavItem href={ALBUMS_PATH} label="相册" icon={BookImage} active={path === ALBUMS_PATH} navigate={go} />
-              <NavItem href={PEOPLE_PATH} label="人物" icon={UsersRound} active={path === PEOPLE_PATH} navigate={go} />
-              <NavItem href={PLACES_PATH} label="足迹" icon={MapPinned} active={path === PLACES_PATH} navigate={go} />
+              <NavItem
+                href={ALBUMS_PATH}
+                label={t('相册')}
+                icon={BookImage}
+                active={path === ALBUMS_PATH}
+                navigate={go}
+              />
+              <NavItem
+                href={PEOPLE_PATH}
+                label={t('人物')}
+                icon={UsersRound}
+                active={path === PEOPLE_PATH}
+                navigate={go}
+              />
+              <NavItem
+                href={PLACES_PATH}
+                label={t('足迹')}
+                icon={MapPinned}
+                active={path === PLACES_PATH}
+                navigate={go}
+              />
               <div className="h-4 shrink-0 md:h-5" />
-              <SectionLabel>分类</SectionLabel>
+              <SectionLabel>{t('分类')}</SectionLabel>
               {viewItem(FAVORITES, Heart, stats?.favorites)}
               <RatingRow path={path} stats={stats} navigate={go} />
               {viewItem(VIDEOS, Video)}
               {CATEGORY_VIEWS.filter((_, i) => !CATEGORIES[i].more).map((v) => viewItem(v, categoryIcon(v)))}
               <MoreCategories path={path} viewItem={viewItem} />
               <div className="h-4 shrink-0 md:h-5" />
-              <SectionLabel>整理</SectionLabel>
+              <SectionLabel>{t('整理')}</SectionLabel>
               {viewItem(RECENT, Clock)}
               {/* 连拍整理、已隐藏、最近删除、设置访客用不了 */}
               {!guest && (
                 <>
                   <NavItem
                     href={BURSTS_PATH}
-                    label="连拍整理"
+                    label={t('连拍整理')}
                     icon={Layers}
                     active={path === BURSTS_PATH}
                     navigate={go}
@@ -446,8 +467,8 @@ function MoreCategories({
         type="button"
         onClick={toggle}
         aria-expanded={showing}
-        aria-label={showing ? '收起' : '更多分类'}
-        title={rail ? (showing ? '收起' : '更多分类') : undefined}
+        aria-label={showing ? t('收起') : t('更多分类')}
+        title={rail ? (showing ? t('收起') : t('更多分类')) : undefined}
         className={cx(
           'flex h-10 shrink-0 items-center gap-3 rounded-[10px] px-[11px] text-nav font-medium text-nav-fg/70 hover:bg-fg/[0.05] hover:text-nav-fg',
         )}
@@ -456,7 +477,7 @@ function MoreCategories({
           className={cx('size-[19px] shrink-0 transition-transform', !showing && '-rotate-90')}
           strokeWidth={1.7}
         />
-        {!rail && <span>{showing ? '收起' : '更多'}</span>}
+        {!rail && <span>{showing ? t('收起') : t('更多')}</span>}
       </button>
       {views.map((v) => {
         return (
@@ -486,14 +507,14 @@ function RatingRow({
   // 收起时只有一颗星，点了看 5 星的（正在看哪个星级时它亮着）
   if (useContext(Rail))
     return (
-      <Tooltip label="星级" side="right">
+      <Tooltip label={t('星级')} side="right">
         <a
           href={RATINGS[0].path}
           onClick={(e) => {
             e.preventDefault()
             navigate(RATINGS[0].path)
           }}
-          aria-label="星级"
+          aria-label={t('星级')}
           className={cx(
             'flex h-10 shrink-0 items-center rounded-[10px] px-[11px]',
             current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-nav-fg hover:bg-fg/[0.05]',
@@ -506,18 +527,18 @@ function RatingRow({
   return (
     <div
       className={cx(
-        'flex h-10 shrink-0 items-center gap-3 rounded-[10px] pr-1.5 pl-[11px] text-nav font-medium whitespace-nowrap',
+        'flex h-10 shrink-0 items-center gap-2.5 rounded-[10px] pr-1.5 pl-[11px] text-nav font-medium whitespace-nowrap',
         current > 0 ? 'bg-nav-active text-nav-active-fg' : 'text-nav-fg',
       )}
     >
       <Star className="size-[19px] shrink-0" strokeWidth={1.7} />
-      <span className="flex-1">星级</span>
-      <span className="flex" onMouseLeave={() => setHover(0)}>
+      <span className="min-w-0 flex-1 truncate">{t('星级')}</span>
+      <span className="flex shrink-0" onMouseLeave={() => setHover(0)}>
         {[...RATINGS].reverse().map((view) => {
           const n = view.filter.rating ?? 0
           const count = stats ? (view.count?.(stats) ?? 0) : 0
           return (
-            <Tooltip key={view.path} label={`${n} 星 · ${count.toLocaleString()} 张`}>
+            <Tooltip key={view.path} label={t('{n} 星 · {v1} 张', { n, v1: count.toLocaleString() })}>
               <a
                 href={view.path}
                 onClick={(e) => {
@@ -526,8 +547,8 @@ function RatingRow({
                 }}
                 onMouseEnter={() => setHover(n)}
                 aria-current={current === n ? 'page' : undefined}
-                aria-label={`${n} 星，${count} 张`}
-                className="flex size-5.5 items-center justify-center rounded-item"
+                aria-label={t('{n} 星，{count} 张', { n, count })}
+                className="flex size-5 items-center justify-center rounded-item"
               >
                 <Star
                   className={cx(
@@ -554,10 +575,10 @@ const BIG_BUTTON =
 function SidebarSignIn({ onClick }: { onClick: () => void }) {
   const rail = useContext(Rail)
   return (
-    <Tooltip label={rail ? '登录' : ''} side="right">
-      <button type="button" onClick={onClick} aria-label="登录" className={BIG_BUTTON}>
+    <Tooltip label={rail ? t('登录') : ''} side="right">
+      <button type="button" onClick={onClick} aria-label={t('登录')} className={BIG_BUTTON}>
         <LogIn className="size-4" strokeWidth={2.2} />
-        {!rail && '登录'}
+        {!rail && t('登录')}
       </button>
     </Tooltip>
   )
@@ -570,15 +591,15 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
   const rail = useContext(Rail) // 收起时只有图标
   return (
     <>
-      <Tooltip label={rail ? '上传照片 / 视频' : ''} side="right">
+      <Tooltip label={rail ? t('上传照片 / 视频') : ''} side="right">
         <button
           type="button"
           onClick={() => openFilePicker(input.current)}
-          aria-label="上传照片 / 视频"
+          aria-label={t('上传照片 / 视频')}
           className={BIG_BUTTON}
         >
           <Upload className="size-4" strokeWidth={2.2} />
-          {!rail && '上传照片 / 视频'}
+          {!rail && t('上传照片 / 视频')}
         </button>
       </Tooltip>
       <input
@@ -607,11 +628,11 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
     return (
       <div className={cx('flex items-center gap-2.5 py-1.5', rail ? 'justify-center' : 'px-2.5')}>
         <UserAvatar user={user} className="size-7 text-caption" />
-        {!rail && <span className="min-w-0 flex-1 truncate text-body font-medium">访客</span>}
+        {!rail && <span className="min-w-0 flex-1 truncate text-body font-medium">{t('访客')}</span>}
       </div>
     )
   const quit = async () => {
-    if (await askConfirm('退出登录？', { confirmLabel: '退出' })) signOut()
+    if (await askConfirm(t('退出登录？'), { confirmLabel: t('退出') })) signOut()
   }
   const onAccountPage = path === ACCOUNT_PATH
   const onSettingsPage = path === SETTINGS_PATH
@@ -621,11 +642,11 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
       <div className="flex flex-col items-center gap-1.5 py-1.5">
         <TaskIndicator side="right" />
         {user.is_admin && (
-          <Tooltip label="系统设置" side="right">
+          <Tooltip label={t('系统设置')} side="right">
             <button
               type="button"
               onClick={onSettings}
-              aria-label="系统设置"
+              aria-label={t('系统设置')}
               aria-current={onSettingsPage ? 'page' : undefined}
               className={cx(
                 'flex size-9 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
@@ -640,7 +661,7 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
           <button
             type="button"
             onClick={onAccount}
-            aria-label="我的账号"
+            aria-label={t('我的账号')}
             aria-current={onAccountPage ? 'page' : undefined}
             className={cx('rounded-full p-0.5', onAccountPage && 'ring-2 ring-nav-active-fg/40')}
           >
@@ -663,22 +684,22 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
         <UserAvatar user={user} className="size-8 text-caption" />
         <span className="min-w-0 flex-1 truncate text-body font-medium">{name}</span>
       </button>
-      <Tooltip label="退出登录">
+      <Tooltip label={t('退出登录')}>
         <button
           type="button"
           onClick={quit}
-          aria-label="退出登录"
+          aria-label={t('退出登录')}
           className="flex size-8 shrink-0 items-center justify-center rounded-full text-fg/70 transition-colors hover:bg-fg/[0.07] hover:text-fg"
         >
           <LogOut className="size-4.5" strokeWidth={1.8} />
         </button>
       </Tooltip>
       {user.is_admin && (
-        <Tooltip label="系统设置">
+        <Tooltip label={t('系统设置')}>
           <button
             type="button"
             onClick={onSettings}
-            aria-label="系统设置"
+            aria-label={t('系统设置')}
             aria-current={onSettingsPage ? 'page' : undefined}
             className={cx(
               'flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/[0.07] hover:text-fg',
@@ -700,7 +721,7 @@ function StorageCard({ disk }: { disk: { total: number; free: number } }) {
   return (
     <div className="mx-3.5 mb-2 rounded-xl border border-line/70 bg-well px-3.5 py-3">
       <div className="flex items-center justify-between text-caption text-muted">
-        <span>存储空间</span>
+        <span>{t('存储空间')}</span>
         <span className="tabular-nums">{diskLabel(used, disk.total)}</span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-fg/[0.08]">
@@ -729,15 +750,15 @@ function VersionLine({ guest, onUpdate }: { guest: boolean; onUpdate: () => void
   const version = useVersion()
   const update = useUpdate(!guest)
   return (
-    <div className="flex items-center gap-1.5 text-caption text-muted">
-      <span className="tabular-nums">{version ? versionLabel(version) : 'Wanmory'}</span>
+    <div className="flex min-w-0 items-center gap-1.5 text-caption text-muted">
+      <span className="truncate whitespace-nowrap tabular-nums">{version ? versionLabel(version) : 'Wanmory'}</span>
       {update?.update_available && (
         <button
           type="button"
           onClick={onUpdate}
           className="rounded-full bg-accent/15 px-1.5 text-micro leading-4 font-medium text-accent hover:bg-accent/25"
         >
-          有新版本
+          {t('有新版本')}
         </button>
       )}
     </div>

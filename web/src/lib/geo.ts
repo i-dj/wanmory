@@ -3,11 +3,21 @@
 
 import { useEffect, useState } from 'react'
 import { listSettings } from './api'
+import { locale, t } from '@/i18n'
 
 export const SETTING_MAPS = 'maps.online'
 export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const TILE_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
 const NOMINATIM = 'https://nominatim.openstreetmap.org'
+
+// 地名用界面的语言：简体要写 zh-Hans（OSM 里很多地方的 name:zh 是繁体），繁体要 zh-Hant；
+// 其他语言没有当地写法时退回英文
+const LANG = (() => {
+  const l = locale()
+  if (l === 'zh-CN') return 'zh-Hans,zh-CN,zh,en'
+  if (l === 'zh-TW') return 'zh-Hant,zh-TW,zh,en'
+  return `${l},en`
+})()
 
 let enabled: Promise<boolean> | null = null
 
@@ -73,14 +83,13 @@ const places = new Map<string, Promise<NominatimPlace | null>>()
 
 // reverse 问 Nominatim 坐标附近的地方，拿不到时为 null。同一个位置（精确到约 10 米）、同一个 zoom 只问一次
 function reverse(lat: number, lon: number, zoom: number): Promise<NominatimPlace | null> {
-  const key = `${lat.toFixed(4)},${lon.toFixed(4)},${zoom}`
+  const key = `${lat.toFixed(4)},${lon.toFixed(4)},${zoom}` // 同一次打开页面只有一种语言，不用带上语言
   let p = places.get(key)
   if (!p) {
     p = (async () => {
       await queue()
-      // 要简体：OSM 里很多地方的 name:zh 是繁体，name:zh-Hans 才是简体
       const res = await fetch(
-        `${NOMINATIM}/reverse?format=jsonv2&zoom=${zoom}&accept-language=zh-Hans,zh-CN,zh,en&lat=${lat}&lon=${lon}`,
+        `${NOMINATIM}/reverse?format=jsonv2&zoom=${zoom}&accept-language=${LANG}&lat=${lat}&lon=${lon}`,
       )
       if (!res.ok) return null
       const json = (await res.json()) as NominatimPlace & { error?: string }
@@ -124,15 +133,34 @@ async function lookupCity(lat: number, lon: number): Promise<CityInfo | null> {
   const info: CityInfo = {
     city: cityOf(p) || shortName(p),
     state: first(a.state || a.province || a.region),
-    country: first(a.country),
+    country: countryName(a.country_code) ?? first(a.country),
   }
-  // 中国的数据里区常常写在 city 上（「宝安区」），粗一级再问一次，能拿到上面的市（「深圳市」）
-  if (info.city.endsWith('区') && a.country_code === 'cn') {
+  // 中国的数据里区常常写在 city 上（「宝安区」/「Bao'an District」），粗一级再问一次，能拿到上面的市（「深圳市」）
+  // 别的语言里区的写法各不一样（「Bezirk Bao'an」「Bao'an」），在中国就都再问一次
+  const district = (s: string) => s.endsWith('区') || / District$/.test(s)
+  if ((district(info.city) || !locale().startsWith('zh')) && a.country_code === 'cn') {
     const up = await reverse(lat, lon, 8)
     const upCity = first(up?.address?.city)
-    if (upCity && !upCity.endsWith('区')) info.city = upCity
+    if (upCity && !district(upCity)) info.city = upCity
   }
   return info
+}
+
+// countryName：国家用浏览器里当前语言的通用叫法（「Vereinigte Staaten」，比 OSM 的正式全称短）；中文界面用 OSM 的
+const regionNames = (() => {
+  try {
+    return locale().startsWith('zh') ? null : new Intl.DisplayNames([locale()], { type: 'region' })
+  } catch {
+    return null
+  }
+})()
+function countryName(code?: string): string | undefined {
+  if (!code || !regionNames) return undefined
+  try {
+    return regionNames.of(code.toUpperCase())
+  } catch {
+    return undefined
+  }
 }
 
 function cityOf(p: NominatimPlace): string | undefined {
@@ -152,7 +180,7 @@ export interface Region {
 }
 
 // localStorage：「at:坐标」→ 区域 ID，「id:区域 ID」→ 区域，「place:坐标」→ 城市、省、国家
-const GEO_CACHE = 'wanmory.region.v1:'
+const GEO_CACHE = `wanmory.region.v2:${locale()}:` // 每种语言各存一份（地名的写法不一样）
 const regions = new Map<string, Promise<Region | null>>()
 
 function cacheGet<T>(key: string): T | null {
@@ -221,7 +249,7 @@ export function regionAt(lat: number, lon: number): Promise<Region | null> {
       if (found) return found
       await queue()
       const res = await fetch(
-        `${NOMINATIM}/reverse?format=jsonv2&zoom=5&polygon_geojson=1&polygon_threshold=0.01&accept-language=zh-Hans,zh-CN,zh,en&lat=${lat}&lon=${lon}`,
+        `${NOMINATIM}/reverse?format=jsonv2&zoom=5&polygon_geojson=1&polygon_threshold=0.01&accept-language=${LANG}&lat=${lat}&lon=${lon}`,
       )
       if (!res.ok) return null
       const json = (await res.json()) as NominatimPlace & {
@@ -265,10 +293,10 @@ export async function searchPlaces(query: string, signal: AbortSignal): Promise<
   await queue()
   if (signal.aborted) return []
   const res = await fetch(
-    `${NOMINATIM}/search?format=jsonv2&addressdetails=1&limit=6&accept-language=zh-CN&q=${encodeURIComponent(query)}`,
+    `${NOMINATIM}/search?format=jsonv2&addressdetails=1&limit=6&accept-language=${LANG}&q=${encodeURIComponent(query)}`,
     { signal },
   )
-  if (!res.ok) throw new Error(`搜索地点失败：${res.status}`)
+  if (!res.ok) throw new Error(t('搜索地点失败：{status}', { status: res.status }))
   const list = (await res.json()) as NominatimPlace[]
   return list.map((p) => ({
     name: shortName(p),

@@ -21,6 +21,7 @@ import (
 	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/faces"
 	"github.com/wanmory/wanmory/server/internal/geo"
+	"github.com/wanmory/wanmory/server/internal/httpx"
 	"github.com/wanmory/wanmory/server/internal/jobs"
 	"github.com/wanmory/wanmory/server/internal/mdns"
 	"github.com/wanmory/wanmory/server/internal/netaccess"
@@ -244,7 +245,7 @@ func run(ctx context.Context) error {
 	go assets.CleanStaleUploads(ctx, tusDir)
 	mux.Handle("/", webui.Handler()) // 其他路径都是前端页面
 
-	srv := &http.Server{Addr: cfg.Addr, Handler: perfService.Track(authService.Middleware(mux)), ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Addr: cfg.Addr, Handler: httpx.SecureHeaders(perfService.Track(authService.Middleware(mux))), ReadHeaderTimeout: 10 * time.Second}
 
 	workerDone := make(chan struct{})
 	go func() {

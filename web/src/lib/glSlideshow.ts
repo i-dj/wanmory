@@ -13,24 +13,25 @@ import luminanceMelt from 'gl-transitions/transitions/luminance_melt.glsl?raw'
 import morph from 'gl-transitions/transitions/morph.glsl?raw'
 import perlin from 'gl-transitions/transitions/perlin.glsl?raw'
 import { type BackdropMode, paintFrame } from './slideBackdrop'
+import { t as tr } from '@/i18n'
 
 type Param = number | boolean | number[]
 
 // 挑的都是安静、有质感的：没有立方体、翻门、爱心这类。参数是各自的默认值，个别调得更柔一点
 export const GL_EFFECTS = {
-  crosswarp: { label: '交叉扭曲', ms: 1500, glsl: crosswarp, params: {} },
-  directionalwarp: { label: '斜向流动', ms: 1500, glsl: directionalwarp, params: { direction: [-1, 1] } },
+  crosswarp: { label: tr('交叉扭曲'), ms: 1500, glsl: crosswarp, params: {} },
+  directionalwarp: { label: tr('斜向流动'), ms: 1500, glsl: directionalwarp, params: { direction: [-1, 1] } },
   luminanceMelt: {
-    label: '光影融化',
+    label: tr('光影融化'),
     ms: 1800,
     glsl: luminanceMelt,
     params: { direction: true, l_threshold: 0.8, above: false },
   },
-  morph: { label: '形变溶解', ms: 1500, glsl: morph, params: { strength: 0.1 } },
-  crossZoom: { label: '光速穿越', ms: 1300, glsl: crossZoom, params: { strength: 0.3 } },
-  linearBlur: { label: '动感模糊', ms: 1200, glsl: linearBlur, params: { intensity: 0.08 } },
-  perlin: { label: '云雾溶解', ms: 1600, glsl: perlin, params: { scale: 4, smoothness: 0.04, seed: 12.9898 } },
-  fadegrayscale: { label: '褪色叠化', ms: 1600, glsl: fadegrayscale, params: { intensity: 0.3 } },
+  morph: { label: tr('形变溶解'), ms: 1500, glsl: morph, params: { strength: 0.1 } },
+  crossZoom: { label: tr('光速穿越'), ms: 1300, glsl: crossZoom, params: { strength: 0.3 } },
+  linearBlur: { label: tr('动感模糊'), ms: 1200, glsl: linearBlur, params: { intensity: 0.08 } },
+  perlin: { label: tr('云雾溶解'), ms: 1600, glsl: perlin, params: { scale: 4, smoothness: 0.04, seed: 12.9898 } },
+  fadegrayscale: { label: tr('褪色叠化'), ms: 1600, glsl: fadegrayscale, params: { intensity: 0.3 } },
 } satisfies Record<string, { label: string; ms: number; glsl: string; params: Record<string, Param> }>
 
 export type GLEffect = keyof typeof GL_EFFECTS
@@ -108,7 +109,7 @@ export class GLSlideshow {
 
   constructor(private canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false })
-    if (!gl) throw new Error('这台设备不支持 WebGL')
+    if (!gl) throw new Error(tr('这台设备不支持 WebGL'))
     this.gl = gl
     const quad = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, quad)
@@ -236,12 +237,12 @@ export class GLSlideshow {
     if (cached) return cached
     const gl = this.gl
     const program = gl.createProgram()
-    if (!program) throw new Error('创建着色器程序失败')
+    if (!program) throw new Error(tr('创建着色器程序失败'))
     gl.attachShader(program, this.shader(gl.VERTEX_SHADER, VERT))
     gl.attachShader(program, this.shader(gl.FRAGMENT_SHADER, FRAG_HEAD + glsl + FRAG_TAIL))
     gl.linkProgram(program)
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(`着色器 ${key} 链接失败：${gl.getProgramInfoLog(program)}`)
+      throw new Error(tr('着色器 {key} 链接失败：{v1}', { key, v1: gl.getProgramInfoLog(program) }))
     }
     const p = { program, uniforms: new Map() }
     this.programs.set(key, p)
@@ -251,10 +252,11 @@ export class GLSlideshow {
   private shader(type: number, source: string) {
     const gl = this.gl
     const s = gl.createShader(type)
-    if (!s) throw new Error('创建着色器失败')
+    if (!s) throw new Error(tr('创建着色器失败'))
     gl.shaderSource(s, source)
     gl.compileShader(s)
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(`着色器编译失败：${gl.getShaderInfoLog(s)}`)
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+      throw new Error(tr('着色器编译失败：{v0}', { v0: gl.getShaderInfoLog(s) }))
     return s
   }
 

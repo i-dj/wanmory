@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import DialogButton from '@/components/ui/DialogButton'
-import Modal, { DialogActions, DialogError, dialogInputClass } from '@/components/ui/Modal'
+import Modal, { DialogFooter, DialogError, dialogInputClass } from '@/components/ui/Modal'
+import { t } from '@/i18n'
 
 // TextSettingDialog 改一行文字的设置（例如访问域名）：一个输入框，格式不对时服务器的错误写在按钮上面
 export default function TextSettingDialog({
@@ -46,12 +47,12 @@ export default function TextSettingDialog({
           className={dialogInputClass}
         />
         <DialogError>{error}</DialogError>
-        <DialogActions className="mt-3">
-          <DialogButton onClick={onCancel}>取消</DialogButton>
+        <DialogFooter>
+          <DialogButton onClick={onCancel}>{t('取消')}</DialogButton>
           <DialogButton variant="primary" type="submit" disabled={busy || !text.trim()}>
-            保存
+            {t('保存')}
           </DialogButton>
-        </DialogActions>
+        </DialogFooter>
       </form>
     </Modal>
   )

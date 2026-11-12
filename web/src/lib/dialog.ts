@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 // 代替浏览器自带的 alert()、confirm()（那个是系统样式，和页面不搭）。不在组件里也能调用；AlertHost 挂在最外层，负责显示。
 // 确认框（askConfirm）居中弹出，一次一个，后来的排在后面；提示（showAlert、showError）在左下角
 
@@ -88,7 +89,13 @@ export function showError(title: string, err: unknown) {
 // askConfirm 问一句要不要做，确定返回 true。danger 时确定按钮是红的（删除、取消上传这种）
 export function askConfirm(
   title: string,
-  { message, confirmLabel = '确定', danger }: { message?: string; confirmLabel?: string; danger?: boolean } = {},
+  { message, confirmLabel = t('确定'), danger }: { message?: string; confirmLabel?: string; danger?: boolean } = {},
 ) {
-  return push({ tone: danger ? 'danger' : 'warn', title, message, confirmLabel, cancelLabel: '取消' })
+  return push({ tone: danger ? 'danger' : 'warn', title, message, confirmLabel, cancelLabel: t('取消') })
+}
+
+// askDelete 是通用的「删除对话框」：上面红色圆圈里一个感叹号，标题「删除「…」？」，下面一行说明删了会怎样，
+// 左边「取消」、右边红色的「删除」。确定删除返回 true。删成员、删相册、删模型……都用它，样子一样
+export function askDelete(title: string, message?: string) {
+  return askConfirm(title, { message, confirmLabel: t('删除'), danger: true })
 }

@@ -14,6 +14,8 @@ import SystemUpdate from '@/components/settings/SystemUpdate'
 import { askConfirm } from '@/lib/dialog'
 import { cx } from '@/lib/cx'
 import SettingsCard from '@/components/settings/SettingsCard'
+import { AccessAddressDialog, AccessLinks } from '@/components/settings/AccessAddress'
+import { t } from '@/i18n'
 
 export default function SettingsPage() {
   const [items, setItems] = useState<SettingItem[] | null>(null)
@@ -54,7 +56,8 @@ export default function SettingsPage() {
   }
 
   const reset = async (item: SettingItem) => {
-    if (!(await askConfirm(`把「${item.label}」恢复成默认值？`, { confirmLabel: '恢复' }))) return
+    if (!(await askConfirm(t('把「{label}」恢复成默认值？', { label: item.label }), { confirmLabel: t('恢复') })))
+      return
     try {
       await resetSetting(item.key)
       forgetMapsSetting()
@@ -70,7 +73,7 @@ export default function SettingsPage() {
   return (
     <section>
       {/* 顶上一栏不放搜索，正中写「系统设置」；下面的卡片在内容区居中 */}
-      <PageHeader title="系统设置" hideTitle center={<HeaderTitle>系统设置</HeaderTitle>} />
+      <PageHeader title={t('系统设置')} hideTitle center={<HeaderTitle>{t('系统设置')}</HeaderTitle>} />
       <div className="mx-auto mt-8 max-w-[960px] space-y-6 pb-12">
         <AccountSettings />
 
@@ -86,16 +89,19 @@ export default function SettingsPage() {
             description={item.description || undefined}
             footer={
               <span className={cx('break-all text-fg', item.kind === 'path' && 'font-mono')}>
-                <SettingValue item={item} />
-                <NetNote item={item} net={net} />
+                {item.key === 'net.domain' ? (
+                  <AccessLinks net={net} saved={String(item.value)} />
+                ) : (
+                  <SettingValue item={item} />
+                )}
                 {itemErrors[item.key] && <span className="block text-caption text-danger">{itemErrors[item.key]}</span>}
               </span>
             }
             footerActions={
               <>
-                {!item.is_default && <Button onClick={() => reset(item)}>恢复默认</Button>}
+                {!item.is_default && <Button onClick={() => reset(item)}>{t('恢复默认')}</Button>}
                 <Button primary onClick={() => setEditing(item)}>
-                  修改
+                  {t('修改')}
                 </Button>
               </>
             }
@@ -106,13 +112,21 @@ export default function SettingsPage() {
 
       {editing?.kind === 'path' && (
         <DirPicker
-          title={`选择${editing.label}`}
+          title={t('选择{label}', { label: editing.label })}
           initialPath={String(editing.value)}
           onCancel={() => setEditing(null)}
           onConfirm={(path) => save(editing, path)}
         />
       )}
-      {editing?.kind === 'text' && (
+      {editing?.key === 'net.domain' && (
+        <AccessAddressDialog
+          value={String(editing.value)}
+          net={net}
+          onCancel={() => setEditing(null)}
+          onConfirm={(value) => save(editing, value)}
+        />
+      )}
+      {editing?.kind === 'text' && editing.key !== 'net.domain' && (
         <TextSettingDialog
           title={editing.label}
           value={String(editing.value)}
@@ -134,39 +148,19 @@ export default function SettingsPage() {
   )
 }
 
-// NetNote 跟在访问域名后面：现在用什么网址打开
-function NetNote({ item, net }: { item: SettingItem; net: NetStatus | null }) {
-  if (!net || item.key !== 'net.domain') return null
-  // 以前存的域名不是 .local 结尾（那时还允许），服务器没用它
-  if (net.domain !== item.value)
-    return (
-      <span className="block text-caption text-danger">
-        「{String(item.value)}」不是 .local 结尾，现在用的是 {net.domain}，请修改或恢复默认
-      </span>
-    )
-  return (
-    <span className="block text-caption text-muted">
-      打开{' '}
-      <a href={net.url} target="_blank" rel="noreferrer" className="font-mono text-accent hover:underline">
-        {net.url}
-      </a>
-    </span>
-  )
-}
-
 function SettingValue({ item }: { item: SettingItem }) {
   if (item.kind === 'path') {
     return <span className="font-mono text-body">{String(item.value)}</span>
   }
   if (item.kind === 'choice') {
     // 开关写「已开启 / 已关闭」；「自动」后面括号写自动怎么选；别的只写选了哪个
-    if (item.value === 'on') return <span>已开启</span>
-    if (item.value === 'off') return <span>已关闭</span>
+    if (item.value === 'on') return <span>{t('已开启')}</span>
+    if (item.value === 'off') return <span>{t('已关闭')}</span>
     const c = item.choices?.find((c) => c.value === item.value)
     return (
       <span>
         {c?.label ?? String(item.value)}
-        {c?.value === 'auto' && c.hint && `（${c.hint}）`}
+        {c?.value === 'auto' && c.hint && t('（{hint}）', { hint: c.hint })}
       </span>
     )
   }

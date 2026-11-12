@@ -7,6 +7,7 @@ import type { GridLayout } from '@/hooks/useGridLayout'
 import { cx } from '@/lib/cx'
 import { listUsers, type MediaKind, type User } from '@/lib/api'
 import { MEDIA_KINDS } from '@/lib/views'
+import { t } from '@/i18n'
 
 // 照片页左上角的几个下拉菜单（日历旁边）：排序、筛选、显示大小。按钮是图标加一个小箭头，
 // 菜单里选中的那项前面打勾
@@ -23,7 +24,7 @@ export interface SortChoice {
   dir: SortDir
 }
 export const DEFAULT_SORT: SortChoice = { by: 'taken', dir: 'desc' }
-const SORT_LABELS: Record<SortBy, string> = { taken: '拍摄日期', added: '添加日期', favorited: '收藏日期' }
+const SORT_LABELS: Record<SortBy, string> = { taken: t('拍摄日期'), added: t('添加日期'), favorited: t('收藏日期') }
 
 // SortMenu：options 是第一组有哪几种（默认拍摄日期、添加日期；「收藏」里是收藏日期、拍摄日期）
 export function SortMenu({
@@ -38,7 +39,11 @@ export function SortMenu({
   defaultValue?: SortChoice // 这个分类默认怎么排；选的不是它时按钮亮一点
 }) {
   return (
-    <MenuButton icon={ArrowDownUp} label="排序" active={value.by !== defaultValue.by || value.dir !== defaultValue.dir}>
+    <MenuButton
+      icon={ArrowDownUp}
+      label={t('排序')}
+      active={value.by !== defaultValue.by || value.dir !== defaultValue.dir}
+    >
       {(close) => (
         <>
           {options.map((by) => (
@@ -48,10 +53,12 @@ export function SortMenu({
           ))}
           <MenuDivider />
           <Item checked={value.dir === 'asc'} onClick={() => (onChange({ ...value, dir: 'asc' }), close())}>
-            升序<span className="text-caption text-muted">从旧到新</span>
+            {t('升序')}
+            <span className="text-caption text-muted">{t('从旧到新')}</span>
           </Item>
           <Item checked={value.dir === 'desc'} onClick={() => (onChange({ ...value, dir: 'desc' }), close())}>
-            降序<span className="text-caption text-muted">从新到旧</span>
+            {t('降序')}
+            <span className="text-caption text-muted">{t('从新到旧')}</span>
           </Item>
         </>
       )}
@@ -95,7 +102,7 @@ export function FilterMenu({
   }
   if (membersOnly && members.length <= 1) return null
   return (
-    <MenuButton icon={Funnel} label="筛选" active={value.length > 0 || uploaders.length > 0}>
+    <MenuButton icon={Funnel} label={t('筛选')} active={value.length > 0 || uploaders.length > 0}>
       {(close) => (
         <>
           {!membersOnly && (
@@ -107,7 +114,7 @@ export function FilterMenu({
                   close()
                 }}
               >
-                全部
+                {t('全部')}
               </Item>
               <MenuDivider />
               {MEDIA_KINDS.map(({ kind, label }) => (
@@ -121,7 +128,7 @@ export function FilterMenu({
             <>
               {!membersOnly && <MenuDivider />}
               <Item checked={uploaders.length === 0} onClick={() => (onUploaders([]), close())}>
-                所有人
+                {t('所有人')}
               </Item>
               <MenuDivider />
               {members.map((m) => (
@@ -147,10 +154,10 @@ export function FilterMenu({
 
 // SIZES 是「显示大小」的几档，对应大约每行几张；窗口窄放不下时 useGridLayout 会再少一些
 const SIZES: { label: string; columns: number }[] = [
-  { label: '小', columns: 8 },
-  { label: '中等', columns: 5 },
-  { label: '大', columns: 3 },
-  { label: '超大', columns: 2 },
+  { label: t('小'), columns: 8 },
+  { label: t('中等'), columns: 5 },
+  { label: t('大'), columns: 3 },
+  { label: t('超大'), columns: 2 },
 ]
 
 export function SizeMenu({ layout }: { layout: GridLayout }) {
@@ -159,7 +166,7 @@ export function SizeMenu({ layout }: { layout: GridLayout }) {
     Math.abs(s.columns - layout.columns) < Math.abs(best.columns - layout.columns) ? s : best,
   )
   return (
-    <MenuButton icon={LayoutGrid} label="显示大小">
+    <MenuButton icon={LayoutGrid} label={t('显示大小')}>
       {(close) =>
         SIZES.map((s) => (
           <Item

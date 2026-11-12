@@ -5,11 +5,13 @@ import Tooltip from '@/components/ui/Tooltip'
 import { useAnchorPosition } from '@/hooks/useAnchorPosition'
 import { type ActiveJobs, type PerfStatus, activeJobs, perfStatus } from '@/lib/api'
 import { cx } from '@/lib/cx'
+import { t as tr } from '@/i18n'
+import { serverText } from '@/i18n/server'
 
 // 每组叫什么、下面小字写做了哪些事，按这个顺序显示：先导入（本机做），再 AI 识别
 const GROUPS: Record<string, { label: string; detail: string }> = {
-  import: { label: '导入照片', detail: '读取拍摄信息 · 生成缩略图' },
-  ai: { label: 'AI 识别照片', detail: '人脸 · 画面内容 · 文字' },
+  import: { label: tr('导入照片'), detail: tr('读取拍摄信息 · 生成缩略图') },
+  ai: { label: tr('AI 识别照片'), detail: tr('人脸 · 画面内容 · 文字') },
 }
 const order = (k: string) => {
   const i = Object.keys(GROUPS).indexOf(k)
@@ -18,12 +20,12 @@ const order = (k: string) => {
 
 // eta 把秒数说成大概多久：不到 1 分钟、约 12 分钟、约 2 小时 10 分钟、约 3 天
 function eta(sec: number) {
-  if (sec < 60) return '不到 1 分钟'
+  if (sec < 60) return tr('不到 1 分钟')
   const min = Math.round(sec / 60)
-  if (min < 60) return `约 ${min} 分钟`
+  if (min < 60) return tr('约 {min} 分钟', { min })
   const h = Math.floor(min / 60)
-  if (h < 24) return `约 ${h} 小时${min % 60 >= 5 ? ` ${min % 60} 分钟` : ''}`
-  return `约 ${Math.round(h / 24)} 天`
+  if (h < 24) return min % 60 >= 5 ? tr('约 {h} 小时 {m} 分钟', { h, m: min % 60 }) : tr('约 {h} 小时', { h })
+  return tr('约 {v0} 天', { v0: Math.round(h / 24) })
 }
 
 // 有任务时 3 秒问一次，没任务时 15 秒（看有没有新的），页面在后台时不问
@@ -99,12 +101,18 @@ export default function TaskIndicator({ side = 'bottom' }: { side?: 'bottom' | '
     <div>
       <Tooltip
         side={side}
-        label={open ? '' : paused ? `AI 暂停：${perf.ai_paused}` : `后台任务：还剩 ${remaining.toLocaleString()} 张`}
+        label={
+          open
+            ? ''
+            : paused
+              ? tr('AI 暂停：{ai_paused}', { ai_paused: serverText(perf.ai_paused) })
+              : tr('后台任务：还剩 {v0} 张', { v0: remaining.toLocaleString() })
+        }
       >
         <button
           ref={button}
           type="button"
-          aria-label="后台任务"
+          aria-label={tr('后台任务')}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
           className={cx(
@@ -129,17 +137,17 @@ export default function TaskIndicator({ side = 'bottom' }: { side?: 'bottom' | '
           <div
             ref={panel}
             role="dialog"
-            aria-label="后台任务"
+            aria-label={tr('后台任务')}
             className="popover-card frost fixed z-50 w-[300px] overflow-y-auto rounded-2xl p-4"
             style={position}
           >
-            <div className="text-body font-semibold">后台任务</div>
+            <div className="text-body font-semibold">{tr('后台任务')}</div>
             {jobs.length === 0 ? (
-              <p className="mt-3 text-body text-muted">暂无后台任务</p>
+              <p className="mt-3 text-body text-muted">{tr('暂无后台任务')}</p>
             ) : (
               <ul className="mt-3 space-y-3">
                 {jobs.map((j) => (
-                  <JobRow key={j.key} job={j} pausedFor={j.key === 'ai' && paused ? perf.ai_paused : ''} />
+                  <JobRow key={j.key} job={j} pausedFor={j.key === 'ai' && paused ? serverText(perf.ai_paused) : ''} />
                 ))}
               </ul>
             )}
@@ -155,13 +163,17 @@ function JobRow({ job, pausedFor }: { job: ActiveJobs; pausedFor: string }) {
   const g = GROUPS[job.key] ?? { label: job.key, detail: '' }
   const total = job.done + job.remaining
   const ratio = total ? job.done / total : 0
-  const status = pausedFor ? `已暂停：${pausedFor}` : job.eta !== null ? `还要${eta(job.eta)}` : '正在估算剩余时间…'
+  const status = pausedFor
+    ? tr('已暂停：{pausedFor}', { pausedFor })
+    : job.eta !== null
+      ? tr('还要{v0}', { v0: eta(job.eta) })
+      : tr('正在估算剩余时间…')
   return (
     <li>
       <div className="flex items-baseline gap-2 text-body">
         <span className="min-w-0 flex-1 truncate">{g.label}</span>
         <span className="shrink-0 text-caption text-muted tabular-nums">
-          {job.done.toLocaleString()} / {total.toLocaleString()} 张
+          {tr('{done} / {n} 张', { done: job.done.toLocaleString(), n: total })}
         </span>
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
@@ -174,7 +186,7 @@ function JobRow({ job, pausedFor }: { job: ActiveJobs; pausedFor: string }) {
         <span className="min-w-0 flex-1 truncate">{g.detail}</span>
         <span className={cx('shrink-0', pausedFor && 'text-warn')}>{status}</span>
       </div>
-      {job.failed > 0 && <p className="mt-1 text-caption text-danger">{job.failed} 项没处理成功</p>}
+      {job.failed > 0 && <p className="mt-1 text-caption text-danger">{tr('{n} 项没处理成功', { n: job.failed })}</p>}
     </li>
   )
 }

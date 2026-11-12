@@ -1,3 +1,4 @@
+import { t as tr } from '@/i18n'
 // 幻灯片的背景音乐曲库：内置 8 首真实乐器录制的曲子（Kevin MacLeod，incompetech.com，CC BY 4.0，
 // 文件在 public/music，署名见那里的 CREDITS.txt），按气氛分成温馨、轻快、抒情、欢快。
 // 每首都知道速度（BPM），照片按小节切换，画面和节拍对得上。
@@ -9,10 +10,10 @@
 export type Mood = 'warm' | 'light' | 'lyrical' | 'joyful'
 
 export const MOOD_LABELS: Record<Mood, string> = {
-  warm: '温馨',
-  light: '轻快',
-  lyrical: '抒情',
-  joyful: '欢快',
+  warm: tr('温馨'),
+  light: tr('轻快'),
+  lyrical: tr('抒情'),
+  joyful: tr('欢快'),
 }
 
 export interface Track {
@@ -40,7 +41,7 @@ export const TRACKS: Track[] = [
   },
 ]
 
-export const MUSIC_CREDIT = '音乐：Kevin MacLeod（incompetech.com），CC BY 4.0'
+export const MUSIC_CREDIT = tr('音乐：Kevin MacLeod（incompetech.com），CC BY 4.0')
 
 // trackFor 按选项选一首：'track:<id>' 是指定的那首，其他（'random'、'none'、以前存的合成音乐名字）随便挑一首。
 // 不放音乐时也要一首的速度来定照片切换的节奏

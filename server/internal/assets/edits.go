@@ -264,11 +264,11 @@ func (s *Store) AlbumsOf(ctx context.Context, user, id uuid.UUID) ([]uuid.UUID, 
 
 // details 是信息栏要的额外信息：GET /api/assets/{id}/details，返回照片在哪些相册里，以及文件里原始的拍摄时间和位置
 func (s *Service) details(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(r.PathValue("id"))
-	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, "照片 ID 格式不对")
+	a, ok := s.loadAsset(w, r) // 先确认看得到（别人隐藏的照片连拍摄信息也不给）
+	if !ok {
 		return
 	}
+	id := a.ID
 	orig, err := s.store.Original(r.Context(), id)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Error(w, http.StatusNotFound, err.Error())

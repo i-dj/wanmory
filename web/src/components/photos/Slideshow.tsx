@@ -26,8 +26,8 @@ import { canUseWebGL, GL_EFFECT_NAMES, GL_EFFECTS, type GLEffect, GLSlideshow } 
 import { MOOD_LABELS, type Mood, MUSIC_CREDIT, TRACKS, trackFor, TrackPlayer } from '@/lib/musicLibrary'
 import Filmstrip from './Filmstrip'
 import DialogButton from '@/components/ui/DialogButton'
-import DialogClose from '@/components/ui/DialogClose'
 import { DialogActions } from '@/components/ui/Modal'
+import { t as tr } from '@/i18n'
 
 const SPEEDS = [4, 3, 2, 1.5, 1] // 每张停几小节，从慢到快；速度滑块的五档，默认中间（两小节，大约 4 秒）
 const IDLE_MS = 2500
@@ -99,12 +99,12 @@ const EFFECTS = {
 type Effect = keyof typeof EFFECTS
 const EFFECT_NAMES = Object.keys(EFFECTS) as Effect[]
 const EFFECT_LABELS: Record<Effect, string> = {
-  dissolve: '柔焦叠化',
-  zoomThrough: '穿越推进',
-  parallax: '视差推入',
-  iris: '光圈展开',
-  wipe: '柔边扫入',
-  rise: '浮起',
+  dissolve: tr('柔焦叠化'),
+  zoomThrough: tr('穿越推进'),
+  parallax: tr('视差推入'),
+  iris: tr('光圈展开'),
+  wipe: tr('柔边扫入'),
+  rise: tr('浮起'),
 }
 
 // Options 是「幻灯片选项」里的设置，记在这个浏览器里：转场（随机或固定一种）、音乐（随机、某一首或不放）、
@@ -388,7 +388,7 @@ export default function Slideshow({
       ref={root}
       role="dialog"
       aria-modal="true"
-      aria-label="幻灯片"
+      aria-label={tr('幻灯片')}
       // overflow-clip 而不是 hidden：hidden 的容器还能被聚焦、scrollIntoView 滚动，
       // 视差推入时照片在屏幕外，一聚焦按钮整个画面就被推歪
       className="theme-dark fixed inset-0 z-40 overflow-clip bg-black text-white select-none"
@@ -448,10 +448,10 @@ export default function Slideshow({
       {currentAsset && <SlideCaption asset={currentAsset} index={index} total={assets.length} className={fade} />}
 
       <div data-chrome className={cx('absolute top-4 left-4 z-20 flex items-center gap-3', fade)}>
-        <Tooltip label="退出（Esc）" side="bottom">
+        <Tooltip label={tr('退出（Esc）')} side="bottom">
           <button
             type="button"
-            aria-label="退出幻灯片"
+            aria-label={tr('退出幻灯片')}
             onClick={close}
             className="flex size-9 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
           >
@@ -459,10 +459,10 @@ export default function Slideshow({
           </button>
         </Tooltip>
         <div className="flex items-center gap-2">
-          <Tooltip label={options.volume === 0 ? '打开声音（M）' : '静音（M）'} side="bottom">
+          <Tooltip label={options.volume === 0 ? tr('打开声音（M）') : tr('静音（M）')} side="bottom">
             <button
               type="button"
-              aria-label={options.volume === 0 ? '打开声音' : '静音'}
+              aria-label={options.volume === 0 ? tr('打开声音') : tr('静音')}
               onClick={toggleMute}
               disabled={!musicOn}
               className="flex size-8 items-center justify-center rounded-full text-white/85 hover:bg-white/10 disabled:opacity-40"
@@ -478,7 +478,7 @@ export default function Slideshow({
             value={options.volume}
             disabled={!musicOn}
             onChange={(e) => setVolume(Number(e.target.value))}
-            aria-label="音量"
+            aria-label={tr('音量')}
             className="slideshow-range w-24 text-white disabled:opacity-40"
             style={{ '--filled': `${options.volume * 100}%` } as React.CSSProperties}
           />
@@ -486,11 +486,11 @@ export default function Slideshow({
       </div>
 
       <div data-chrome className={cx('absolute bottom-5 left-5 z-20 flex items-center gap-3', fade)}>
-        <GlassButton label="上一张（←）" onClick={() => void back()}>
+        <GlassButton label={tr('上一张（←）')} onClick={() => void back()}>
           <SkipBack className="size-4.5 fill-current" />
         </GlassButton>
         {document.fullscreenEnabled && (
-          <GlassButton label={fullscreen ? '退出全屏' : '全屏'} active={fullscreen} onClick={toggleFullscreen}>
+          <GlassButton label={fullscreen ? tr('退出全屏') : tr('全屏')} active={fullscreen} onClick={toggleFullscreen}>
             {fullscreen ? <Minimize2 className="size-4.5" /> : <Maximize2 className="size-4.5" />}
           </GlassButton>
         )}
@@ -511,10 +511,10 @@ export default function Slideshow({
       </div>
 
       <div data-chrome className={cx('absolute right-5 bottom-5 z-20 flex items-center gap-3', fade)}>
-        <Tooltip label={playing ? '暂停（空格）' : '播放（空格）'}>
+        <Tooltip label={playing ? tr('暂停（空格）') : tr('播放（空格）')}>
           <button
             type="button"
-            aria-label={playing ? '暂停' : '播放'}
+            aria-label={playing ? tr('暂停') : tr('播放')}
             onClick={() => setPlaying((p) => !p)}
             className="relative flex size-12 items-center justify-center rounded-full bg-white/15 backdrop-blur-xl transition hover:bg-white/25 active:scale-95"
           >
@@ -541,7 +541,7 @@ export default function Slideshow({
             )}
           </button>
         </Tooltip>
-        <GlassButton label="幻灯片选项" onClick={() => setOptionsOpen(true)}>
+        <GlassButton label={tr('幻灯片选项')} onClick={() => setOptionsOpen(true)}>
           <Settings2 className="size-4.5" />
         </GlassButton>
       </div>
@@ -596,24 +596,26 @@ function OptionsDialog({
           e.preventDefault()
           onSave(draft)
         }}
-        className="popover-card glass-dialog w-full max-w-96 rounded-dialog px-8 pt-8 pb-7 text-fg"
+        className="popover-card glass-dialog w-full max-w-96 rounded-dialog p-6 text-fg"
       >
-        <DialogClose onClose={onClose} />
-        <SquarePlay className="mx-auto size-11 text-select" strokeWidth={1.6} />
-        <h2 id="slideshow-options-title" className="mt-3 text-center text-title font-semibold">
-          幻灯片选项
+        {/* 和其他弹出窗口（Modal）一样的头：居中的圆形图标、标题；没有「×」 */}
+        <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <SquarePlay className="size-5.5" strokeWidth={2} />
+        </div>
+        <h2 id="slideshow-options-title" className="text-center text-heading font-semibold">
+          {tr('幻灯片选项')}
         </h2>
 
-        <div className="mt-7 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-4 text-heading">
+        <div className="mt-5 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-4 text-heading">
           <label htmlFor="slideshow-effect" className="text-right">
-            转场
+            {tr('转场')}
           </label>
           <Select
             id="slideshow-effect"
             value={effects.some(([n]) => n === draft.effect) ? draft.effect : 'random'}
             onChange={(v) => set('effect', v)}
           >
-            <option value="random">随机</option>
+            <option value="random">{tr('随机')}</option>
             {effects.map(([name, label]) => (
               <option key={name} value={name}>
                 {label}
@@ -622,10 +624,10 @@ function OptionsDialog({
           </Select>
 
           <label htmlFor="slideshow-music" className="text-right">
-            音乐
+            {tr('音乐')}
           </label>
           <Select id="slideshow-music" value={musicValue(draft.music)} onChange={(v) => set('music', v)}>
-            <option value="random">随机</option>
+            <option value="random">{tr('随机')}</option>
             {(Object.keys(MOOD_LABELS) as Mood[]).map((mood) => (
               <optgroup key={mood} label={MOOD_LABELS[mood]}>
                 {TRACKS.filter((t) => t.mood === mood).map((t) => (
@@ -635,14 +637,14 @@ function OptionsDialog({
                 ))}
               </optgroup>
             ))}
-            <option value="none">静音</option>
+            <option value="none">{tr('静音')}</option>
           </Select>
 
-          <span className="text-right">循环播放</span>
-          <Switch label="循环播放" checked={draft.repeat} onChange={(v) => set('repeat', v)} />
+          <span className="text-right">{tr('循环播放')}</span>
+          <Switch label={tr('循环播放')} checked={draft.repeat} onChange={(v) => set('repeat', v)} />
 
           <label htmlFor="slideshow-background" className="text-right">
-            背景
+            {tr('背景')}
           </label>
           <Select
             id="slideshow-background"
@@ -657,10 +659,10 @@ function OptionsDialog({
           </Select>
 
           <label htmlFor="slideshow-speed" className="text-right">
-            速度
+            {tr('速度')}
           </label>
           <div className="flex items-center gap-3">
-            <Turtle className="size-5.5 shrink-0 text-fg/80" aria-label="慢" />
+            <Turtle className="size-5.5 shrink-0 text-fg/80" aria-label={tr('慢')} />
             <input
               id="slideshow-speed"
               type="range"
@@ -672,16 +674,16 @@ function OptionsDialog({
               className="slideshow-range min-w-0 flex-1 text-select"
               style={{ '--filled': `${(draft.speed / (SPEEDS.length - 1)) * 100}%` } as React.CSSProperties}
             />
-            <Rabbit className="size-5.5 shrink-0 text-fg/80" aria-label="快" />
+            <Rabbit className="size-5.5 shrink-0 text-fg/80" aria-label={tr('快')} />
           </div>
         </div>
 
         <p className="mt-6 text-center text-caption text-muted">{MUSIC_CREDIT}</p>
 
         <DialogActions className="mt-4">
-          <DialogButton onClick={onClose}>取消</DialogButton>
+          <DialogButton onClick={onClose}>{tr('取消')}</DialogButton>
           <DialogButton type="submit" variant="primary" autoFocus>
-            保存
+            {tr('保存')}
           </DialogButton>
         </DialogActions>
       </form>
@@ -1036,7 +1038,7 @@ function SlideCaption({
     >
       <h2 className="truncate text-body font-semibold text-white text-shadow-sm">{date}</h2>
       <p className="truncate text-caption text-white/75 tabular-nums text-shadow-sm">
-        {time} · 第 {(index + 1).toLocaleString()} 张，共 {total.toLocaleString()} 张
+        {time} · {tr('第 {i} 张，共 {n} 张', { i: (index + 1).toLocaleString(), n: total })}
       </p>
     </div>
   )

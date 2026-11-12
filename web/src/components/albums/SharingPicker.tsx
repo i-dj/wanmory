@@ -5,6 +5,7 @@ import UserAvatar from '@/components/ui/UserAvatar'
 import { listUsers, type Sharing, type User } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { useCurrentUser } from '@/lib/session'
+import { t } from '@/i18n'
 
 // SharingPicker 选相册给谁看（新建相册和「权限设置」里都用）：上面一排三个「所有人 | 指定成员 | 仅自己」，
 // 下面一块浅色底、固定高度的面板，切换时窗口不会变高变矮：
@@ -43,23 +44,23 @@ export default function SharingPicker({
 
   return (
     <div>
-      <div role="radiogroup" aria-label="权限设置" className="grid grid-cols-3 gap-1 rounded-panel bg-line/50 p-1">
+      <div role="radiogroup" aria-label={t('权限设置')} className="grid grid-cols-3 gap-1 rounded-panel bg-line/50 p-1">
         <Segment
           icon={Users}
-          label="所有人"
+          label={t('所有人')}
           checked={mode === 'all'}
           onClick={() => onChange({ private: false, members: [] })}
         />
         <Segment
           icon={UserCheck}
-          label="指定成员"
+          label={t('指定成员')}
           checked={mode === 'some'}
           disabled={others.length === 0}
           onClick={pickSome}
         />
         <Segment
           icon={Lock}
-          label="仅自己"
+          label={t('仅自己')}
           checked={mode === 'me'}
           onClick={() => onChange({ private: true, members: [] })}
         />
@@ -67,12 +68,12 @@ export default function SharingPicker({
       {/* 下面一块浅色底的面板，高度固定，切换时窗口不变 */}
       <div className="mt-3 flex min-h-16 flex-col justify-center rounded-panel bg-fg/[0.04] px-4 py-3.5">
         {mode === 'me' ? (
-          (privateExtra ?? <p className="text-caption leading-relaxed text-muted">只有你看得到这个相册。</p>)
+          (privateExtra ?? <p className="text-caption leading-relaxed text-muted">{t('只有你看得到这个相册。')}</p>)
         ) : mode === 'all' ? (
           <p className="text-caption leading-relaxed text-muted">
             {others.length === 0
-              ? '所有成员都能查看和添加照片。还没有其他成员，可以在「系统设置」里添加。'
-              : '所有成员都能查看和添加照片，包括以后新加的。'}
+              ? t('所有成员都能查看和添加照片。还没有其他成员，可以在「系统设置」里添加。')
+              : t('所有成员都能查看和添加照片，包括以后新加的。')}
           </p>
         ) : (
           <div className="flex h-7 [scrollbar-width:none] items-center gap-5 overflow-x-auto">

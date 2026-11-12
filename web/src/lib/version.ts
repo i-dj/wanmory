@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { type UpdateStatus, serverVersion, updateStatus } from './api'
+import { t } from '@/i18n'
 
 // 版本号和有没有新版本：菜单顶上和「设置 → 系统更新」共用一份，打开页面时各问一次，设置里点「检查更新」时刷新
 
@@ -15,7 +16,7 @@ const subscribe = (l: () => void) => {
 }
 
 // 版本号显示成 v0.2.1，本机开发时是「开发版」
-export const versionLabel = (v: string) => (v === 'dev' ? '开发版' : `v${v}`)
+export const versionLabel = (v: string) => (v === 'dev' ? t('开发版') : `v${v}`)
 
 export function useVersion(): string | null {
   const v = useSyncExternalStore(subscribe, () => version)

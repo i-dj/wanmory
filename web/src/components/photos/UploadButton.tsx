@@ -1,5 +1,6 @@
 import { Upload } from 'lucide-react'
 import { useRef } from 'react'
+import { t } from '@/i18n'
 
 // 选文件窗口里能选的：和服务器支持的扩展名一致（server/internal/assets/ingest.go 的 supportedExts）。
 // 只写扩展名、不写 image/* 这种通配：macOS 打开选文件窗口前要把通配展开成几百种文件类型，点了要卡一下才弹出来
@@ -22,7 +23,7 @@ export default function UploadButton({ onFiles }: { onFiles: (files: FileList) =
         className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-fg/[0.04] px-3.5 text-body font-medium whitespace-nowrap text-fg transition-colors hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Upload className="size-4" strokeWidth={2} />
-        上传
+        {t('上传')}
       </button>
       <input
         ref={input}

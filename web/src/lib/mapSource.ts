@@ -9,13 +9,14 @@
 import L from 'leaflet'
 import { listSettings } from './api'
 import { TILE_ATTRIBUTION, TILE_URL } from './geo'
+import { t } from '@/i18n'
 
 export type MapSource = 'auto' | 'amap' | 'osm'
 export const SETTING_MAP_SOURCE = 'maps.source'
 
 export const AMAP_ROAD_URL =
   'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
-export const AMAP_ATTRIBUTION = '© 高德地图'
+export const AMAP_ATTRIBUTION = t('© 高德地图')
 
 let source: Promise<MapSource> | null = null
 

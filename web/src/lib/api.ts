@@ -1,6 +1,11 @@
 // 后端接口。类型和 server/internal 里的 JSON 字段保持一致。
 
 import * as tus from 'tus-js-client'
+import { locale, t } from '@/i18n'
+import { choiceLabel, modelLabel, serverText as translate } from '@/i18n/server'
+
+// serverText：服务器回的错误提示是中文原文，换成当前语言（翻译表里有的话；没有就原样显示）
+const serverText = (msg: unknown) => (typeof msg === 'string' && msg ? translate(msg) : undefined)
 
 export interface Asset {
   id: string
@@ -72,7 +77,7 @@ async function getJSON<T>(url: string): Promise<T> {
   if (!res.ok) {
     // 服务器说了原因（{"error": "..."}）就用它，例如搜索要用的 AI 服务还没准备好
     const data = await res.json().catch(() => null)
-    throw new Error(data?.error ?? `${url}: ${res.status}`)
+    throw new Error(serverText(data?.error) ?? `${url}: ${res.status}`)
   }
   return res.json()
 }
@@ -314,7 +319,7 @@ export function startUpload(
         onDone({ error: body.slice(body.indexOf(': ') + 2) || `HTTP ${status}` })
       } else {
         onDone({
-          error: status ? `服务器错误（HTTP ${status}）` : '网络错误，已多次重试仍失败',
+          error: status ? t('服务器错误（HTTP {status}）', { status }) : t('网络错误，已多次重试仍失败'),
           retryable: true,
         })
       }
@@ -393,7 +398,7 @@ async function send<T>(method: string, url: string, body?: unknown): Promise<T> 
   if (!url.startsWith('/api/auth/')) checkAuth(res) // 登录接口自己的 401 是「密码不对」，不是过期
   const text = await res.text()
   const data = text ? JSON.parse(text) : undefined
-  if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+  if (!res.ok) throw new Error(serverText(data?.error) ?? `HTTP ${res.status}`)
   return data as T
 }
 
@@ -406,12 +411,22 @@ export interface User {
   // 另外两种头像，比 avatar 优先：'cartoon:fox' 卡通头像，'file:<时间>' 上传裁好的图片；空字符串是没有
   avatar_style?: string
   created_at: string
+  locale?: string // 自己选的界面语言（只在自己登录的回答里有）；没有是跟着浏览器
 }
 // guest：访客模式开着（没登录也能只读浏览共享的照片，见 server/internal/auth 的 guestPaths）
 export const authState = () => getJSON<{ setup_needed: boolean; user: User | null; guest: boolean }>('/api/auth/state')
 // remember：「记住登录状态」，不记住时关了浏览器就退出
+// 开着两步验证时第一步只回答 totp_required 和一张票，接着用 loginTOTP 带着票和验证码登录
+export type LoginResult = { user: User } | { totp_required: true; ticket: string }
 export const login = (name: string, password: string, remember = true) =>
-  send<{ user: User }>('POST', '/api/auth/login', { name, password, remember })
+  send<LoginResult>('POST', '/api/auth/login', { name, password, remember })
+export const loginTOTP = (ticket: string, code: string) =>
+  send<{ user: User }>('POST', '/api/auth/login/totp', { ticket, code })
+// 两步验证：开启分两步（setup 拿密钥和二维码内容，enable 输对一次验证码、拿到备用码），关掉要输登录密码
+export const totpSetup = () => send<{ secret: string; uri: string }>('POST', '/api/auth/totp/setup')
+export const totpEnable = (code: string) =>
+  send<{ recovery_codes: string[] }>('POST', '/api/auth/totp/enable', { code })
+export const totpDisable = (password: string) => send<void>('POST', '/api/auth/totp/disable', { password })
 export const setupAdmin = (name: string, password: string) =>
   send<{ user: User }>('POST', '/api/auth/setup', { name, password })
 export const logout = () => send<void>('POST', '/api/auth/logout')
@@ -443,12 +458,15 @@ export interface Account {
   uploaded: number
   hidden: number
   devices: Device[]
+  totp: { enabled: boolean; recovery_left: number } // 两步验证开没开、还剩几个备用码
 }
 export const getAccount = () => getJSON<Account>('/api/auth/account')
 export const renameMe = (name: string) => send<{ user: User }>('PUT', '/api/auth/name', { name })
 export const logoutOthers = () => send<void>('DELETE', '/api/auth/sessions')
 export const setAvatar = (assetId: string | null) =>
   send<{ user: User }>('PUT', '/api/auth/avatar', { asset_id: assetId })
+// setUserLocale：把界面语言存到账号上（'' 是跟着浏览器）；演示账号不让存，只存在浏览器里
+export const setUserLocale = (locale: string) => send<void>('PUT', '/api/auth/locale', { locale })
 export const setCartoonAvatar = (cartoon: string) => send<{ user: User }>('PUT', '/api/auth/avatar', { cartoon })
 // uploadAvatar 传裁好的头像图片（网页上裁成正方形、缩到 512 像素的 JPEG）
 export async function uploadAvatar(image: Blob): Promise<{ user: User }> {
@@ -457,7 +475,10 @@ export async function uploadAvatar(image: Blob): Promise<{ user: User }> {
     body: image,
     headers: { 'Content-Type': image.type },
   })
-  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `上传失败（${res.status}）`)
+  if (!res.ok)
+    throw new Error(
+      serverText((await res.json().catch(() => null))?.error) ?? t('上传失败（{status}）', { status: res.status }),
+    )
   return res.json()
 }
 // avatarFileUrl 是上传的头像图片的地址（带上传时间，换了头像地址就变）
@@ -471,12 +492,26 @@ export const deleteUser = (id: string) => send<void>('DELETE', `/api/users/${id}
 export const resetPassword = (id: string, password: string) =>
   send<void>('PUT', `/api/users/${id}/password`, { password })
 
-export const listSettings = () => getJSON<SettingItem[]>('/api/settings')
+// 设置项的名字、说明、选项是服务器写的中文，换成界面语言
+export const listSettings = () =>
+  getJSON<SettingItem[]>('/api/settings').then((items) =>
+    items.map((it) => ({
+      ...it,
+      label: translate(it.label),
+      description: it.description && translate(it.description),
+      choices: it.choices?.map((c) => ({ ...c, label: choiceLabel(c.label), hint: c.hint && translate(c.hint) })),
+    })),
+  )
 
 // NetStatus 是访问域名现在的状态（设置页显示网址用）
 export interface NetStatus {
   domain: string
-  url: string // 浏览器里打开的网址，例如 http://wanmory.local:8080
+  url: string // 用域名打开的网址，例如 http://wanmory.local:8080
+  ip: string // 这台机器的局域网 IP；Docker 里 mdns 服务还没报上来时为空
+  ip_url: string // 用 IP 打开的网址，例如 http://192.168.1.20:8080；不知道 IP 时为空
+  port: string // 浏览器里用的端口
+  docker: boolean // 在 Docker 里：端口要在服务器上改 .env
+  install_dir: string // Docker 安装的目录（安装脚本记下的），不知道时为空
 }
 export const netStatus = () => getJSON<NetStatus>('/api/net')
 export const saveSetting = (key: string, value: unknown) =>
@@ -515,11 +550,42 @@ export interface InfoPatch {
 // updateAsset 修改一张照片，只改传了的字段，返回修改后的照片。
 export const updateAsset = (id: string, patch: InfoPatch) => send<Asset>('PATCH', `/api/assets/${id}`, patch)
 
-// GeoPlace 是一个地方所在的城市、省（州）、国家
+// GeoPlace 是一个地方所在的城市、省（州）、国家：city、state、country 是简体中文；
+// city_en、state_en 是英文写法，country_code 是国家代码（小写），界面不是中文时用（见 localGeo）
 export interface GeoPlace {
   city: string
-  state?: string
-  country?: string
+  state?: string | null
+  country?: string | null
+  city_en?: string | null
+  state_en?: string | null
+  country_code?: string | null
+}
+
+const regionNames = (() => {
+  try {
+    return new Intl.DisplayNames([locale()], { type: 'region' })
+  } catch {
+    return null
+  }
+})()
+
+// localGeo 把地名换成界面的语言：中文界面用中文名；其他语言城市、省州用英文写法（以前查的还没补上英文时先用中文），
+// 国家按国家代码用浏览器里这种语言的国家名
+export function localGeo(g: GeoPlace): { city: string; state?: string; country?: string } {
+  const zh = locale().startsWith('zh')
+  let country = g.country ?? undefined
+  if (!zh && g.country_code) {
+    try {
+      country = regionNames?.of(g.country_code.toUpperCase()) ?? country
+    } catch {
+      // 不认识的代码：用存的名字
+    }
+  }
+  return {
+    city: (!zh && g.city_en) || g.city,
+    state: ((!zh && g.state_en) || g.state) ?? undefined,
+    country,
+  }
 }
 // assetPlace 让服务器查照片所在的城市（库里没有就当场问 OpenStreetMap，查到存进库里）。没有坐标、那里没有城市、
 // 设置里关了在线地图时是 null
@@ -583,7 +649,11 @@ export function downloadAssets(ids: string[]) {
   input.type = 'hidden'
   input.name = 'ids'
   input.value = ids.join(',')
-  form.append(input)
+  const name = document.createElement('input') // 多张时压缩包的名字，跟界面语言走
+  name.type = 'hidden'
+  name.name = 'name'
+  name.value = t('Wanmory {n} 项', { n: ids.length })
+  form.append(input, name)
   document.body.append(form)
   form.submit()
   form.remove()
@@ -796,12 +866,22 @@ export interface AIStatus {
   // storage：模型存在哪，mounted 是不是挂载进容器的目录（不在容器里时是 null）；auto_download 为 false 时要手动下载
   models?: { catalog?: AIModel[]; storage?: { dir: string; mounted: boolean | null }; auto_download?: boolean } | null
 }
-export const aiStatus = () => getJSON<AIStatus>('/api/ai/status')
+// localAI：模型名字、出错原因是服务器写的中文，换成界面语言
+const localAI = (s: AIStatus): AIStatus => ({
+  ...s,
+  error: s.error && translate(s.error),
+  models: s.models && {
+    ...s.models,
+    catalog: s.models.catalog?.map((m) => ({ ...m, label: modelLabel(m.label) })),
+  },
+})
+export const aiStatus = () => getJSON<AIStatus>('/api/ai/status').then(localAI)
 export const setAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '') =>
-  send<AIStatus>('PUT', '/api/ai/endpoint', { mode, url, token })
-export const setAIDevice = (device: AIDevice) => send<AIStatus>('PUT', '/api/ai/device', { device })
-export const setAITier = (tier: AITier | 'auto') => send<AIStatus>('PUT', '/api/ai/tier', { tier })
-export const deleteAIModel = (id: string) => send<AIStatus>('DELETE', `/api/ai/models/${encodeURIComponent(id)}`)
+  send<AIStatus>('PUT', '/api/ai/endpoint', { mode, url, token }).then(localAI)
+export const setAIDevice = (device: AIDevice) => send<AIStatus>('PUT', '/api/ai/device', { device }).then(localAI)
+export const setAITier = (tier: AITier | 'auto') => send<AIStatus>('PUT', '/api/ai/tier', { tier }).then(localAI)
+export const deleteAIModel = (id: string) =>
+  send<AIStatus>('DELETE', `/api/ai/models/${encodeURIComponent(id)}`).then(localAI)
 // testAIEndpoint 不保存，只试一下填的地址连不连得上（令牌空着时用存着的）
 export const testAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '') =>
   send<{ ok: boolean; version?: string; latency_ms?: number; error?: string }>('POST', '/api/ai/test', {
@@ -809,10 +889,10 @@ export const testAIEndpoint = (mode: 'builtin' | 'remote', url = '', token = '')
     url,
     token,
   })
-export const setAIParallel = (parallel: number) => send<AIStatus>('PUT', '/api/ai/parallel', { parallel })
-export const setAIThreads = (threads: number) => send<AIStatus>('PUT', '/api/ai/threads', { threads })
+export const setAIParallel = (parallel: number) => send<AIStatus>('PUT', '/api/ai/parallel', { parallel }).then(localAI)
+export const setAIThreads = (threads: number) => send<AIStatus>('PUT', '/api/ai/threads', { threads }).then(localAI)
 export const downloadAIModel = (id: string) =>
-  send<AIStatus>('POST', `/api/ai/models/${encodeURIComponent(id)}/download`)
+  send<AIStatus>('POST', `/api/ai/models/${encodeURIComponent(id)}/download`).then(localAI)
 
 // 设置 → 性能：同时处理几个任务（读元数据、缩略图）、AI 什么时候跑（idle 空闲时、always 随时、night 只在夜间时段）
 export type PerfSchedule = 'idle' | 'always' | 'night'
@@ -864,4 +944,7 @@ export interface UpdateStatus {
 }
 export const serverVersion = () => getJSON<{ version: string }>('/api/version')
 export const updateStatus = (refresh = false) =>
-  getJSON<UpdateStatus>(`/api/system/update${refresh ? '?refresh=1' : ''}`)
+  getJSON<UpdateStatus>(`/api/system/update${refresh ? '?refresh=1' : ''}`).then((u) => ({
+    ...u,
+    error: u.error && translate(u.error),
+  }))

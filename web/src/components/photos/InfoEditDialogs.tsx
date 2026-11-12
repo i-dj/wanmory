@@ -6,6 +6,7 @@ import { type Asset, type AssetDetails, type InfoPatch, thumbnailUrl } from '@/l
 import { formatCoords } from '@/lib/format'
 import { osmLink, parseCoords, type Place, searchPlaces, usePlaceName } from '@/lib/geo'
 import Modal, { DialogActions } from '@/components/ui/Modal'
+import { locale, t } from '@/i18n'
 
 // 地图库（Leaflet）比较大，用到地图时才加载
 const PlaceMap = lazy(() => import('./PlaceMap'))
@@ -42,7 +43,7 @@ export function AdjustDateDialog({
 
   return (
     <EditDialog
-      title={batch ? `调整 ${count} 张照片的日期和时间` : '调整日期和时间'}
+      title={batch ? t('调整 {count} 张照片的日期和时间', { count }) : t('调整日期和时间')}
       canSave={changed && local !== ''}
       busy={run.busy}
       error={run.error}
@@ -58,7 +59,7 @@ export function AdjustDateDialog({
         />
       )}
       <div className="mt-5 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2.5">
-        <span className="text-right text-body text-muted">{batch ? '最早一张' : '原始'}</span>
+        <span className="text-right text-body text-muted">{batch ? t('最早一张') : t('原始')}</span>
         <input
           readOnly
           tabIndex={-1}
@@ -68,11 +69,11 @@ export function AdjustDateDialog({
               ? `${formatClock(start.local)}  ${offsetLabel(start.offset)}`
               : original?.taken_at_local
                 ? `${formatClock(original.taken_at_local)}${original.taken_at_offset ? `  ${offsetLabel(original.taken_at_offset)}` : ''}`
-                : '文件里没有记录拍摄时间'
+                : t('文件里没有记录拍摄时间')
           }
         />
         <label htmlFor="adjust-time" className="text-right text-body">
-          调整后
+          {t('调整后')}
         </label>
         <input
           id="adjust-time"
@@ -84,7 +85,7 @@ export function AdjustDateDialog({
           autoFocus
         />
         <label htmlFor="adjust-offset" className="text-right text-body">
-          时区
+          {t('时区')}
         </label>
         <select id="adjust-offset" value={offset} onChange={(e) => setOffset(e.target.value)} className={fieldClass}>
           {offsetChoices(offset).map((o) => (
@@ -96,12 +97,12 @@ export function AdjustDateDialog({
       </div>
       {batch && (
         <p className="mt-3 text-caption text-muted">
-          调的是最早那张的时间，其他 {count - 1} 张跟着挪同样的时长，照片之间的间隔不变。
+          {t('调的是最早那张的时间，其他 {n} 张跟着挪同样的时长，照片之间的间隔不变。', { n: count - 1 })}
         </p>
       )}
       {edited && (
         <ResetLink disabled={run.busy} onClick={() => run.save({ reset: ['taken_at'] })}>
-          {batch ? '全部还原为文件里记录的时间' : '还原为文件里记录的时间'}
+          {batch ? t('全部还原为文件里记录的时间') : t('还原为文件里记录的时间')}
         </ResetLink>
       )}
     </EditDialog>
@@ -161,7 +162,7 @@ export function EditLocationDialog({
 
   return (
     <EditDialog
-      title={count > 1 ? `修改 ${count} 张照片的位置` : '编辑位置'}
+      title={count > 1 ? t('修改 {count} 张照片的位置', { count }) : t('编辑位置')}
       canSave={changed || !uniform}
       busy={run.busy}
       error={run.error || search.error}
@@ -171,7 +172,7 @@ export function EditLocationDialog({
     >
       <div className="relative">
         <TextField
-          label={mapsOn ? '搜索地点，或输入坐标' : '输入坐标，例如 28.3575, -81.5582'}
+          label={mapsOn ? t('搜索地点，或输入坐标') : t('输入坐标，例如 28.3575, -81.5582')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -183,12 +184,15 @@ export function EditLocationDialog({
           autoFocus
         />
         {search.searching && (
-          <LoaderCircle className="absolute top-3.5 right-3 size-5 animate-spin text-muted" aria-label="正在搜索" />
+          <LoaderCircle
+            className="absolute top-3.5 right-3 size-5 animate-spin text-muted"
+            aria-label={t('正在搜索')}
+          />
         )}
         {searching && query.trim() !== '' && (typed || search.results.length > 0) && (
           <div role="listbox" className="glass-menu absolute inset-x-0 top-full z-10 mt-1 rounded-panel p-1">
             {(typed
-              ? [{ name: `坐标 ${formatCoords(typed.latitude, typed.longitude)}`, detail: '', ...typed }]
+              ? [{ name: t('坐标 {v0}', { v0: formatCoords(typed.latitude, typed.longitude) }), detail: '', ...typed }]
               : search.results
             ).map((p: Place) => (
               <button
@@ -226,7 +230,7 @@ export function EditLocationDialog({
             />
           </Suspense>
         ) : (
-          <p className="px-3 py-6 text-center text-caption text-muted">在线地图已在设置里关闭，只能输入坐标</p>
+          <p className="px-3 py-6 text-center text-caption text-muted">{t('在线地图已在设置里关闭，只能输入坐标')}</p>
         )}
         <div className="flex min-h-11 items-center gap-2 border-t border-line px-3 py-2 text-body">
           {point ? (
@@ -240,7 +244,7 @@ export function EditLocationDialog({
               <ArrowUpRight className="size-4 shrink-0" />
             </a>
           ) : (
-            <span className="text-muted">没有位置{mapsOn && '，在地图上点一下放上去'}</span>
+            <span className="text-muted">{mapsOn ? t('没有位置，在地图上点一下放上去') : t('没有位置')}</span>
           )}
         </div>
       </div>
@@ -248,12 +252,12 @@ export function EditLocationDialog({
       <div className="mt-3 flex flex-col items-center gap-1">
         {point && (
           <button type="button" onClick={() => setPoint(null)} className="text-body text-accent hover:underline">
-            移除位置
+            {t('移除位置')}
           </button>
         )}
         {edited && (
           <ResetLink disabled={run.busy} onClick={() => run.save({ reset: ['location'] })}>
-            {count > 1 ? '全部还原为文件里记录的位置' : '还原为文件里记录的位置'}
+            {count > 1 ? t('全部还原为文件里记录的位置') : t('还原为文件里记录的位置')}
           </ResetLink>
         )}
       </div>
@@ -293,9 +297,9 @@ function EditDialog({
         {children}
         {error && <p className="mt-3 text-center text-caption text-danger">{error}</p>}
         <DialogActions>
-          <DialogButton onClick={onClose}>取消</DialogButton>
+          <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
           <DialogButton type="submit" variant="primary" disabled={!canSave || busy}>
-            {busy ? '保存中…' : '保存'}
+            {busy ? t('保存中…') : t('保存')}
           </DialogButton>
         </DialogActions>
       </form>
@@ -327,7 +331,7 @@ function useRunner(onSave: Save, onClose: () => void) {
       await onSave(patch)
       onClose()
     } catch (e) {
-      setError(`没有保存成功：${e instanceof Error ? e.message : e}`)
+      setError(t('没有保存成功：{v0}', { v0: e instanceof Error ? e.message : e }))
       setBusy(false)
     }
   }
@@ -389,7 +393,7 @@ const offsetLabel = (o: string) => `UTC${o.replace('-', '−')}`
 const withSeconds = (v: string) => (v.length === 16 ? `${v}:00` : v)
 
 const formatClock = (local: string) =>
-  new Date(local + 'Z').toLocaleString('zh-CN', {
+  new Date(local + 'Z').toLocaleString(locale(), {
     timeZone: 'UTC',
     year: 'numeric',
     month: '2-digit',

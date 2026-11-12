@@ -11,6 +11,7 @@ import { formatSize } from '@/lib/format'
 import { dayTitle } from '@/lib/groups'
 import { showAlert, showError } from '@/lib/dialog'
 import { lockScroll } from '@/lib/scrollLock'
+import { t as tr } from '@/i18n'
 
 // BurstsPage 是连拍整理：几秒内连着拍的一组照片、同一个场景接着拍的几张（看起来几乎一样）、同一张存了几份的，
 // 放在一起，自动挑出最好的一张
@@ -87,23 +88,27 @@ export default function BurstsPage() {
       await reviewBursts(ids, trash)
       const done = new Set(targets.map(keyOf))
       setBursts((prev) => prev?.filter((b) => !done.has(keyOf(b))) ?? null)
-      showAlert(keepAll ? '都保留了，这一组不会再出现' : `已把 ${trash.length.toLocaleString()} 张放进「最近删除」`)
+      showAlert(
+        keepAll
+          ? tr('都保留了，这一组不会再出现')
+          : tr('已把 {v0} 张放进「最近删除」', { v0: trash.length.toLocaleString() }),
+      )
     } catch (e) {
-      showError('没有整理成功', e)
+      showError(tr('没有整理成功'), e)
     } finally {
       setBusy(false)
     }
   }
 
-  const label = current === 'duplicates' ? '重复' : '连拍和相似'
+  const label = current === 'duplicates' ? tr('重复') : tr('连拍和相似')
   return (
     <section className="pb-12">
       <PageHeader
-        title="连拍整理"
+        title={tr('连拍整理')}
         right={
           !!groups.length && (
             <Button primary disabled={busy} onClick={() => setConfirmAll(true)}>
-              {current === 'duplicates' ? '全部去重' : '全部按推荐整理'}
+              {current === 'duplicates' ? tr('全部去重') : tr('全部按推荐整理')}
             </Button>
           )
         }
@@ -112,25 +117,30 @@ export default function BurstsPage() {
       {!!bursts?.length && (
         <div className="mt-4">
           <Segmented
-            label="连拍的种类"
+            label={tr('连拍的种类')}
             value={current}
             onChange={setTab}
             segments={[
-              { value: 'bursts', label: `连拍和相似 ${lists.bursts.length.toLocaleString()}` },
-              { value: 'duplicates', label: `重复 ${lists.duplicates.length.toLocaleString()}` },
+              { value: 'bursts', label: tr('连拍和相似 {v0}', { v0: lists.bursts.length.toLocaleString() }) },
+              { value: 'duplicates', label: tr('重复 {v0}', { v0: lists.duplicates.length.toLocaleString() }) },
             ]}
           />
         </div>
       )}
-      {error && <p className="mt-6 text-body text-danger">没有读到：{error}</p>}
+      {error && (
+        <p className="mt-6 text-body text-danger">
+          {tr('没有读到：')}
+          {error}
+        </p>
+      )}
 
       {bursts && groups.length === 0 && (
         <div className="mt-16 flex flex-col items-center text-center text-muted">
           <Layers className="size-12" strokeWidth={1.2} />
           <p className="mt-3 max-w-md text-body">
             {bursts.length
-              ? `没有要整理的${label}了。`
-              : '没有要整理的连拍了。几秒内连着拍的、同一个场景接着拍的几张、同一张存了几份的，会出现在这里。'}
+              ? tr('没有要整理的{label}了。', { label })
+              : tr('没有要整理的连拍了。几秒内连着拍的、同一个场景接着拍的几张、同一张存了几份的，会出现在这里。')}
           </p>
         </div>
       )}
@@ -166,13 +176,18 @@ export default function BurstsPage() {
       )}
 
       {confirmAll && (
-        <Modal title={current === 'duplicates' ? '全部去重' : '全部按推荐整理'} onClose={() => setConfirmAll(false)}>
+        <Modal
+          title={current === 'duplicates' ? tr('全部去重') : tr('全部按推荐整理')}
+          onClose={() => setConfirmAll(false)}
+        >
           <p className="text-body text-muted">
-            {label}的每组只保留选中的那张（没换过的是推荐的），其余 {extra.count.toLocaleString()}{' '}
-            张放进「最近删除」，随时可以恢复。
+            {tr('{label}的每组只保留选中的那张（没换过的是推荐的），其余 {n} 张放进「最近删除」，随时可以恢复。', {
+              label,
+              n: extra.count,
+            })}
           </p>
           <DialogActions>
-            <DialogButton onClick={() => setConfirmAll(false)}>取消</DialogButton>
+            <DialogButton onClick={() => setConfirmAll(false)}>{tr('取消')}</DialogButton>
             <DialogButton
               variant="primary"
               disabled={busy}
@@ -181,7 +196,7 @@ export default function BurstsPage() {
                 void review(groups, false)
               }}
             >
-              整理 {groups.length.toLocaleString()} 组
+              {tr('整理 {n} 组', { n: groups.length })}
             </DialogButton>
           </DialogActions>
         </Modal>
@@ -220,7 +235,7 @@ function BurstGroup({
                 type="button"
                 onClick={() => onPick(p.id)}
                 aria-pressed={kept}
-                aria-label={kept ? '保留这张' : '换成保留这张'}
+                aria-label={kept ? tr('保留这张') : tr('换成保留这张')}
                 className={cx(
                   'relative block size-32 cursor-pointer overflow-hidden rounded-item bg-line transition',
                   kept ? 'ring-3 ring-select' : 'opacity-55 hover:opacity-90',
@@ -236,7 +251,7 @@ function BurstGroup({
                 {p.id === burst.best && (
                   <span className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-micro font-medium text-white backdrop-blur">
                     <Sparkles className="size-3" />
-                    推荐
+                    {tr('推荐')}
                   </span>
                 )}
                 {kept && (
@@ -255,8 +270,8 @@ function BurstGroup({
                 <button
                   type="button"
                   onClick={() => onCompare(i)}
-                  aria-label="放大对比"
-                  title="放大对比"
+                  aria-label={tr('放大对比')}
+                  title={tr('放大对比')}
                   className="absolute top-1.5 right-1.5 flex size-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100 focus-visible:opacity-100"
                 >
                   <Maximize2 className="size-3.5" />
@@ -267,11 +282,11 @@ function BurstGroup({
         })}
       </div>
       <div className="mt-2.5 flex justify-end gap-1.5">
-        <CardButton disabled={busy} onClick={onKeepAll} title="这一组都留着，以后不再列出">
-          都保留
+        <CardButton disabled={busy} onClick={onKeepAll} title={tr('这一组都留着，以后不再列出')}>
+          {tr('都保留')}
         </CardButton>
-        <CardButton primary disabled={busy} onClick={onKeepOne} title="只留选中的那张，其余放进「最近删除」">
-          保留
+        <CardButton primary disabled={busy} onClick={onKeepOne} title={tr('只留选中的那张，其余放进「最近删除」')}>
+          {tr('保留')}
         </CardButton>
       </div>
     </li>
@@ -354,7 +369,7 @@ function CompareViewer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="放大对比"
+      aria-label={tr('放大对比')}
       className="theme-dark fixed inset-0 z-50 flex flex-col bg-black/95"
     >
       <div className="flex items-center gap-3 px-4 py-3 text-white">
@@ -364,19 +379,19 @@ function CompareViewer({
         {photo.id === burst.best && (
           <span className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-caption">
             <Sparkles className="size-3" />
-            推荐
+            {tr('推荐')}
           </span>
         )}
         <span className="text-caption text-white/60 tabular-nums">{formatSize(photo.size)}</span>
         <div className="flex-1" />
         <Button primary disabled={kept} onClick={() => onPick(photo.id)}>
           <Check className="size-4" strokeWidth={kept ? 3 : 2} />
-          {kept ? '已保留这张' : '换成保留这张'}
+          {kept ? tr('已保留这张') : tr('换成保留这张')}
         </Button>
         <button
           type="button"
           onClick={onClose}
-          aria-label="关闭"
+          aria-label={tr('关闭')}
           className="rounded-full p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
         >
           <X className="size-5" />
@@ -390,8 +405,8 @@ function CompareViewer({
           draggable={false}
           className="size-full object-contain"
         />
-        {count > 1 && nav(-1, ChevronLeft, '上一张', 'left-3')}
-        {count > 1 && nav(1, ChevronRight, '下一张', 'right-3')}
+        {count > 1 && nav(-1, ChevronLeft, tr('上一张'), 'left-3')}
+        {count > 1 && nav(1, ChevronRight, tr('下一张'), 'right-3')}
       </div>
       <div className="flex justify-center gap-2 overflow-x-auto px-4 py-3">
         {burst.photos.map((p, i) => (
@@ -399,7 +414,7 @@ function CompareViewer({
             key={p.id}
             type="button"
             onClick={() => setIndex(i)}
-            aria-label={`第 ${i + 1} 张`}
+            aria-label={tr('第 {v0} 张', { v0: i + 1 })}
             aria-current={i === index}
             className={cx(
               'relative size-16 shrink-0 overflow-hidden rounded-item transition',

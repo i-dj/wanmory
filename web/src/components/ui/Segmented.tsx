@@ -28,10 +28,7 @@ export default function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={cx(
-        'gap-1 text-body',
-        stretch ? 'flex' : 'inline-flex shrink-0 self-center',
-      )}
+      className={cx('gap-1 text-body', stretch ? 'flex' : 'inline-flex shrink-0 self-center')}
     >
       {segments.map((s) => {
         const className = cx(

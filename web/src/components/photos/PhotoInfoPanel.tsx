@@ -30,6 +30,7 @@ import {
 import { osmLink, useMapsEnabled, usePlaceName } from '@/lib/geo'
 import { AdjustDateDialog, EditLocationDialog } from './InfoEditDialogs'
 import { showError } from '@/lib/dialog'
+import { t } from '@/i18n'
 
 // 地图库（Leaflet）比较大，用到地图时才加载
 const PlaceMap = lazy(() => import('./PlaceMap'))
@@ -63,19 +64,19 @@ export default function PhotoInfoPanel({
 
   return (
     <aside
-      aria-label="照片信息"
+      aria-label={t('照片信息')}
       className="flex w-90 shrink-0 flex-col border-l border-line bg-surface text-body max-sm:absolute max-sm:inset-y-0 max-sm:right-0 max-sm:z-20 max-sm:shadow-2xl"
     >
       <header className="relative flex h-13 shrink-0 items-center justify-center px-4">
         <button
           type="button"
-          aria-label="关闭信息"
+          aria-label={t('关闭信息')}
           onClick={onClose}
           className="absolute left-3 flex size-8 items-center justify-center rounded-full text-fg/80 hover:bg-fg/7"
         >
           <X className="size-5" />
         </button>
-        <h2 className="text-heading font-semibold">信息</h2>
+        <h2 className="text-heading font-semibold">{t('信息')}</h2>
       </header>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-6">
@@ -91,7 +92,7 @@ export default function PhotoInfoPanel({
         <p className="flex items-center gap-2 px-1 text-caption text-muted">
           <Upload className="size-3.5" strokeWidth={1.8} />
           {asset.uploader_name ? `${asset.uploader_name} · ` : ''}
-          {formatDateTime(asset.created_at)} 添加到图库
+          {t('{time} 添加到图库', { time: formatDateTime(asset.created_at) })}
         </p>
       </div>
 
@@ -123,15 +124,15 @@ function Description({ asset, onSave }: { asset: Asset; onSave: (patch: InfoPatc
     try {
       await onSave({ description: value })
     } catch (e) {
-      showError('说明没有保存成功', e)
+      showError(t('说明没有保存成功'), e)
       setText(asset.description)
     }
   }
   return (
     <Card>
       <textarea
-        aria-label="说明"
-        placeholder="添加说明"
+        aria-label={t('说明')}
+        placeholder={t('添加说明')}
         rows={1}
         maxLength={2000}
         value={text}
@@ -159,15 +160,15 @@ function Rating({ asset, onChanged }: { asset: Asset; onChanged: (asset: Asset) 
   const shown = hover || rating
   return (
     <Card className="flex h-11 items-center justify-between px-3">
-      <span className="text-muted">星级</span>
-      <span role="radiogroup" aria-label="星级" className="flex" onMouseLeave={() => setHover(0)}>
+      <span className="text-muted">{t('星级')}</span>
+      <span role="radiogroup" aria-label={t('星级')} className="flex" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
             role="radio"
             aria-checked={rating === n}
-            aria-label={rating === n ? `${n} 星，再点清除` : `${n} 星`}
+            aria-label={rating === n ? t('{n} 星，再点清除', { n }) : t('{n} 星', { n })}
             onMouseEnter={() => setHover(n)}
             onClick={() => save({ rating: rating === n ? 0 : n })}
             className={cx('flex size-7 items-center justify-center', n <= shown ? 'text-accent' : 'text-muted')}
@@ -191,7 +192,9 @@ function ShotCard({ asset, onEditDate }: { asset: Asset; onEditDate: () => void 
   const file = [pixels, dimensions(asset), formatSize(asset.file_size)].filter(Boolean).join(' · ')
   const params = c ? exposureStrip(c) : []
   const FileIcon = asset.type === 'video' ? Film : ImageIcon
-  const note = asset.edited.includes('taken_at') ? '已调整' : !asset.taken_at && '文件里没有拍摄时间，按文件修改时间'
+  const note = asset.edited.includes('taken_at')
+    ? t('已调整')
+    : !asset.taken_at && t('文件里没有拍摄时间，按文件修改时间')
 
   return (
     <Card className="divide-y divide-line">
@@ -214,7 +217,7 @@ function ShotCard({ asset, onEditDate }: { asset: Asset; onEditDate: () => void 
 
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <span className="min-w-0 truncate text-heading">
-          {camera ?? <span className="text-muted">没有相机信息</span>}
+          {camera ?? <span className="text-muted">{t('没有相机信息')}</span>}
         </span>
         <Pill>{formatBadge(asset.mime_type)}</Pill>
       </div>
@@ -266,7 +269,7 @@ function PeopleCard({
   const taken = asset.taken_at ? new Date(asset.taken_at) : null
   return (
     <Card>
-      <p className="px-4 pt-3 pb-1 text-caption font-medium text-muted">人物</p>
+      <p className="px-4 pt-3 pb-1 text-caption font-medium text-muted">{t('人物')}</p>
       <ul className="pb-1.5">
         {people.map((p) => {
           const age = p.birthday && taken ? ageWhen(p.birthday, taken) : ''
@@ -301,7 +304,7 @@ function AlbumsCard({
   const [removing, setRemoving] = useState<string | null>(null)
   return (
     <Card>
-      <p className="px-4 pt-3 pb-1 text-caption font-medium text-muted">相册</p>
+      <p className="px-4 pt-3 pb-1 text-caption font-medium text-muted">{t('相册')}</p>
       <ul className="pb-1.5">
         {albums.map((a) => (
           <li key={a.id} className="group flex items-center hover:bg-fg/5">
@@ -316,14 +319,14 @@ function AlbumsCard({
                   <span className="truncate">{a.name}</span>
                   {a.kind === 'smart' && <Sparkles className="size-3.5 shrink-0 text-accent" strokeWidth={2} />}
                 </span>
-                <span className="block text-caption text-muted tabular-nums">{a.count.toLocaleString()} 项</span>
+                <span className="block text-caption text-muted tabular-nums">{t('{n} 项', { n: a.count })}</span>
               </span>
             </button>
             {!isSynced(a) && (
-              <Tooltip label="从相册移除">
+              <Tooltip label={t('从相册移除')}>
                 <button
                   type="button"
-                  aria-label={`从「${a.name}」移除`}
+                  aria-label={t('从「{name}」移除', { name: a.name })}
                   disabled={removing === a.id}
                   onClick={async () => {
                     setRemoving(a.id)
@@ -360,7 +363,7 @@ function LocationCard({ asset, mapsOn, onEdit }: { asset: Asset; mapsOn: boolean
           className="flex h-11 w-full items-center gap-2 px-3 text-accent hover:bg-fg/5"
         >
           <MapPin className="size-4" strokeWidth={1.8} />
-          添加位置
+          {t('添加位置')}
         </button>
       </Card>
     )
@@ -389,7 +392,7 @@ function LocationCard({ asset, mapsOn, onEdit }: { asset: Asset; mapsOn: boolean
         </a>
         <EditLink onClick={onEdit} />
       </div>
-      {asset.edited.includes('location') && <p className="-mt-1.5 px-3 pb-2 text-caption text-muted">已修改</p>}
+      {asset.edited.includes('location') && <p className="-mt-1.5 px-3 pb-2 text-caption text-muted">{t('已修改')}</p>}
     </Card>
   )
 }
@@ -397,7 +400,7 @@ function LocationCard({ asset, mapsOn, onEdit }: { asset: Asset; mapsOn: boolean
 function EditLink({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="shrink-0 text-accent hover:underline">
-      编辑
+      {t('编辑')}
     </button>
   )
 }
@@ -409,12 +412,12 @@ function lensLabel(c: NonNullable<Asset['camera']>): string | null {
   const focal = c.focal_length_35 ?? c.focal_length
   if (!lens || !/\b(back|front)\b.*camera/i.test(lens)) return lens
   const kind = /front/i.test(lens)
-    ? '前置摄像头'
+    ? t('前置摄像头')
     : focal && focal < 20
-      ? '超广角摄像头'
+      ? t('超广角摄像头')
       : focal && focal > 60
-        ? '长焦摄像头'
-        : '主摄像头'
+        ? t('长焦摄像头')
+        : t('主摄像头')
   const tail = [focal && `${Math.round(focal)} mm`, c.f_number && `ƒ${Number(c.f_number.toFixed(2))}`]
   return [kind, tail.filter(Boolean).join(' ')].filter(Boolean).join(' — ')
 }

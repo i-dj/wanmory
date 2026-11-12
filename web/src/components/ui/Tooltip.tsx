@@ -11,19 +11,23 @@ let lastHidden = 0
 // Tooltip 是鼠标停在按钮上时出现的小提示，代替浏览器自带的 title（那个要等很久、样子也和页面不搭）。
 // 默认在上面，上面放不下就放到下面；side 为 right 时在右边（收起的侧边栏）；不超出窗口。键盘 Tab 到按钮上也会出现。
 // 包一层 display: contents 的 span，不影响按钮本身的布局。
+// open 为 true 时不用等鼠标停留、点击也不收起，一直显示（例如点了复制以后显示「已复制」）
 export default function Tooltip({
   label,
   side = 'top',
+  open: forced,
   children,
 }: {
   label: ReactNode
   side?: 'top' | 'bottom' | 'right'
+  open?: boolean
   children: ReactElement
 }) {
   const wrap = useRef<HTMLSpanElement>(null)
   const tip = useRef<HTMLDivElement>(null)
   const timer = useRef<number>(undefined)
-  const [open, setOpen] = useState(false)
+  const [hovered, setOpen] = useState(false)
+  const open = hovered || !!forced
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
 
   const show = () => {
@@ -41,16 +45,16 @@ export default function Tooltip({
   }
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
-  // 滚动、点击时收起：位置会对不上，点了按钮也不需要提示了
+  // 滚动、点击时收起：位置会对不上，点了按钮也不需要提示了（一直显示的不收）
   useEffect(() => {
-    if (!open) return
+    if (!open || forced) return
     window.addEventListener('scroll', hide, true)
     window.addEventListener('pointerdown', hide, true)
     return () => {
       window.removeEventListener('scroll', hide, true)
       window.removeEventListener('pointerdown', hide, true)
     }
-  }, [open])
+  }, [open, forced])
 
   // 出现后量一下提示多大，算出放在哪
   useLayoutEffect(() => {

@@ -4,6 +4,7 @@ import { useElementSize } from '@/hooks/useElementSize'
 import type { VisibleRange } from './PhotoGrid'
 import type { DateCount } from '@/lib/api'
 import { cx } from '@/lib/cx'
+import { fmtMonth, t } from '@/i18n'
 
 // TimelineScrubber 是浮在照片右边的时间线，像 Google 相册：平时隐藏，滚动或鼠标移到窗口最右边时淡入，
 // 不占网格的宽度。
@@ -133,7 +134,7 @@ function TimelineScrubber({
 
   return (
     <nav
-      aria-label="时间线"
+      aria-label={t('时间线')}
       data-keep-selection // 点时间线跳转时不取消选择
       className={cx(
         // 右边一道渐变底色，叠在照片上时年份和小点也看得清
@@ -223,7 +224,7 @@ function TimelineScrubber({
               className="pointer-events-none absolute right-full mr-1 -translate-y-1/2 rounded-full bg-accent px-2.5 py-1 text-caption font-medium whitespace-nowrap text-on-accent shadow-lg"
               style={{ top: pointer }}
             >
-              {jumping ? '加载中…' : hovered.label}
+              {jumping ? t('加载中…') : hovered.label}
             </span>
           </>
         )}
@@ -241,8 +242,22 @@ function buildMonths(months: DateCount[], unit: 'month' | 'day') {
     const [year, month, day] = date.split('-').map(Number)
     const m: Month =
       unit === 'day'
-        ? { key: date, group: `${year}-${month}`, groupLabel: `${month}月`, label: `${month}月${day}日`, start, count }
-        : { key: date, group: String(year), groupLabel: String(year), label: `${year}年${month}月`, start, count }
+        ? {
+            key: date,
+            group: `${year}-${month}`,
+            groupLabel: t('{month}月', { month }),
+            label: t('{month}月{day}日', { month, day }),
+            start,
+            count,
+          }
+        : {
+            key: date,
+            group: String(year),
+            groupLabel: String(year),
+            label: fmtMonth(new Date(year, month - 1, 1)),
+            start,
+            count,
+          }
     start += count
     return m
   })

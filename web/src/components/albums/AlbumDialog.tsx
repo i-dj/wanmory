@@ -9,7 +9,7 @@ import TextField from '@/components/ui/TextField'
 import Checkbox from '@/components/ui/Checkbox'
 import SharingPicker from './SharingPicker'
 import SmartRulesEditor from './SmartRulesEditor'
-import DialogClose from '@/components/ui/DialogClose'
+import { t } from '@/i18n'
 
 // AlbumDialog 是新建、编辑相册的对话框：窗口正中一张卡片，背后变暗。
 // 新建时先选「普通相册」还是「智能相册」。智能相册要填条件（见 SmartRulesEditor），
@@ -34,7 +34,7 @@ export default function AlbumDialog({
 }) {
   const editing = !!album
   const [kind, setKind] = useState<'normal' | 'smart'>(album?.kind ?? 'normal')
-  const [name, setName] = useState(album?.name ?? '新相册')
+  const [name, setName] = useState(album?.name ?? t('新相册'))
   const [rules, setRules] = useState<SmartRules>(
     album?.rules ?? { match: 'all', rules: [defaultRule('photo')], tz: browserTimeZone() },
   )
@@ -57,7 +57,7 @@ export default function AlbumDialog({
   // 新建时换类型，默认名字跟着换（用户改过名字就不动）
   const switchKind = (k: 'normal' | 'smart') => {
     setKind(k)
-    if (name === '新相册' || name === '新智能相册') setName(k === 'smart' ? '新智能相册' : '新相册')
+    if (name === t('新相册') || name === t('新智能相册')) setName(k === 'smart' ? t('新智能相册') : t('新相册'))
   }
 
   const ready = name.trim() !== '' && (!smart || rules.rules.every(complete))
@@ -95,39 +95,37 @@ export default function AlbumDialog({
           smart ? 'max-w-180' : 'max-w-105',
         )}
       >
-        <DialogClose onClose={onClose} />
-        <div className="flex items-center gap-3 pr-8">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
-            <Icon className="size-4.5" strokeWidth={1.9} />
+        {/* 和其他弹出窗口（Modal）一样的头：上面居中的圆形图标，下面居中的标题和一行说明；没有「×」 */}
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <Icon className="size-5.5" strokeWidth={2} />
           </div>
-          <div className="min-w-0">
-            <h2 id="album-dialog-title" className="text-heading font-semibold">
-              {editing ? (smart ? '编辑智能相册' : '重命名相册') : '新建相册'}
-            </h2>
-            <p className="text-caption text-muted">
-              {editing
-                ? smart
-                  ? '修改名字和条件'
-                  : '给相册换个名字'
-                : count
-                  ? `放进选中的 ${count} 项`
-                  : smart
-                    ? '按条件自动收集照片'
-                    : '建好后可以从图库或电脑添加照片'}
-            </p>
-          </div>
+          <h2 id="album-dialog-title" className="text-heading font-semibold">
+            {editing ? (smart ? t('编辑智能相册') : t('重命名相册')) : t('新建相册')}
+          </h2>
+          <p className="mt-1.5 text-body text-muted">
+            {editing
+              ? smart
+                ? t('修改名字和条件')
+                : t('给相册换个名字')
+              : count
+                ? t('放进选中的 {count} 项', { count })
+                : smart
+                  ? t('按条件自动收集照片')
+                  : t('建好后可以从图库或电脑添加照片')}
+          </p>
         </div>
 
         {!editing && allowSmart && (
           <div
             role="radiogroup"
-            aria-label="相册类型"
+            aria-label={t('相册类型')}
             className="mt-5 grid grid-cols-2 gap-1 rounded-panel bg-line/50 p-1"
           >
             {(
               [
-                ['normal', '普通相册', Folder],
-                ['smart', '智能相册', Sparkles],
+                ['normal', t('普通相册'), Folder],
+                ['smart', t('智能相册'), Sparkles],
               ] as const
             ).map(([k, label, KIcon]) => (
               <button
@@ -149,7 +147,7 @@ export default function AlbumDialog({
         )}
 
         <TextField
-          label="相册名"
+          label={t('相册名')}
           inputRef={input}
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -165,13 +163,13 @@ export default function AlbumDialog({
 
         {!editing && (
           <div className="mt-5">
-            <p className="mb-2 text-caption font-medium text-muted">权限设置</p>
+            <p className="mb-2 text-caption font-medium text-muted">{t('权限设置')}</p>
             <SharingPicker
               value={sharing}
               onChange={setSharing}
               privateExtra={
-                <Checkbox checked={hideMine} onChange={setHideMine} title="同时设置照片/视频的自动隐藏">
-                  仅自己可见，后续新增的照片和视频也将自动隐藏。
+                <Checkbox checked={hideMine} onChange={setHideMine} title={t('同时设置照片/视频的自动隐藏')}>
+                  {t('仅自己可见，后续新增的照片和视频也将自动隐藏。')}
                 </Checkbox>
               }
             />
@@ -198,9 +196,11 @@ export default function AlbumDialog({
                 {autoSync && <Check className="size-3" strokeWidth={3.2} />}
               </span>
               <span>
-                <span className="block text-body font-medium">自动同步</span>
+                <span className="block text-body font-medium">{t('自动同步')}</span>
                 <span className="block text-caption text-muted">
-                  {autoSync ? '以后新增的照片，只要符合条件就自动加入' : '只放入现在符合条件的照片，之后可以手动增减'}
+                  {autoSync
+                    ? t('以后新增的照片，只要符合条件就自动加入')
+                    : t('只放入现在符合条件的照片，之后可以手动增减')}
                 </span>
               </span>
             </label>
@@ -212,13 +212,17 @@ export default function AlbumDialog({
         <div className="mt-6 flex items-center gap-3">
           {smart && (
             <span className="text-body text-muted tabular-nums">
-              {matched === undefined ? '条件还没填完整' : matched === null ? '正在统计…' : `${matched} 项符合`}
+              {matched === undefined
+                ? t('条件还没填完整')
+                : matched === null
+                  ? t('正在统计…')
+                  : t('{matched} 项符合', { matched })}
             </span>
           )}
           <div className={cx('ml-auto grid gap-2.5', smart ? 'w-60' : 'w-full', 'grid-cols-2')}>
-            <DialogButton onClick={onClose}>取消</DialogButton>
+            <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
             <DialogButton type="submit" variant="primary" icon={editing ? Check : Plus} disabled={!ready || saving}>
-              {saving ? '保存中…' : editing ? '保存' : '创建'}
+              {saving ? t('保存中…') : editing ? t('保存') : t('创建')}
             </DialogButton>
           </div>
         </div>

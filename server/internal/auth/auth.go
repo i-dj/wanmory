@@ -26,7 +26,7 @@ const (
 	sessionTTL     = 90 * 24 * time.Hour // 登录一次记住 90 天，自己的电脑、手机不用老是输密码
 	shortTTL       = 12 * time.Hour      // 没勾「记住登录状态」（别人的电脑）：关了浏览器就退出，服务器上也最多留 12 小时
 	pbkdf2Iter     = 600_000             // OWASP 2023 给 PBKDF2-SHA256 的建议值
-	minPassword    = 4                   // 家用，不强求复杂；太短就没意义了
+	minPassword    = 8                   // 新设的密码至少 8 位（相册可能放到公网上）；以前设的短密码照样能登录
 	maxName        = 20
 	errorNameTaken = "这个名字已经有人用了"
 )
@@ -51,6 +51,8 @@ type User struct {
 	// 不为空时比 Avatar 优先
 	AvatarStyle string    `json:"avatar_style"`
 	CreatedAt   time.Time `json:"created_at"`
+	// Locale 是自己选的界面语言（只在自己登录的回答里有，成员列表里不带）；空字符串是跟着浏览器
+	Locale string `json:"locale,omitempty"`
 }
 
 type Service struct {
@@ -123,8 +125,8 @@ func (s *Service) Login(ctx context.Context, name, password string, ttl time.Dur
 	var u User
 	var hash string
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, is_admin, avatar_id, avatar_style, created_at, password_hash FROM users WHERE lower(name) = lower($1)`,
-		strings.TrimSpace(name)).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt, &hash)
+		SELECT id, name, is_admin, avatar_id, avatar_style, created_at, locale, password_hash FROM users WHERE lower(name) = lower($1)`,
+		strings.TrimSpace(name)).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt, &u.Locale, &hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		// 名字不存在也照样算一次哈希，回答所用的时间看不出名字有没有
 		_, _ = hashPassword(password)
@@ -163,8 +165,8 @@ func (s *Service) UserBySession(ctx context.Context, token string) (*User, error
 	sum := sha256.Sum256([]byte(token))
 	var u User
 	err := s.db.QueryRowContext(ctx, `
-		SELECT u.id, u.name, u.is_admin, u.avatar_id, u.avatar_style, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id
-		WHERE s.token_hash = $1 AND s.expires_at > now()`, sum[:]).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt)
+		SELECT u.id, u.name, u.is_admin, u.avatar_id, u.avatar_style, u.created_at, u.locale FROM sessions s JOIN users u ON u.id = s.user_id
+		WHERE s.token_hash = $1 AND s.expires_at > now()`, sum[:]).Scan(&u.ID, &u.Name, &u.IsAdmin, &u.Avatar, &u.AvatarStyle, &u.CreatedAt, &u.Locale)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

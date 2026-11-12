@@ -18,10 +18,11 @@ import {
   testAIEndpoint,
 } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { askConfirm } from '@/lib/dialog'
+import { askConfirm, askDelete } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
 import { versionLabel } from '@/lib/version'
 import SettingsCard from './SettingsCard'
+import { t as tr } from '@/i18n'
 
 type Mode = 'builtin' | 'remote'
 type TestResult = { ok: boolean; version?: string; latency_ms?: number; error?: string }
@@ -101,12 +102,14 @@ export default function AISettings() {
   const saveEndpoint = async () => {
     if (!status) return
     const known = mode === 'builtin' || (url === status.endpoint.remote_url && token === '')
-    const name = mode === 'builtin' ? '内置' : '远程'
+    const name = mode === 'builtin' ? tr('内置') : tr('远程')
     const down = tested ? !tested.ok : known && !status.services[mode].up
     if (down) {
-      const ok = await askConfirm('服务不可用', {
-        message: `${name}的 AI 服务现在连不上。仍然切换的话，连上之前人脸识别、语义搜索、文字识别都会暂停。`,
-        confirmLabel: '仍然切换',
+      const ok = await askConfirm(tr('服务不可用'), {
+        message: tr('{name}的 AI 服务现在连不上。仍然切换的话，连上之前人脸识别、语义搜索、文字识别都会暂停。', {
+          name,
+        }),
+        confirmLabel: tr('仍然切换'),
       })
       if (!ok) return
     }
@@ -137,44 +140,50 @@ export default function AISettings() {
   const inUse = new Set(status ? [status.in_use.face, status.in_use.clip] : [])
 
   const switchTier = async (tier: AITier | 'auto') => {
-    const reprocess =
-      '所有照片要按新模型重新找人脸、重新算语义搜索，照片越多越久。期间人物、搜索照常能用，新结果算好一张换一张；起好的名字会保留。'
+    const reprocess = tr(
+      '所有照片要按新模型重新找人脸、重新算语义搜索，照片越多越久。期间人物、搜索照常能用，新结果算好一张换一张；起好的名字会保留。',
+    )
     const rec = status?.tier_recommended ? TIERS.find((x) => x.value === status.tier_recommended) : undefined
     const ok =
       tier === 'auto'
-        ? await askConfirm('档位改成自动？', {
+        ? await askConfirm(tr('档位改成自动？'), {
             message: rec
-              ? `按这台 AI 服务器的硬件用「${rec.label}」，换了 AI 服务器会跟着换。${rec.value !== status?.tier ? reprocess : ''}`
-              : '按 AI 服务器的硬件选一档，换了 AI 服务器会跟着换。',
-            confirmLabel: '改成自动',
+              ? tr('按这台 AI 服务器的硬件用「{label}」，换了 AI 服务器会跟着换。{v1}', {
+                  label: rec.label,
+                  v1: rec.value !== status?.tier ? reprocess : '',
+                })
+              : tr('按 AI 服务器的硬件选一档，换了 AI 服务器会跟着换。'),
+            confirmLabel: tr('改成自动'),
           })
-        : await askConfirm(`换成「${TIERS.find((x) => x.value === tier)!.label}」档？`, {
-            message: tier === status?.tier ? '以后不再跟着 AI 服务器的硬件自动换。' : reprocess,
-            confirmLabel: '换档',
+        : await askConfirm(tr('换成「{label}」档？', { label: TIERS.find((x) => x.value === tier)!.label }), {
+            message: tier === status?.tier ? tr('以后不再跟着 AI 服务器的硬件自动换。') : reprocess,
+            confirmLabel: tr('换档'),
           })
     if (ok) await run(() => setAITier(tier), 'models')
   }
   // 换计算设备：已经加载的模型要卸掉、按新设备重新加载，先问一句
   const switchDevice = async (d: AIDevice) => {
     if (d === device) return
-    const label = d === 'auto' ? '自动' : d === 'gpu' ? 'GPU' : '仅 CPU'
+    const label = d === 'auto' ? tr('自动') : d === 'gpu' ? 'GPU' : tr('仅 CPU')
     // 档位是自动时，换设备可能连带换档（GPU 用高精度，CPU 按内存用均衡或轻量），那样所有照片都要重新处理
     const next = status?.tier_auto ? recommendFor(status, d) : null
     const retier = next && next !== status?.tier ? TIERS.find((t) => t.value === next) : undefined
-    const ok = await askConfirm(`切换到「${label}」？`, {
+    const ok = await askConfirm(tr('切换到「{label}」？', { label }), {
       message: retier
-        ? `档位是自动，会换成「${retier.label}」，所有照片要按新模型重新识别人脸、重新计算语义搜索，照片越多越久。期间人物、搜索照常能用。`
-        : '切换后将重新加载模型，正在进行的 AI 处理会稍等片刻再继续。',
-      confirmLabel: retier ? '切换并重新计算' : '切换',
+        ? tr(
+            '档位是自动，会换成「{label}」，所有照片要按新模型重新识别人脸、重新计算语义搜索，照片越多越久。期间人物、搜索照常能用。',
+            { label: retier.label },
+          )
+        : tr('切换后将重新加载模型，正在进行的 AI 处理会稍等片刻再继续。'),
+      confirmLabel: retier ? tr('切换并重新计算') : tr('切换'),
     })
     if (ok) await run(() => setAIDevice(d), 'device')
   }
   const removeModel = async (m: AIModel) => {
-    const ok = await askConfirm(`删除「${m.label}」？`, {
-      message: `腾出大约 ${size(m.size_mb)} 的磁盘空间。以后要用到时会重新下载。`,
-      confirmLabel: '删除',
-      danger: true,
-    })
+    const ok = await askDelete(
+      tr('删除「{label}」？', { label: m.label }),
+      tr('腾出大约 {v0} 的磁盘空间。以后要用到时会重新下载。', { v0: size(m.size_mb) }),
+    )
     if (ok) await run(() => deleteAIModel(m.id), 'models')
   }
   const rec = status ? recommendation(status) : null
@@ -182,16 +191,16 @@ export default function AISettings() {
   return (
     <>
       <SettingsCard
-        title="AI 运行方式"
-        description="将 AI 部署到性能更强的主机上，有助于加快 AI 计算。"
+        title={tr('AI 运行方式')}
+        description={tr('将 AI 部署到性能更强的主机上，有助于加快 AI 计算。')}
         action={
           <Segmented<Mode>
-            label="运行方式"
+            label={tr('运行方式')}
             value={mode}
             onChange={setMode}
             segments={[
-              { value: 'builtin', label: '内置（仅 CPU）', disabled: !admin },
-              { value: 'remote', label: '远程服务', disabled: !admin },
+              { value: 'builtin', label: tr('内置（仅 CPU）'), disabled: !admin },
+              { value: 'remote', label: tr('远程服务'), disabled: !admin },
             ]}
           />
         }
@@ -206,14 +215,14 @@ export default function AISettings() {
             <>
               <Button onClick={test} disabled={testing || (mode === 'remote' && !url.trim())}>
                 {testing && <LoaderCircle className="size-3.5 animate-spin" />}
-                测试连接
+                {tr('测试连接')}
               </Button>
               <Button
                 primary
                 disabled={!endpointChanged || busy || (mode === 'remote' && !url.trim())}
                 onClick={saveEndpoint}
               >
-                保存
+                {tr('保存')}
               </Button>
             </>
           )
@@ -222,19 +231,19 @@ export default function AISettings() {
         {mode === 'remote' && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
-              label="服务地址"
+              label={tr('服务地址')}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="例如 http://192.168.1.20:3003"
+              placeholder={tr('例如 http://192.168.1.20:3003')}
               className="font-mono"
               disabled={!admin}
             />
             <Field
-              label="访问令牌"
+              label={tr('访问令牌')}
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder={status?.endpoint.has_token ? '已设置，不修改请留空' : '未设置'}
+              placeholder={status?.endpoint.has_token ? tr('已设置，不修改请留空') : tr('未设置')}
               autoComplete="off"
               disabled={!admin}
             />
@@ -244,18 +253,18 @@ export default function AISettings() {
 
       {status?.connected && status.config && (
         <SettingsCard
-          title="计算设备"
-          description={!gpu?.available && '没有可用的显卡，仅 CPU 可用。'}
+          title={tr('计算设备')}
+          description={!gpu?.available && tr('没有可用的显卡，仅 CPU 可用。')}
           action={
             gpu?.available && (
               <Segmented<AIDevice>
-                label="计算设备"
+                label={tr('计算设备')}
                 value={device}
                 onChange={(d) => void switchDevice(d)}
                 segments={[
-                  { value: 'auto', label: '自动', disabled: !admin || busy },
-                  { value: 'gpu', label: `GPU（${gpuName(gpu)}）`, disabled: !admin || busy },
-                  { value: 'cpu', label: '仅 CPU', disabled: !admin || busy },
+                  { value: 'auto', label: tr('自动'), disabled: !admin || busy },
+                  { value: 'gpu', label: tr('GPU（{v0}）', { v0: gpuName(gpu) }), disabled: !admin || busy },
+                  { value: 'cpu', label: tr('仅 CPU'), disabled: !admin || busy },
                 ]}
               />
             )
@@ -263,7 +272,7 @@ export default function AISettings() {
           footer={
             (gpu?.available || errors.device) && (
               <>
-                {gpu?.available && '切换后将重新加载模型。'}
+                {gpu?.available && tr('切换后将重新加载模型。')}
                 <CardError text={errors.device} />
               </>
             )
@@ -273,18 +282,20 @@ export default function AISettings() {
 
       {status?.connected && models.length > 0 && (
         <SettingsCard
-          title="模型档位"
+          title={tr('模型档位')}
           description={
             status.tier_auto
-              ? `当前自动选择：${rec?.label ?? TIERS.find((t) => t.value === status.tier)?.label ?? '按硬件选'}`
+              ? tr('当前自动选择：{v0}', {
+                  v0: rec?.label ?? TIERS.find((t) => t.value === status.tier)?.label ?? tr('按硬件选'),
+                })
               : TIERS.find((t) => t.value === status.tier)?.hint
           }
           action={
             <Segmented<AITier | 'auto' | 'custom'>
-              label="档位"
+              label={tr('档位')}
               value={status.tier_auto ? 'auto' : status.tier}
               onChange={(t) => t !== 'custom' && void switchTier(t)}
-              segments={[{ value: 'auto' as const, label: '自动' }, ...TIERS].map((t) => ({
+              segments={[{ value: 'auto' as const, label: tr('自动') }, ...TIERS].map((t) => ({
                 value: t.value,
                 label: t.label,
                 disabled: !admin || busy,
@@ -293,14 +304,15 @@ export default function AISettings() {
           }
           footer={
             <>
-              文字识别模型已内置。
+              {tr('文字识别模型已内置。')}
               {status.models?.auto_download === false
-                ? '删除的模型需要时在这里重新下载。'
-                : '删除的模型会在需要时重新下载。'}
+                ? tr('删除的模型需要时在这里重新下载。')
+                : tr('删除的模型会在需要时重新下载。')}
               {status.models?.storage && (
                 <span className="block text-caption">
-                  模型目录：<span className="font-mono">{status.models.storage.dir}</span>
-                  {status.models.storage.mounted === false && '（在容器里，重建容器后要重新下载）'}
+                  {tr('模型目录：')}
+                  <span className="font-mono">{status.models.storage.dir}</span>
+                  {status.models.storage.mounted === false && tr('（在容器里，重建容器后要重新下载）')}
                 </span>
               )}
               <CardError text={errors.models} />
@@ -309,14 +321,14 @@ export default function AISettings() {
         >
           {reprocessing && rp && (
             <div className="mb-4 space-y-2.5 rounded-control border border-line px-3 py-3">
-              <p className="text-caption text-muted">按新模型重新处理中，人物、搜索照常能用</p>
-              <Bar label="人脸识别" done={rp.face[0]} total={rp.face[1]} />
-              <Bar label="语义搜索" done={rp.clip[0]} total={rp.clip[1]} />
+              <p className="text-caption text-muted">{tr('按新模型重新处理中，人物、搜索照常能用')}</p>
+              <Bar label={tr('人脸识别')} done={rp.face[0]} total={rp.face[1]} />
+              <Bar label={tr('语义搜索')} done={rp.clip[0]} total={rp.clip[1]} />
             </div>
           )}
           {models.some((m) => inUse.has(m.id) && !m.downloaded) && (
             <p className="mb-4 rounded-control bg-warn/10 px-3 py-2 text-body text-warn">
-              当前档位的模型未下载，下载完成前人脸识别和语义搜索暂停。
+              {tr('当前档位的模型未下载，下载完成前人脸识别和语义搜索暂停。')}
             </p>
           )}
           <ModelTable
@@ -347,18 +359,25 @@ function Connection({ status, mode, tested }: { status: AIStatus; mode: Mode; te
   let detail: string
   if (tested) {
     ok = tested.ok
-    detail = tested.ok ? `测试通过 · ${latency(tested.latency_ms)} · ${versionLabel(tested.version ?? '')}` : '无法连接'
+    detail = tested.ok
+      ? tr('测试通过 · {v0} · {v1}', { v0: latency(tested.latency_ms), v1: versionLabel(tested.version ?? '') })
+      : tr('无法连接')
   } else if (using && status.connected) {
     ok = true
-    detail = `已连接 · ${latency(status.latency_ms)} · ${versionLabel(status.health?.version ?? '')}`
+    detail = tr('已连接 · {v0} · {v1}', {
+      v0: latency(status.latency_ms),
+      v1: versionLabel(status.health?.version ?? ''),
+    })
   } else {
     const s = status.services[mode]
     ok = s.up
     detail = s.up
-      ? `运行中 · ${versionLabel(s.version)}${using ? '' : ' · 未启用'}`
+      ? using
+        ? tr('运行中 · {v0}', { v0: versionLabel(s.version) })
+        : tr('运行中 · {v0} · 未启用', { v0: versionLabel(s.version) })
       : using
-        ? '无法连接，AI 处理已暂停'
-        : '无法连接'
+        ? tr('无法连接，AI 处理已暂停')
+        : tr('无法连接')
   }
   return (
     <span className="flex min-w-0 items-center gap-2">
@@ -397,10 +416,10 @@ function ModelTable({
       <table className="w-full min-w-[520px] text-body">
         <thead className="border-b border-line text-caption text-muted">
           <tr>
-            <th className="px-4 py-2.5 text-left font-medium">模型</th>
-            <th className="px-4 py-2.5 text-left font-medium">大小</th>
-            <th className="px-4 py-2.5 text-left font-medium">状态</th>
-            {admin && <th className="px-4 py-2.5 text-right font-medium">操作</th>}
+            <th className="px-4 py-2.5 text-left font-medium">{tr('模型')}</th>
+            <th className="px-4 py-2.5 text-left font-medium">{tr('大小')}</th>
+            <th className="px-4 py-2.5 text-left font-medium">{tr('状态')}</th>
+            {admin && <th className="px-4 py-2.5 text-right font-medium">{tr('操作')}</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
@@ -415,32 +434,42 @@ function ModelTable({
                   <div className="font-mono text-caption text-muted">
                     {[m.id, modelName(m.label).variant].filter(Boolean).join(' · ')}
                   </div>
-                  {p?.state === 'error' && <div className="mt-1 text-caption text-danger">下载失败：{p.error}</div>}
+                  {p?.state === 'error' && (
+                    <div className="mt-1 text-caption text-danger">
+                      {tr('下载失败：')}
+                      {p.error}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 font-mono text-caption whitespace-nowrap text-muted">{size(m.size_mb)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   {active ? (
                     <Progress done={p.done} total={p.total} />
                   ) : m.downloaded ? (
-                    <Badge tone={used ? 'ok' : 'plain'}>{used ? '使用中' : '已下载'}</Badge>
+                    <Badge tone={used ? 'ok' : 'plain'}>{used ? tr('使用中') : tr('已下载')}</Badge>
                   ) : (
-                    <Badge tone={used ? 'warn' : 'none'}>{used ? '未下载（需要）' : '未下载'}</Badge>
+                    <Badge tone={used ? 'warn' : 'none'}>{used ? tr('未下载（需要）') : tr('未下载')}</Badge>
                   )}
                 </td>
                 {admin && (
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {active ? null : m.downloaded ? (
-                      <Tooltip label={used ? '正在用，换到别的档位后才能删' : '删除，腾出磁盘空间'}>
+                      <Tooltip label={used ? tr('正在用，换到别的档位后才能删') : tr('删除，腾出磁盘空间')}>
                         <span>
-                          <Button danger label={`删除${m.label}`} disabled={used || busy} onClick={() => onDelete(m)}>
-                            删除
+                          <Button
+                            danger
+                            label={tr('删除{label}', { label: m.label })}
+                            disabled={used || busy}
+                            onClick={() => onDelete(m)}
+                          >
+                            {tr('删除')}
                           </Button>
                         </span>
                       </Tooltip>
                     ) : (
                       <Button primary disabled={busy} onClick={() => onDownload(m)}>
                         <Download className="size-3.5" strokeWidth={2} />
-                        {p?.state === 'error' ? '重试' : '下载'}
+                        {p?.state === 'error' ? tr('重试') : tr('下载')}
                       </Button>
                     )}
                   </td>
@@ -491,9 +520,9 @@ function Progress({ done, total }: { done: number; total: number }) {
 
 // TIERS 是三档模型组合（和后端 ai.Tiers 一致）：档位越高识别越准、越吃算力
 const TIERS: { value: AITier; label: string; hint: string }[] = [
-  { value: 'quality', label: '高精度', hint: '识别最准，适合 Apple 芯片 Mac、NVIDIA 显卡。' },
-  { value: 'balanced', label: '均衡', hint: '语义搜索换小一号的模型，适合 Intel i5 级别的 NAS。' },
-  { value: 'lite', label: '轻量', hint: '人脸、语义搜索都用小模型，适合 N100、树莓派 5。' },
+  { value: 'quality', label: tr('高精度'), hint: tr('识别最准，适合 Apple 芯片 Mac、NVIDIA 显卡。') },
+  { value: 'balanced', label: tr('均衡'), hint: tr('语义搜索换小一号的模型，适合 Intel i5 级别的 NAS。') },
+  { value: 'lite', label: tr('轻量'), hint: tr('人脸、语义搜索都用小模型，适合 N100、树莓派 5。') },
 ]
 
 // recommendFor 是换到计算设备 d 后自动档会选哪档（和后端 ai.Recommend 一样：有显卡且不是仅 CPU 用高精度，
@@ -516,8 +545,10 @@ function recommendation(status: AIStatus): { tier: AITier; label: string; why: s
   const mem = cfg.memory?.total
   const why =
     cfg.gpu.available && cfg.device !== 'cpu'
-      ? `有显卡（${gpuName(cfg.gpu)}）`
-      : `只用 CPU${mem ? `、内存 ${(mem / (1 << 30)).toFixed(1)} GB` : ''}`
+      ? tr('有显卡（{v0}）', { v0: gpuName(cfg.gpu) })
+      : mem
+        ? tr('只用 CPU、内存 {gb} GB', { gb: (mem / (1 << 30)).toFixed(1) })
+        : tr('只用 CPU')
   return { tier: t.value, label: t.label, why }
 }
 
@@ -541,10 +572,10 @@ function Bar({ label, done, total }: { label: string; done: number; total: numbe
 }
 
 function gpuName(gpu: NonNullable<NonNullable<AIStatus['config']>['gpu']>) {
-  if (gpu.torch === 'mps' || gpu.onnx.includes('CoreMLExecutionProvider')) return 'Apple 芯片'
+  if (gpu.torch === 'mps' || gpu.onnx.includes('CoreMLExecutionProvider')) return tr('Apple 芯片')
   if (gpu.torch === 'cuda' || gpu.onnx.includes('CUDAExecutionProvider')) return 'NVIDIA'
-  if (gpu.onnx.includes('OpenVINOExecutionProvider')) return 'Intel 核显'
-  return '显卡'
+  if (gpu.onnx.includes('OpenVINOExecutionProvider')) return tr('Intel 核显')
+  return tr('显卡')
 }
 
 const size = (sizeMb: number) => (sizeMb >= 1000 ? `${(sizeMb / 1024).toFixed(1)} GB` : `${sizeMb} MB`)

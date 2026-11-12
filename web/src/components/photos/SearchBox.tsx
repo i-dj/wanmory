@@ -29,11 +29,13 @@ import { faceThumbUrl, type Person, type SearchOptions, searchOptions } from '@/
 import { cx } from '@/lib/cx'
 import { createPortal } from 'react-dom'
 import { CATEGORIES, kindLabel, LIBRARY, PEOPLE_PATH, personName, type SearchQuery, searchPath } from '@/lib/views'
+import { t as tr } from '@/i18n'
+import { tx } from '@/i18n/rich'
 
 const EXAMPLES = [
-  { text: '海边的日落', icon: Sunset },
-  { text: '宝宝在游泳', icon: Waves },
-  { text: '生日蛋糕', icon: Cake },
+  { text: tr('海边的日落'), icon: Sunset },
+  { text: tr('宝宝在游泳'), icon: Waves },
+  { text: tr('生日蛋糕'), icon: Cake },
 ]
 const DEVICES_SHOWN = 6 // 拍摄设备先列几个，多的点「查看全部设备」
 
@@ -148,16 +150,16 @@ export default function SearchBox({
               apply({ ...current, [chips[chips.length - 1].key]: undefined })
             }
           }}
-          placeholder={chips.length ? '再加点描述…' : '搜索照片、人物、地点…'}
-          aria-label="搜索照片"
+          placeholder={chips.length ? tr('再加点描述…') : tr('搜索照片、人物、地点…')}
+          aria-label={tr('搜索照片')}
           className="h-full min-w-16 flex-1 bg-transparent text-body outline-none placeholder:text-muted/80"
         />
         {open ? (
           // 面板开着时右边是关闭按钮（按 Esc 也一样）
           <button
             type="button"
-            aria-label="关闭搜索"
-            title="关闭（Esc）"
+            aria-label={tr('关闭搜索')}
+            title={tr('关闭（Esc）')}
             onClick={(e) => {
               e.stopPropagation()
               setOpen(false)
@@ -171,7 +173,7 @@ export default function SearchBox({
           (text || chips.length > 0) && (
             <button
               type="button"
-              aria-label="清除搜索"
+              aria-label={tr('清除搜索')}
               onClick={(e) => {
                 e.stopPropagation()
                 setText('')
@@ -257,7 +259,7 @@ function SearchPanel({
     <div
       ref={ref}
       role="dialog"
-      aria-label="搜索"
+      aria-label={tr('搜索')}
       style={place}
       className="popover-card glass-dialog fixed z-40 flex max-h-[min(80vh,46rem)] flex-col overflow-hidden rounded-dialog"
     >
@@ -274,7 +276,7 @@ function SearchPanel({
           >
             <Sparkles className="size-4.5 shrink-0 text-accent" />
             <span className="min-w-0 flex-1 truncate">
-              按照片内容搜「<span className="font-medium">{text.trim()}</span>」
+              {tx('按照片内容搜「{text}」', { text: <span className="font-medium">{text.trim()}</span> })}
             </span>
             <CornerDownLeft className="size-4 text-muted" />
           </button>
@@ -282,14 +284,14 @@ function SearchPanel({
           <>
             {recent.length > 0 && (
               <Section
-                title="最近搜索"
+                title={tr('最近搜索')}
                 action={
                   <button
                     type="button"
                     onClick={() => removeRecent(null)}
                     className="text-body text-muted hover:text-fg"
                   >
-                    清空
+                    {tr('清空')}
                   </button>
                 }
               >
@@ -312,7 +314,7 @@ function SearchPanel({
                         </button>
                         <button
                           type="button"
-                          aria-label={`删除「${label}」`}
+                          aria-label={tr('删除「{label}」', { label })}
                           onClick={() => removeRecent(r)}
                           className="mr-1.5 shrink-0 rounded-md p-1 text-muted hover:bg-line hover:text-fg"
                         >
@@ -324,7 +326,7 @@ function SearchPanel({
                 </div>
               </Section>
             )}
-            <Section title="试试这样搜" icon={<Sparkles className="size-4.5 text-accent" fill="currentColor" />}>
+            <Section title={tr('试试这样搜')} icon={<Sparkles className="size-4.5 text-accent" fill="currentColor" />}>
               <div className="grid gap-2.5 sm:grid-cols-3">
                 {EXAMPLES.map(({ text: ex, icon: Icon }) => (
                   <button
@@ -345,7 +347,10 @@ function SearchPanel({
         )}
 
         {named.length > 0 && (
-          <Section title="人物" action={!needle && <MoreLink onClick={() => navigate(PEOPLE_PATH)}>查看全部</MoreLink>}>
+          <Section
+            title={tr('人物')}
+            action={!needle && <MoreLink onClick={() => navigate(PEOPLE_PATH)}>{tr('查看全部')}</MoreLink>}
+          >
             <div className="grid grid-cols-4 gap-y-3 sm:grid-cols-6">
               {named.map((p) => (
                 <button
@@ -375,7 +380,7 @@ function SearchPanel({
         )}
 
         {categories.length > 0 && (
-          <Section title="分类">
+          <Section title={tr('分类')}>
             <div className="flex flex-wrap gap-2.5">
               {categories.map((c) => (
                 <button
@@ -399,17 +404,17 @@ function SearchPanel({
         )}
 
         {(cameras.length > 0 || lenses.length > 0) && (
-          <Section title="拍摄设备">
+          <Section title={tr('拍摄设备')}>
             <Segmented<'camera' | 'lens'>
-              label="拍摄设备"
+              label={tr('拍摄设备')}
               value={tab}
               onChange={(v) => {
                 setDevice(v)
                 setAllDevices(false)
               }}
               segments={[
-                { value: 'camera', label: '相机', disabled: !cameras.length },
-                { value: 'lens', label: '镜头', disabled: !lenses.length },
+                { value: 'camera', label: tr('相机'), disabled: !cameras.length },
+                { value: 'lens', label: tr('镜头'), disabled: !lenses.length },
               ]}
             />
             <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
@@ -438,14 +443,16 @@ function SearchPanel({
             </div>
             {devices.length > DEVICES_SHOWN && (
               <div className="mt-3 px-1">
-                <MoreLink onClick={() => setAllDevices((v) => !v)}>{allDevices ? '收起' : '查看全部设备'}</MoreLink>
+                <MoreLink onClick={() => setAllDevices((v) => !v)}>
+                  {allDevices ? tr('收起') : tr('查看全部设备')}
+                </MoreLink>
               </div>
             )}
           </Section>
         )}
 
         {needle && !named.length && !categories.length && !cameras.length && !lenses.length && (
-          <p className="px-3 text-body text-muted">没有对得上的人物、分类和设备，按回车按照片内容搜。</p>
+          <p className="px-3 text-body text-muted">{tr('没有对得上的人物、分类和设备，按回车按照片内容搜。')}</p>
         )}
       </div>
 
@@ -455,15 +462,15 @@ function SearchPanel({
             <ArrowUp className="size-3.5" />
             <ArrowDown className="size-3.5" />
           </Key>
-          选择
+          {tr('选择')}
         </span>
         <span className="flex items-center gap-2">
           <Key>
             <CornerDownLeft className="size-3.5" />
           </Key>
-          搜索
+          {tr('搜索')}
         </span>
-        <span className="ml-auto">支持自然语言搜索</span>
+        <span className="ml-auto">{tr('支持自然语言搜索')}</span>
       </div>
     </div>,
     document.body,
@@ -537,7 +544,7 @@ function QueryChip({ label, onRemove }: { label: string; onRemove: () => void })
       <span className="truncate">{label}</span>
       <button
         type="button"
-        aria-label={`去掉「${label}」`}
+        aria-label={tr('去掉「{label}」', { label })}
         onClick={(e) => {
           e.stopPropagation()
           onRemove()
@@ -563,7 +570,7 @@ function chipsOf(q: SearchQuery, people: Person[]) {
   const chips: { key: keyof SearchQuery; label: string }[] = []
   if (q.person) {
     const p = people.find((x) => x.id === q.person)
-    chips.push({ key: 'person', label: p ? personName(p) : '某个人' })
+    chips.push({ key: 'person', label: p ? personName(p) : tr('某个人') })
   }
   if (q.tag) chips.push({ key: 'tag', label: CATEGORIES.find((c) => c.key === q.tag)?.label ?? q.tag })
   if (q.camera) chips.push({ key: 'camera', label: q.camera })

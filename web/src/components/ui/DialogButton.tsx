@@ -33,7 +33,9 @@ export default function DialogButton({
         'flex h-10 items-center justify-center gap-2 rounded-lg border px-4 text-body font-semibold whitespace-nowrap transition',
         'focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40',
         // 主次分明：确定是实心（深色主题白底黑字，浅色主题黑底白字），删除这种是淡红底红字，取消是淡底细边框
-        variant === 'primary' && 'border-transparent bg-fg text-page hover:bg-fg/85 focus-visible:ring-fg/30',
+        // 主要按钮不能点时是暗灰底、灰字（和 ui/Modal 的 Button 一样），不是一块半透明的亮白
+        variant === 'primary' &&
+          'border-transparent bg-fg text-page hover:bg-fg/85 focus-visible:ring-fg/30 disabled:border-line disabled:bg-fg/[0.07] disabled:text-muted disabled:opacity-100',
         variant === 'danger' &&
           'border-danger/25 bg-danger/10 text-danger hover:bg-danger/15 focus-visible:ring-danger/40',
         variant === 'default' && 'border-line bg-fg/[0.04] text-fg hover:bg-fg/[0.08] focus-visible:ring-fg/20',

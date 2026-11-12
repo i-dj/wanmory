@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { Choice } from '@/lib/api'
 import DialogButton from '@/components/ui/DialogButton'
-import Modal, { DialogActions } from '@/components/ui/Modal'
+import Modal, { DialogFooter } from '@/components/ui/Modal'
 import { cx } from '@/lib/cx'
+import { t } from '@/i18n'
 
 // ChoicePicker 从几个选项里选一个。
 export default function ChoicePicker({
@@ -60,12 +61,12 @@ export default function ChoicePicker({
           </label>
         ))}
       </div>
-      <DialogActions>
-        <DialogButton onClick={onCancel}>取消</DialogButton>
+      <DialogFooter>
+        <DialogButton onClick={onCancel}>{t('取消')}</DialogButton>
         <DialogButton variant="primary" onClick={confirm} disabled={busy}>
-          确认
+          {t('确认')}
         </DialogButton>
-      </DialogActions>
+      </DialogFooter>
     </Modal>
   )
 }

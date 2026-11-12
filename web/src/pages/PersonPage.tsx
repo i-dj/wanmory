@@ -19,6 +19,7 @@ import { agePath, personName, type PersonTab, placePath, withPath } from '@/lib/
 import CoverCard, { ALBUM_GRID, PEOPLE_GRID } from '@/components/ui/CoverCard'
 import { cx } from '@/lib/cx'
 import { useLookups } from '@/hooks/useLookups'
+import { t } from '@/i18n'
 
 // PersonPage 是人物页除了「照片」以外的几个标签：
 //   成长：按年龄（设置了生日）或者距今多久分段，每段一张最清楚的脸，一眼看出长大的样子；
@@ -54,7 +55,10 @@ export default function PersonPage({
         title={personName(person)}
         subtitle={
           moments?.length
-            ? `${moments.length.toLocaleString()} 张照片 · ${formatMonthSpan(moments[0].taken, moments[moments.length - 1].taken)}`
+            ? t('{v0} 张照片 · {v1}', {
+                v0: moments.length.toLocaleString(),
+                v1: formatMonthSpan(moments[0].taken, moments[moments.length - 1].taken),
+              })
             : ''
         }
         hero={<PersonHero person={person} tab={tab} navigate={navigate} onChanged={onChanged} />}
@@ -62,7 +66,7 @@ export default function PersonPage({
         tools={
           tab === 'growth' && (
             <PlayButton
-              label="播放成长延时"
+              label={t('播放成长延时')}
               disabled={frames.length < 2}
               onClick={() => {
                 unlockAudio() // 必须在这次点击里同步解锁声音，见 PhotoViewer
@@ -74,13 +78,14 @@ export default function PersonPage({
       />
 
       <div ref={content} className="mt-6">
-        {error && <p className="text-body text-danger">没有读到：{error}</p>}
-        {profile && tab === 'growth' && (
-          <Growth person={person} moments={profile.moments} navigate={navigate} />
+        {error && (
+          <p className="text-body text-danger">
+            {t('没有读到：')}
+            {error}
+          </p>
         )}
-        {profile && tab === 'places' && (
-          <Places person={person} moments={profile.moments} navigate={navigate} />
-        )}
+        {profile && tab === 'growth' && <Growth person={person} moments={profile.moments} navigate={navigate} />}
+        {profile && tab === 'places' && <Places person={person} moments={profile.moments} navigate={navigate} />}
         {profile && tab === 'friends' && (
           <Friends person={person} companions={profile.companions} navigate={navigate} />
         )}
@@ -103,7 +108,7 @@ function Growth({
   navigate: (to: string) => void
 }) {
   const groups = useMemo(() => groupByAge(moments, person.birthday), [moments, person.birthday])
-  if (groups.length === 0) return <p className="text-body text-muted">还没有这个人有拍摄时间的照片。</p>
+  if (groups.length === 0) return <p className="text-body text-muted">{t('还没有这个人有拍摄时间的照片。')}</p>
   // 没有拍摄时间的照片算不出当时多大，不放进来（不另外说明，简洁）
   return (
     <>
@@ -155,7 +160,7 @@ function Places({
       <div className="mt-16 flex flex-col items-center text-center text-muted">
         <MapPin className="size-12" strokeWidth={1.2} />
         <p className="mt-3 max-w-md text-body">
-          这个人的照片里还没有带地点的。手机拍照时打开定位，或者在照片信息里添加地点，就会出现在这里。
+          {t('这个人的照片里还没有带地点的。手机拍照时打开定位，或者在照片信息里添加地点，就会出现在这里。')}
         </p>
       </div>
     )
@@ -163,7 +168,7 @@ function Places({
   return (
     <>
       <p className="text-body text-muted">
-        去过 {places.length.toLocaleString()} 个地方 · {located.toLocaleString()} 张照片带地点
+        {t('去过 {n} 个地方', { n: places.length })} · {t('{n} 张照片带地点', { n: located })}
       </p>
       {mapsOn && (
         <div className="mt-3">
@@ -175,9 +180,13 @@ function Places({
           <li key={p.key}>
             <CoverCard
               src={assetThumbUrl(p.cover.asset)}
-              badge={p.home && '常在的地方'}
+              badge={p.home && t('常在的地方')}
               title={names[p.key] ?? (mapsOn ? '' : formatCoords(p.lat, p.lon))}
-              subtitle={`${formatMonthSpan(p.first, p.last)} · ${p.days.toLocaleString()} 天 · ${p.moments.length.toLocaleString()} 项`}
+              subtitle={t('{v0} · {v1} 天 · {v2} 项', {
+                v0: formatMonthSpan(p.first, p.last),
+                v1: p.days.toLocaleString(),
+                v2: p.moments.length.toLocaleString(),
+              })}
               onClick={() => open(p)}
             />
           </li>
@@ -202,21 +211,23 @@ function Friends({
     return (
       <div className="mt-16 flex flex-col items-center text-center text-muted">
         <UsersRound className="size-12" strokeWidth={1.2} />
-        <p className="mt-3 text-body">还没有和别人一起出现的照片。</p>
+        <p className="mt-3 text-body">{t('还没有和别人一起出现的照片。')}</p>
       </div>
     )
   }
   return (
     <>
-      <p className="text-body text-muted">常和{personName(person)}一起出现在照片里的人，点一下看合影。</p>
+      <p className="text-body text-muted">
+        {t('常和{name}一起出现在照片里的人，点一下看合影。', { name: personName(person) })}
+      </p>
       <ul className={cx('mt-6', PEOPLE_GRID)}>
         {companions.map((c) => (
           <li key={c.id}>
             <CoverCard
               src={c.cover ? facePortraitUrl(c.cover) : ''}
               aspect="portrait"
-              title={c.name || <span className="font-normal text-muted">未命名</span>}
-              subtitle={`一起 ${c.shared.toLocaleString()} 项`}
+              title={c.name || <span className="font-normal text-muted">{t('未命名')}</span>}
+              subtitle={t('一起 {v0} 项', { v0: c.shared.toLocaleString() })}
               onClick={() => navigate(withPath(person.id, c.id))}
             />
           </li>

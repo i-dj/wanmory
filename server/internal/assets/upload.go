@@ -29,6 +29,12 @@ type uploadResult struct {
 // 每个 file 前面可以带一个 last_modified 字段（毫秒时间戳），用来保留文件原来的修改时间。
 // 文件边读边写到磁盘，不会整个读进内存。
 func (s *Service) upload(w http.ResponseWriter, r *http.Request) {
+	// 一次请求最多 maxUploadBytes；磁盘快满（剩不到 keepFreeBytes）时不收
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	if !s.roomFor(r.Context(), max(r.ContentLength, 0)) {
+		httpx.Error(w, http.StatusInsufficientStorage, "服务器的磁盘空间不够了")
+		return
+	}
 	mr, err := r.MultipartReader()
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, "请求必须是 multipart/form-data")

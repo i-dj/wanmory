@@ -43,7 +43,8 @@ const assetColumns = `id, type, original_path, file_size, file_mtime, checksum, 
 	exif->>'ExposureCompensation',
 	COALESCE(taken_offset, exif->>'OffsetTimeOriginal', exif->>'OffsetTime'), favorite, rating, hidden, deleted_at,
 	description, array_to_json(edited)::text, beauty, place_name,
-	(SELECT json_build_object('city', g.city, 'state', g.state, 'country', g.country)::text
+	(SELECT json_build_object('city', g.city, 'state', g.state, 'country', g.country,
+	        'city_en', g.city_en, 'state_en', g.state_en, 'country_code', g.country_code)::text
 	 FROM geo_places g WHERE g.key = ` + geo.KeyExpr + ` AND g.city IS NOT NULL),
 	uploaded_by, (SELECT name FROM users u WHERE u.id = uploaded_by), hidden_by, favorited_at`
 
@@ -386,9 +387,14 @@ func ParseFilter(q url.Values) (Filter, error) {
 const takenExpr = "COALESCE(taken_at, file_mtime)"
 
 // dateExpr 是日历、时间线按哪个时间分：「最近添加」按上传时间（和它的排序一致），其他按拍摄时间
+// dateExpr 是按日子、月份统计（日历、右边的时间线）用哪个时间，和照片怎么排一致：
+// 排序菜单选了添加日期就按上传时间，选了收藏日期就按收藏时间，不然按分类自己的（「最近添加」按上传时间）
 func (f Filter) dateExpr() string {
-	if f.Order == OrderAdded {
+	switch f.sortOrder() {
+	case OrderAdded:
 		return "created_at"
+	case OrderFavorited:
+		return "COALESCE(favorited_at, created_at)"
 	}
 	return takenExpr
 }

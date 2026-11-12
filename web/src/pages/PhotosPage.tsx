@@ -66,6 +66,7 @@ import { formatCounts } from '@/lib/format'
 import { groupByDay, groupByMonth, type Section } from '@/lib/groups'
 import { showError } from '@/lib/dialog'
 import { albumAddPath, albumPath, LIBRARY, personPath, type Route, type View } from '@/lib/views'
+import { t } from '@/i18n'
 
 const BUSY_DELAY = 300 // 批量操作超过这么久（毫秒）才把工具栏按钮变灰
 
@@ -191,15 +192,24 @@ export default function PhotosPage({
   // 日历和右边的时间线：按日子分组的分类（回忆、相册里一段段的）不要，「最近添加」要（按上传的日子分）
   const byUploadDay = view.filter.view === 'recent'
   const dated = !grouped || byUploadDay
-  // 右边的时间线按「从新到旧的拍摄时间」排的位置算，换了排序就对不上，先不显示
-  const showScrubber = dated && !range.value && !sorted
+  // 右边的时间线和照片的排序一致：按添加日期排就按上传的月份，从旧到新排时时间线也倒过来（见下面 months）
+  const showScrubber = dated && !range.value
   const viewMenus = !picking && (
     <>
       {sortable && <SortMenu value={sort} options={sortOptions} defaultValue={defaultSort} onChange={saveSort} />}
       {filterable && <FilterMenu value={kinds} onChange={setKinds} uploaders={uploaders} onUploaders={setUploaders} />}
     </>
   )
-  const months = useMonthCounts(view.filter, showScrubber, status.stats?.total ?? 0, byUploadDay ? 'day' : 'month')
+  const monthFilter = useMemo<Filter>(
+    () => (sorted ? { ...view.filter, sort: sort.by } : view.filter),
+    [view.filter, sorted, sort.by],
+  )
+  const counts = useMonthCounts(monthFilter, showScrubber, status.stats?.total ?? 0, byUploadDay ? 'day' : 'month')
+  // 服务器给的是从新到旧；照片从旧到新排时倒过来，时间线上的位置才对得上
+  const months = useMemo(
+    () => (sorted && sort.dir === 'asc' ? [...counts].reverse() : counts),
+    [counts, sorted, sort.dir],
+  )
 
   useInfiniteScroll(sentinelRef, {
     enabled: timeline.hasMore,
@@ -263,15 +273,15 @@ export default function PhotosPage({
       ? (close: () => void) => (
           <MenuItem
             icon={CircleUserRound}
-            label="设为我的头像"
+            label={t('设为我的头像')}
             onClick={async () => {
               close()
               try {
                 const { user } = await setAvatar(asset.id)
                 updateUser(user)
-                toast.show('头像换好了')
+                toast.show(t('头像换好了'))
               } catch (e) {
-                toast.show(`头像没有换成功：${e instanceof Error ? e.message : e}`)
+                toast.show(t('头像没有换成功：{v0}', { v0: e instanceof Error ? e.message : e }))
               }
             }}
           />
@@ -286,7 +296,7 @@ export default function PhotosPage({
       await action()
       return true
     } catch (e) {
-      showError('操作没有成功', e)
+      showError(t('操作没有成功'), e)
       return false
     } finally {
       window.clearTimeout(busy)
@@ -303,7 +313,7 @@ export default function PhotosPage({
   const addTo = (target: Album, ids: string[]) =>
     run(async () => {
       await addToAlbum(target.id, ids)
-      toast.show(`已添加到「${target.name}」`)
+      toast.show(t('已添加到「{name}」', { name: target.name }))
       onAlbumsChanged()
     })
   const removeFrom = (target: Album, ids: string[]) =>
@@ -328,10 +338,10 @@ export default function PhotosPage({
       const to = target && 'person' in target ? people.find((p) => p.id === target.person) : null
       toast.show(
         target === null
-          ? `已从「${person.name || '这个人'}」移除 ${ids.length} 张`
+          ? t('已从「{v0}」移除 {length} 张', { v0: person.name || t('这个人'), length: ids.length })
           : to
-            ? `已移到「${to.name || '未命名的人'}」`
-            : `已移到一个新的人物（${res.moved} 张脸）`,
+            ? t('已移到「{v0}」', { v0: to.name || t('未命名的人') })
+            : t('已移到一个新的人物（{moved} 张脸）', { moved: res.moved }),
       )
     })
   // 「最近删除」里永久删除：选中的几张（ids），或者不传就是全部。原始文件也从磁盘上删掉
@@ -343,8 +353,11 @@ export default function PhotosPage({
       void refresh()
       toast.show(
         res.failed_files > 0
-          ? `已永久删除 ${res.deleted} 项，有 ${res.failed_files} 个文件没能从磁盘上删掉`
-          : `已永久删除 ${res.deleted} 项`,
+          ? t('已永久删除 {deleted} 项，有 {failed_files} 个文件没能从磁盘上删掉', {
+              deleted: res.deleted,
+              failed_files: res.failed_files,
+            })
+          : t('已永久删除 {deleted} 项', { deleted: res.deleted }),
       )
     })
   // 按数字键 1–5 标星、0 清除：大图查看器开着时标当前那张，不然标选中的几张，标完弹一个提示
@@ -355,8 +368,8 @@ export default function PhotosPage({
       (ok) =>
         ok &&
         toast.show(
-          (rating ? `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}` : '已清除星级') +
-            (ids.length > 1 ? ` · ${ids.length} 张` : ''),
+          (rating ? `${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}` : t('已清除星级')) +
+            (ids.length > 1 ? t(' · {length} 张', { length: ids.length }) : ''),
         ),
     )
   }
@@ -372,16 +385,16 @@ export default function PhotosPage({
   const selecting = selection.selectedAssets.length > 0
 
   // 按日子分组的分类（最近添加、已隐藏、最近删除、回忆）按日子分；按拍摄时间排成一片的（图库、收藏、相册、人物……）按月分，
-  // 每个月上面一行「十一月 2026」；按添加时间、收藏时间排时不分
-  const byMonth = !grouped && sort.by === 'taken'
+  // 每个月上面一行「2026年11月」，按排序菜单选的时间分（拍摄、添加、收藏日期）
+  const byMonth = !grouped
   const sections: Section[] = useMemo(
     () =>
       grouped && view.dayOf
         ? groupByDay(timeline.assets, view.dayOf)
         : byMonth
-          ? groupByMonth(timeline.assets)
+          ? groupByMonth(timeline.assets, sort.by)
           : [{ key: 'all', assets: timeline.assets }],
-    [grouped, byMonth, view.dayOf, timeline.assets],
+    [grouped, byMonth, view.dayOf, timeline.assets, sort.by],
   )
   const empty = timeline.loaded && timeline.assets.length === 0
   const total = status.summary ? status.summary.photos + status.summary.videos : timeline.assets.length
@@ -446,11 +459,11 @@ export default function PhotosPage({
       <PhotoToolbar
         ref={toolbarRef}
         layout={layout}
-        title={picking ? `添加到「${picking.name}」` : pageTitle(view, range.value)}
+        title={picking ? t('添加到「{name}」', { name: picking.name }) : pageTitle(view, range.value)}
         hideTitle={!!heroAsset} // 相册名和数量写在横幅上
         subtitle={
           picking
-            ? '点选或拖框选择照片，选好后点右上角的「添加」'
+            ? t('点选或拖框选择照片，选好后点右上角的「添加」')
             : status.summary
               ? pageSubtitle(view, status.summary)
               : ''
@@ -477,12 +490,14 @@ export default function PhotosPage({
                 onClick={() => range.set(null)}
                 className="shrink-0 text-body text-accent hover:underline"
               >
-                显示全部
+                {t('显示全部')}
               </button>
             )}
           </>
         }
-        tools={showPlay && !selecting && <PlayButton label="幻灯片播放" disabled={!canPlay} onClick={playSlideshow} />}
+        tools={
+          showPlay && !selecting && <PlayButton label={t('幻灯片播放')} disabled={!canPlay} onClick={playSlideshow} />
+        }
         actions={
           !guest && picking ? (
             <PickActions
@@ -504,7 +519,7 @@ export default function PhotosPage({
                 assets={timeline.assets.slice(0, 3)}
                 total={total}
                 permanent
-                label="全部永久删除"
+                label={t('全部永久删除')}
                 disabled={saving}
                 onConfirm={() => purge()}
               />
@@ -522,11 +537,11 @@ export default function PhotosPage({
       {selecting && !picking && !guest && (
         // 选中后操作栏浮在底部中间，不占顶上的工具栏
         <SelectionBar count={selection.selectedAssets.length} onClear={selection.clear}>
-          {canPlay && <ToolbarButton icon={Play} label="播放选中的" onClick={playSlideshow} />}
+          {canPlay && <ToolbarButton icon={Play} label={t('播放选中的')} onClick={playSlideshow} />}
           {scopeOf(filter) !== 'deleted' && (
             <ToolbarButton
               icon={Info}
-              label={infoAsset ? '信息' : '信息（只选一张时）'}
+              label={infoAsset ? t('信息') : t('信息（只选一张时）')}
               pressed={infoOpen && !!infoAsset}
               disabled={!infoAsset}
               onClick={() => setInfoOpen((o) => !o)}
@@ -562,7 +577,7 @@ export default function PhotosPage({
               unlockAudio() // 必须在这次点击里同步解锁声音，见 PhotoViewer
               highlights({ kinds: filter.kinds, uploaders: filter.uploaders }, 100, true).then(
                 (list) => list.length > 0 && setSlideshow({ only: list, start: 0 }),
-                (e) => showError('没有读到精选照片', e),
+                (e) => showError(t('没有读到精选照片'), e),
               )
             }}
           />
@@ -579,9 +594,9 @@ export default function PhotosPage({
       {empty && (
         <p className="mt-6 text-body text-muted">
           {range.value
-            ? `${range.value.label}没有照片。`
+            ? t('{label}没有照片。', { label: range.value.label })
             : filter.kinds || filter.uploaders
-              ? '没有符合筛选条件的照片。'
+              ? t('没有符合筛选条件的照片。')
               : view.empty}
         </p>
       )}
@@ -608,7 +623,7 @@ export default function PhotosPage({
         readOnly={guest}
       />
       <div ref={sentinelRef} aria-hidden="true" />
-      {timeline.loadingMore && <p className="py-4 text-center text-body text-muted">加载中…</p>}
+      {timeline.loadingMore && <p className="py-4 text-center text-body text-muted">{t('加载中…')}</p>}
 
       {showScrubber && (
         <TimelineScrubber
@@ -737,9 +752,9 @@ function PickActions({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Button onClick={onCancel}>取消</Button>
+      <Button onClick={onCancel}>{t('取消')}</Button>
       <Button primary disabled={count === 0 || busy} onClick={onAdd}>
-        {count > 0 ? `添加 ${count} 项` : '添加'}
+        {count > 0 ? t('添加 {count} 项', { count }) : t('添加')}
       </Button>
     </div>
   )
@@ -853,7 +868,7 @@ function useDismissInfo(shown: boolean, hide: () => void) {
 // 不跟着滚动换成屏幕上照片的日期（看着乱，标题宽度变来变去还像在抖）；现在看到哪天在右边的时间线上
 function pageTitle(view: View, range: DateRange | null): string {
   if (range) return range.label
-  return view.path === LIBRARY.path ? '全部照片' : view.title
+  return view.path === LIBRARY.path ? t('全部照片') : view.title
 }
 
 // pageSubtitle：「34 张照片、1 个视频 · 2.3 GB」，前面加上分类的说明（例如「最近 30 天」）。

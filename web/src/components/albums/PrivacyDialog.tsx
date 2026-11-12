@@ -6,6 +6,7 @@ import Modal, { DialogActions } from '@/components/ui/Modal'
 import { type Album, type AlbumPrivacyPreview, getAlbumPrivacy, setAlbumPrivacy, type Sharing } from '@/lib/api'
 import { showError } from '@/lib/dialog'
 import SharingPicker from './SharingPicker'
+import { t } from '@/i18n'
 
 // PrivacyDialog 是相册右键菜单里的「权限设置」：所有人、指定成员或仅自己（见 SharingPicker）。
 // 选私有时可以勾「同时隐藏我传的照片」：别人的图库里也看不到，以后放进来的也自动隐藏；
@@ -52,35 +53,35 @@ export default function PrivacyDialog({
       onDone()
       onClose()
     } catch (e) {
-      showError('没有保存成功', e)
+      showError(t('没有保存成功'), e)
       setSaving(false)
     }
   }
 
   return (
-    <Modal title="权限设置" subtitle={album.name} icon={priv ? Lock : Users} onClose={onClose}>
+    <Modal title={t('权限设置')} subtitle={album.name} icon={priv ? Lock : Users} onClose={onClose}>
       <div>
         <SharingPicker
           value={sharing}
           onChange={setSharing}
           privateExtra={
-            <Checkbox checked={hideMine} onChange={setHideMine} title="同时设置照片/视频的自动隐藏">
-              仅自己可见，后续新增的照片和视频也将自动隐藏。
+            <Checkbox checked={hideMine} onChange={setHideMine} title={t('同时设置照片/视频的自动隐藏')}>
+              {t('仅自己可见，后续新增的照片和视频也将自动隐藏。')}
             </Checkbox>
           }
         />
       </div>
 
       {stopping && (
-        <Checkbox checked={unhide} onChange={setUnhide} title="取消这些照片的隐藏" className="mt-4">
-          {unhide ? '照片回到大家的图库里' : '照片还隐藏着，在「已隐藏」里'}
+        <Checkbox checked={unhide} onChange={setUnhide} title={t('取消这些照片的隐藏')} className="mt-4">
+          {unhide ? t('照片回到大家的图库里') : t('照片还隐藏着，在「已隐藏」里')}
         </Checkbox>
       )}
 
       <DialogActions>
-        <DialogButton onClick={onClose}>取消</DialogButton>
+        <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
         <DialogButton variant="primary" icon={Check} disabled={!changed || saving} onClick={save}>
-          {saving ? '保存中…' : '保存'}
+          {saving ? t('保存中…') : t('保存')}
         </DialogButton>
       </DialogActions>
     </Modal>

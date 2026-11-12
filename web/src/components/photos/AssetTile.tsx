@@ -5,6 +5,7 @@ import TileActions from './TileActions'
 import { cx } from '@/lib/cx'
 import { sincePageEnter } from '@/lib/pageEnter'
 import VideoBadge from './VideoBadge'
+import { t } from '@/i18n'
 
 export type InfoTarget = { asset: Asset; anchor: DOMRect } | null // 要显示信息卡的照片和它在窗口里的位置
 export type SelectModifiers = { toggle: boolean; range: boolean } // ⌘ / Ctrl 单击、⇧ 单击
@@ -113,7 +114,7 @@ function AssetTile({
 
       {broken && (
         <span className="absolute inset-0 flex items-center justify-center text-caption text-muted">
-          缩略图加载失败
+          {t('缩略图加载失败')}
         </span>
       )}
 
@@ -146,7 +147,7 @@ function AssetTile({
               )}
             >
               <EyeOff className="size-2.5" strokeWidth={2.4} />
-              已隐藏
+              {t('已隐藏')}
             </span>
           )}
           {canHover && !readOnly && (

@@ -1,13 +1,14 @@
 import { type Asset, thumbnailUrl } from '@/lib/api'
 import Tooltip from '@/components/ui/Tooltip'
+import { t } from '@/i18n'
 
 // SelectionCount 是工具栏最右边的「已选 3 项」，后面叠着最后选中的几张缩略图，和 macOS「照片」一样。
 export default function SelectionCount({ assets }: { assets: Asset[] }) {
   const stack = assets.filter((a) => a.has_thumbnail).slice(-3) // 最多叠三张，最后一张在最上面
   return (
-    <Tooltip label="按 Esc 取消选择">
+    <Tooltip label={t('按 Esc 取消选择')}>
       <div className="flex items-center gap-2.5">
-        <span className="text-body whitespace-nowrap tabular-nums">已选 {assets.length} 项</span>
+        <span className="text-body whitespace-nowrap tabular-nums">{t('已选 {n} 项', { n: assets.length })}</span>
         {stack.length > 0 && (
           <span className="relative size-7 shrink-0">
             {stack.map((a, i) => {

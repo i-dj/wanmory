@@ -1,7 +1,7 @@
-import { KeyRound, Plus, UserMinus, UserPlus } from 'lucide-react'
+import { KeyRound, Plus, UserPlus } from 'lucide-react'
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import DialogButton from '@/components/ui/DialogButton'
-import Modal, { Button, DialogActions, DialogError, dialogInputClass } from '@/components/ui/Modal'
+import Modal, { Button, DialogFooter, DialogError, dialogInputClass } from '@/components/ui/Modal'
 import Segmented from '@/components/ui/Segmented'
 import { RadioMark } from '@/components/ui/Checkbox'
 import UserAvatar from '@/components/ui/UserAvatar'
@@ -10,15 +10,15 @@ import { cx } from '@/lib/cx'
 import { useCurrentUser } from '@/lib/session'
 import { FIRST, LoginLogList, loginSummary, useLoginEvents } from './LoginLog'
 import SettingsCard from './SettingsCard'
+import { t } from '@/i18n'
+import { askDelete, showError } from '@/lib/dialog'
 
 // AccountSettings 是系统设置里的「成员」：管理员能加成员、给别人重置密码、删成员；
 // 标题是分段按钮，切到「登录日志」，看谁在什么设备、什么地方登录过（只有管理员有这个切换）。
 // 自己的头像、名字、密码在「我的账号」（pages/AccountPage.tsx）
 export default function AccountSettings() {
   const { user } = useCurrentUser()
-  const [dialog, setDialog] = useState<
-    { kind: 'add' } | { kind: 'reset'; target: User } | { kind: 'delete'; target: User } | null
-  >(null)
+  const [dialog, setDialog] = useState<{ kind: 'add' } | { kind: 'reset'; target: User } | null>(null)
   const [members, setMembers] = useState<User[] | null>(null)
   const [tab, setTab] = useState<'members' | 'logins'>('members')
   const [allLogins, setAllLogins] = useState(false)
@@ -37,22 +37,22 @@ export default function AccountSettings() {
         title={
           user.is_admin ? (
             <Segmented<'members' | 'logins'>
-              label="成员和登录日志"
+              label={t('成员和登录日志')}
               value={tab}
               onChange={setTab}
               segments={[
-                { value: 'members', label: '成员' },
-                { value: 'logins', label: '登录日志' },
+                { value: 'members', label: t('成员') },
+                { value: 'logins', label: t('登录日志') },
               ]}
             />
           ) : (
-            '成员'
+            t('成员')
           )
         }
         description={
           // 标题是分段按钮，比文字标题高，说明和它多隔开一点
           <span className={cx('block', user.is_admin && 'mt-2')}>
-            {showLogins ? '位置按 IP 估算，保留最近半年。' : '每位成员使用独立账号登录，隐藏的照片仅本人可见。'}
+            {showLogins ? t('位置按 IP 估算，保留最近半年。') : t('每位成员使用独立账号登录，隐藏的照片仅本人可见。')}
           </span>
         }
         action={
@@ -60,16 +60,18 @@ export default function AccountSettings() {
           !showLogins && (
             <Button primary onClick={() => setDialog({ kind: 'add' })}>
               <Plus className="size-4" strokeWidth={2} />
-              添加成员
+              {t('添加成员')}
             </Button>
           )
         }
-        footer={showLogins ? logins && loginSummary(logins) : members && `共 ${members.length} 人`}
+        footer={
+          showLogins ? logins && loginSummary(logins) : members && t('共 {length} 人', { length: members.length })
+        }
         footerActions={
           showLogins &&
           logins &&
           logins.length > FIRST && (
-            <Button onClick={() => setAllLogins(!allLogins)}>{allLogins ? '收起' : '显示全部'}</Button>
+            <Button onClick={() => setAllLogins(!allLogins)}>{allLogins ? t('收起') : t('显示全部')}</Button>
           )
         }
         flush
@@ -84,15 +86,29 @@ export default function AccountSettings() {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">
                     {m.name}
-                    {m.id === user.id && <span className="ml-1.5 text-caption text-muted">（你）</span>}
+                    {m.id === user.id && <span className="ml-1.5 text-caption text-muted">{t('（你）')}</span>}
                   </div>
-                  <div className="text-caption text-muted">{m.is_admin ? '管理员' : '成员'}</div>
+                  <div className="text-caption text-muted">{m.is_admin ? t('管理员') : t('成员')}</div>
                 </div>
                 {user.is_admin && m.id !== user.id && (
                   <>
-                    <Button onClick={() => setDialog({ kind: 'reset', target: m })}>重置密码</Button>
-                    <Button danger label={`删除${m.name}`} onClick={() => setDialog({ kind: 'delete', target: m })}>
-                      删除
+                    <Button onClick={() => setDialog({ kind: 'reset', target: m })}>{t('重置密码')}</Button>
+                    <Button
+                      danger
+                      label={t('删除{name}', { name: m.name })}
+                      onClick={async () => {
+                        if (
+                          await askDelete(
+                            t('删除「{name}」？', { name: m.name }),
+                            t('上传的照片会保留；隐藏的照片会取消隐藏，回到图库。'),
+                          )
+                        ) {
+                          await deleteUser(m.id).catch((e) => showError(t('操作没有成功'), e))
+                          load()
+                        }
+                      }}
+                    >
+                      {t('删除')}
                     </Button>
                   </>
                 )}
@@ -104,7 +120,7 @@ export default function AccountSettings() {
 
       {dialog?.kind === 'reset' && (
         <ResetPasswordDialog
-          title={`给「${dialog.target.name}」设新密码`}
+          title={t('给「{name}」设新密码', { name: dialog.target.name })}
           onClose={() => setDialog(null)}
           onSubmit={async (next) => {
             await resetPassword(dialog.target.id, next)
@@ -112,24 +128,6 @@ export default function AccountSettings() {
         />
       )}
       {dialog?.kind === 'add' && <AddMemberDialog onClose={() => setDialog(null)} onAdded={load} />}
-      {dialog?.kind === 'delete' && (
-        <Modal title={`删除「${dialog.target.name}」`} icon={UserMinus} onClose={() => setDialog(null)}>
-          <p className="text-body text-muted">上传的照片会保留；隐藏的照片会取消隐藏，回到图库。</p>
-          <DialogActions>
-            <DialogButton onClick={() => setDialog(null)}>取消</DialogButton>
-            <DialogButton
-              variant="danger"
-              onClick={async () => {
-                await deleteUser(dialog.target.id)
-                setDialog(null)
-                load()
-              }}
-            >
-              删除
-            </DialogButton>
-          </DialogActions>
-        </Modal>
-      )}
     </>
   )
 }
@@ -152,7 +150,7 @@ function ResetPasswordDialog({
   useEffect(() => setError(''), [next])
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (next.length < 4) return setError(next ? '密码至少 4 位' : '请输入新密码')
+    if (next.length < 8) return setError(next ? t('密码至少 8 位') : t('请输入新密码'))
     setBusy(true)
     try {
       await onSubmit(next)
@@ -163,11 +161,11 @@ function ResetPasswordDialog({
     }
   }
   return (
-    <Modal title={title} icon={KeyRound} onClose={onClose}>
+    <Modal title={title} subtitle={t('对方下次登录时使用新密码')} icon={KeyRound} onClose={onClose}>
       <form onSubmit={submit} noValidate>
         <input
           type="password"
-          placeholder="新密码（至少 4 位）"
+          placeholder={t('新密码（至少 8 位）')}
           value={next}
           onChange={(e) => setNext(e.target.value)}
           autoComplete="new-password"
@@ -175,12 +173,12 @@ function ResetPasswordDialog({
           className={inputClass}
         />
         <DialogError>{error}</DialogError>
-        <DialogActions className="mt-3">
-          <DialogButton onClick={onClose}>取消</DialogButton>
+        <DialogFooter>
+          <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
           <DialogButton variant="primary" type="submit" disabled={busy}>
-            保存
+            {t('保存')}
           </DialogButton>
-        </DialogActions>
+        </DialogFooter>
       </form>
     </Modal>
   )
@@ -188,8 +186,8 @@ function ResetPasswordDialog({
 
 // 添加成员时选的身份
 const ROLES = [
-  { value: 'member', label: '成员', hint: '可以上传、整理照片，不能修改系统设置' },
-  { value: 'admin', label: '管理员', hint: '可以添加、删除成员，修改系统设置' },
+  { value: 'member', label: t('成员'), hint: t('可以上传、整理照片，不能修改系统设置') },
+  { value: 'admin', label: t('管理员'), hint: t('可以添加、删除成员，修改系统设置') },
 ] as const
 
 function AddMemberDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
@@ -201,8 +199,8 @@ function AddMemberDialog({ onClose, onAdded }: { onClose: () => void; onAdded: (
   useEffect(() => setError(''), [name, password])
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return setError('请输入名字')
-    if (password.length < 4) return setError(password ? '密码至少 4 位' : '请输入密码')
+    if (!name.trim()) return setError(t('请输入名字'))
+    if (password.length < 8) return setError(password ? t('密码至少 8 位') : t('请输入密码'))
     setBusy(true)
     try {
       await addUser(name.trim(), password, role === 'admin')
@@ -214,10 +212,10 @@ function AddMemberDialog({ onClose, onAdded }: { onClose: () => void; onAdded: (
     }
   }
   return (
-    <Modal title="添加成员" icon={UserPlus} onClose={onClose}>
+    <Modal title={t('添加成员')} subtitle={t('新成员用名字和密码登录')} icon={UserPlus} onClose={onClose}>
       <form onSubmit={submit} noValidate className="space-y-3">
         <input
-          placeholder="名字"
+          placeholder={t('名字')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
@@ -226,13 +224,13 @@ function AddMemberDialog({ onClose, onAdded }: { onClose: () => void; onAdded: (
         />
         <input
           type="password"
-          placeholder="密码（至少 4 位，告诉他）"
+          placeholder={t('密码（至少 8 位，告诉他）')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
           className={inputClass}
         />
-        <div role="radiogroup" aria-label="身份" className="space-y-1 pt-1">
+        <div role="radiogroup" aria-label={t('身份')} className="space-y-1 pt-1">
           {ROLES.map((r) => (
             <button
               key={r.value}
@@ -253,12 +251,12 @@ function AddMemberDialog({ onClose, onAdded }: { onClose: () => void; onAdded: (
           ))}
         </div>
         <DialogError>{error}</DialogError>
-        <DialogActions className="mt-3">
-          <DialogButton onClick={onClose}>取消</DialogButton>
+        <DialogFooter>
+          <DialogButton onClick={onClose}>{t('取消')}</DialogButton>
           <DialogButton variant="primary" type="submit" disabled={busy}>
-            添加
+            {t('添加')}
           </DialogButton>
-        </DialogActions>
+        </DialogFooter>
       </form>
     </Modal>
   )

@@ -1,3 +1,4 @@
+import { t as tr } from '@/i18n'
 // 幻灯片每一帧画面的合成：照片比例和屏幕差不多时直接裁切铺满，不留边；差得多（竖图放横屏、超宽全景）才留边，
 // 边上的背景三选一：照片主色的柔和渐变（默认，背景里不会出现模糊的人影）、模糊的照片、纯黑。
 // 主色渐变和模糊都加一圈暗角和一层很淡的颗粒，大面积渐变不会出现一圈圈的色带。
@@ -6,9 +7,9 @@
 export type BackdropMode = 'gradient' | 'blur' | 'black'
 
 export const BACKDROP_LABELS: Record<BackdropMode, string> = {
-  gradient: '主色渐变',
-  blur: '模糊',
-  black: '黑色',
+  gradient: tr('主色渐变'),
+  blur: tr('模糊'),
+  black: tr('黑色'),
 }
 
 // 照片和屏幕的宽高比相差不超过这么多倍就裁切铺满：16:10 屏幕上的 4:3、3:2、16:9 照片都会铺满，

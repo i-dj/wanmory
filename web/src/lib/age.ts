@@ -2,6 +2,7 @@
 // 没设置生日时按距今多久：最近一年、一年前、两年前……每段挑一张最清楚的脸当代表，排在一起就能看出长大的样子。
 
 import type { Moment } from './api'
+import { locale, t as tr } from '@/i18n'
 
 export interface AgeGroup {
   key: string
@@ -40,20 +41,22 @@ function spanOf(months: number): number {
 
 // ageLabel 是从满 start 个月开始的那一段的名字
 export function ageLabel(start: number, span: number): string {
-  if (start === 0 && span === 1) return '刚出生'
-  if (start < 12) return `${start}个月`
+  if (start === 0 && span === 1) return tr('刚出生')
+  if (start < 12) return tr('{start}个月', { start })
   const years = Math.floor(start / 12)
   const months = start % 12
-  if (span === 6 && months === 6) return `${years}岁半`
-  return months ? `${years}岁${months}个月` : `${years}岁`
+  if (span === 6 && months === 6) return tr('{years}岁半', { years })
+  return months ? tr('{years}岁{months}个月', { years, months }) : tr('{years}岁', { years })
 }
 
+// 中文里一到十年前写汉字（「两年前」），其他语言写数字
 const CHINESE = ['', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十']
+const yearsNum = (n: number) => (locale().startsWith('zh') ? (CHINESE[n] ?? n) : n)
 
 // yearsAgoLabel：0 是「最近一年」，1 是「一年前」，2 是「两年前」……十年以上写数字
 export function yearsAgoLabel(n: number): string {
-  if (n === 0) return '最近一年'
-  return `${CHINESE[n] ?? n}年前`
+  if (n === 0) return tr('最近一年')
+  return tr('{n}年前', { n: yearsNum(n) })
 }
 
 // groupByAge 按年龄分段，moments 要按拍摄时间排好。birthday 为空时按距今几年（到 now 为止）。
@@ -73,7 +76,7 @@ export function groupByAge(moments: Moment[], birthday: string | null, now = new
       to = n === 0 ? new Date(now.getFullYear() + 100, 0, 1) : addMonths(now, -12 * n) // 最近一年包括今天以后的（时间记错的）
     } else if (t < birth) {
       key = 'before'
-      label = '出生前'
+      label = tr('出生前')
       from = new Date(1900, 0, 1)
       to = birth
     } else {
@@ -103,12 +106,12 @@ export function ageWhen(birthday: string, t: Date): string {
   const months = monthsBetween(parseDate(birthday), t)
   if (months < 0) return ''
   if (months < 24) return ageAt(birthday, t)
-  return `${Math.floor(months / 12)}岁`
+  return tr('{v0}岁', { v0: Math.floor(months / 12) })
 }
 
 export function ageAt(birthday: string, t: Date): string {
   const months = monthsBetween(parseDate(birthday), t)
   if (months < 0) return ''
-  if (months < 1) return '刚出生'
+  if (months < 1) return tr('刚出生')
   return ageLabel(months, 1)
 }

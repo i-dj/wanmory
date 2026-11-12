@@ -6,6 +6,7 @@ import { cx } from '@/lib/cx'
 import Tooltip from '@/components/ui/Tooltip'
 import Segmented from '@/components/ui/Segmented'
 import { MenuAlign } from './ViewMenus'
+import { fmtDay, fmtMonth, fmtMonthShort, locale, t } from '@/i18n'
 
 // DatePicker 是工具栏上的日历按钮：点开后按年、月或日显示每段时间有多少张，点一格就只看那段时间的照片。
 
@@ -19,24 +20,33 @@ export interface DateRange {
 }
 
 const UNITS: { unit: DateUnit; label: string }[] = [
-  { unit: 'year', label: '年' },
-  { unit: 'month', label: '月' },
-  { unit: 'day', label: '日' },
+  { unit: 'year', label: t('年') },
+  { unit: 'month', label: t('月') },
+  { unit: 'day', label: t('日') },
 ]
-const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+// 周一到周日的简写（2024 年 1 月 1 日是周一）
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) =>
+  new Date(2024, 0, 1 + i).toLocaleDateString(locale(), { weekday: 'narrow' }),
+)
 
 function rangeOf(unit: DateUnit, y: number, m = 1, d = 1): DateRange {
   const pad = (n: number) => String(n).padStart(2, '0')
   if (unit === 'year') {
-    return { unit, key: `${y}`, label: `${y}年`, from: iso(y, 0, 1), to: iso(y + 1, 0, 1) }
+    return { unit, key: `${y}`, label: t('{y}年', { y }), from: iso(y, 0, 1), to: iso(y + 1, 0, 1) }
   }
   if (unit === 'month') {
-    return { unit, key: `${y}-${pad(m)}`, label: `${y}年${m}月`, from: iso(y, m - 1, 1), to: iso(y, m, 1) }
+    return {
+      unit,
+      key: `${y}-${pad(m)}`,
+      label: fmtMonth(new Date(y, m - 1, 1)),
+      from: iso(y, m - 1, 1),
+      to: iso(y, m, 1),
+    }
   }
   return {
     unit,
     key: `${y}-${pad(m)}-${pad(d)}`,
-    label: `${y}年${m}月${d}日`,
+    label: fmtDay(new Date(y, m - 1, d)),
     from: iso(y, m - 1, d),
     to: iso(y, m - 1, d + 1),
   }
@@ -90,7 +100,7 @@ export default function DatePicker({
 
   return (
     <div ref={ref} className="relative">
-      <Tooltip label={open ? null : '按日期查看'}>
+      <Tooltip label={open ? null : t('按日期查看')}>
         <button
           type="button"
           onClick={() => {
@@ -98,7 +108,7 @@ export default function DatePicker({
             setUnit(selected?.unit ?? unit)
             setOpen((o) => !o)
           }}
-          aria-label="按日期查看"
+          aria-label={t('按日期查看')}
           aria-expanded={open}
           className={cx(
             'flex size-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-fg/[0.06] hover:text-fg',
@@ -117,7 +127,7 @@ export default function DatePicker({
           )}
         >
           <Segmented
-            label="按年、月、日选"
+            label={t('按年、月、日选')}
             segments={UNITS.map((u) => ({ value: u.unit, label: u.label }))}
             value={unit}
             onChange={setUnit}
@@ -126,9 +136,9 @@ export default function DatePicker({
 
           <div className="mt-3 min-h-45">
             {!counts ? (
-              <p className="py-16 text-center text-body text-muted">加载中…</p>
+              <p className="py-16 text-center text-body text-muted">{t('加载中…')}</p>
             ) : counts.size === 0 ? (
-              <p className="py-16 text-center text-body text-muted">这里还没有照片</p>
+              <p className="py-16 text-center text-body text-muted">{t('这里还没有照片')}</p>
             ) : unit === 'year' ? (
               <YearGrid counts={counts} selected={selected} onPick={pick} />
             ) : unit === 'month' && cursor ? (
@@ -153,7 +163,7 @@ export default function DatePicker({
               }}
               className="mt-2 w-full rounded-control py-1.5 text-body text-accent hover:bg-accent-soft"
             >
-              显示全部日期
+              {t('显示全部日期')}
             </button>
           )}
         </div>
@@ -193,7 +203,7 @@ function YearGrid({
       {years.map((y) => (
         <Cell
           key={y}
-          label={`${y}年`}
+          label={t('{y}年', { y })}
           count={counts.get(y) ?? 0}
           active={selected?.key === y}
           onClick={() => onPick(rangeOf('year', Number(y)))}
@@ -220,7 +230,7 @@ function MonthGrid({
   return (
     <>
       <Pager
-        label={`${year}年`}
+        label={t('{year}年', { year })}
         onPrev={year > min ? () => setYear(year - 1) : undefined}
         onNext={year < max ? () => setYear(year + 1) : undefined}
       />
@@ -230,7 +240,7 @@ function MonthGrid({
           return (
             <Cell
               key={r.key}
-              label={`${i + 1}月`}
+              label={fmtMonthShort(new Date(year, i, 1))}
               count={counts.get(r.key) ?? 0}
               active={selected?.key === r.key}
               onClick={() => onPick(r)}
@@ -264,7 +274,7 @@ function DayGrid({
   return (
     <>
       <Pager
-        label={`${y}年${m}月`}
+        label={fmtMonth(new Date(y, m - 1, 1))}
         onPrev={prev.y >= min ? () => setCursor(prev) : undefined}
         onNext={next.y <= max ? () => setCursor(next) : undefined}
       />
@@ -300,11 +310,11 @@ function Pager({ label, onPrev, onNext }: { label: string; onPrev?: () => void; 
     'rounded-control px-2 py-0.5 text-heading text-muted hover:bg-line/60 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent'
   return (
     <div className="mb-2 flex items-center justify-between">
-      <button type="button" className={button} onClick={onPrev} disabled={!onPrev} aria-label="上一页">
+      <button type="button" className={button} onClick={onPrev} disabled={!onPrev} aria-label={t('上一页')}>
         ‹
       </button>
       <span className="text-body font-semibold">{label}</span>
-      <button type="button" className={button} onClick={onNext} disabled={!onNext} aria-label="下一页">
+      <button type="button" className={button} onClick={onNext} disabled={!onNext} aria-label={t('下一页')}>
         ›
       </button>
     </div>

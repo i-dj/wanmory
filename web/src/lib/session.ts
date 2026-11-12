@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { User } from './api'
+import { t } from '@/i18n'
 
 // 现在登录的是谁。AuthGate 登录后（或者访客模式开着时）才渲染 App，所以 App 里面一定有个 user
 // updateUser：自己的资料变了（换了头像），换掉这里的，侧边栏、设置跟着变
@@ -13,11 +14,11 @@ export const UserContext = createContext<{
 } | null>(null)
 
 // GUEST 是访客的 user（没有 ID，谁的照片都不是）
-export const GUEST: User = { id: '', name: '访客', is_admin: false, avatar: null, created_at: '' }
+export const GUEST: User = { id: '', name: t('访客'), is_admin: false, avatar: null, created_at: '' }
 
 export function useCurrentUser() {
   const v = useContext(UserContext)
-  if (!v) throw new Error('useCurrentUser 要在 AuthGate 里面用')
+  if (!v) throw new Error(t('useCurrentUser 要在 AuthGate 里面用'))
   return v
 }
 

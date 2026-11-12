@@ -156,10 +156,18 @@ func (s *Service) download(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, fmt.Sprintf("一次要选 1 到 %d 张", maxBatch))
 		return
 	}
-	list, err := s.store.GetMany(r.Context(), ids)
+	all, err := s.store.GetMany(r.Context(), ids)
 	if err != nil {
 		httpx.InternalError(w, err)
 		return
+	}
+	// 只打包自己看得到的（别人隐藏的照片不能靠 ID 下载，见 visibleTo）
+	u := auth.UserFrom(r.Context())
+	list := all[:0]
+	for _, a := range all {
+		if visibleTo(a, u) {
+			list = append(list, a)
+		}
 	}
 	if len(list) == 0 {
 		httpx.Error(w, http.StatusNotFound, ErrNotFound.Error())
@@ -169,12 +177,23 @@ func (s *Service) download(w http.ResponseWriter, r *http.Request) {
 	if len(list) == 1 {
 		a := list[0]
 		w.Header().Set("Content-Disposition", attachment(a.FileName))
+		w.Header().Set("Content-Type", safeType(a.MimeType))
 		http.ServeFile(w, r, a.OriginalPath)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", attachment(fmt.Sprintf("Wanmory %d 项.zip", len(list))))
+	// 压缩包的名字由网页按界面语言起好放在表单字段 name 里（不带 .zip），没有就用中文
+	name := strings.Map(func(r rune) rune {
+		if r == '/' || r == '\\' || r < 0x20 {
+			return -1
+		}
+		return r
+	}, strings.TrimSpace(r.FormValue("name")))
+	if name == "" || len(name) > 120 {
+		name = fmt.Sprintf("Wanmory %d 项", len(list))
+	}
+	w.Header().Set("Content-Disposition", attachment(name+".zip"))
 	zw := zip.NewWriter(w)
 	names := map[string]bool{}
 	for _, a := range list {
