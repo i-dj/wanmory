@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.5': [
+    "With large videos in a batch, AI analysis started once the photos were done while the videos were still uploading, competing with the upload; AI now waits as long as any file is still unfinished (a cancelled upload stops the wait at once, and one with no activity for 10 minutes no longer holds it up)",
+    "Task panel at the top right: what each task does and its progress (time left, what it is waiting for) are on separate lines and wrap when needed, instead of being cut down to a few characters; the panel no longer scrolls sideways",
+  ],
   'v0.4.4': [
     "Since v0.4.2, Wanmory gave the files in the data folder to the container's own user, so the host user (for example a Raspberry Pi user whose ID isn't 1000) couldn't delete uploaded photos and thumbnails; Wanmory now runs as the owner of the data folder, so everything it writes belongs to that user, and files left by earlier versions are given back",
     "Model files downloaded by the AI service belonged to root and couldn't be deleted on the host; they now go to the owner of the model folder",

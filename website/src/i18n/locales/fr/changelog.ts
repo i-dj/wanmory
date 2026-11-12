@@ -3,6 +3,10 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.5': [
+    "Avec de grosses vidéos dans un lot, l'analyse IA démarrait dès que les photos étaient envoyées alors que les vidéos l'étaient encore, en concurrence avec l'envoi ; l'IA attend maintenant tant qu'un fichier n'est pas terminé (un envoi annulé arrête l'attente aussitôt, et un envoi sans activité depuis 10 minutes ne la bloque plus)",
+    "Panneau des tâches en haut à droite : ce que fait chaque tâche et son avancement (temps restant, ce qu'elle attend) sont sur des lignes séparées et passent à la ligne si besoin, au lieu d'être réduits à quelques caractères ; le panneau ne défile plus horizontalement",
+  ],
   'v0.4.4': [
     "Depuis la v0.4.2, Wanmory donnait les fichiers du dossier de données à l'utilisateur du conteneur, si bien que l'utilisateur de l'hôte (par exemple un utilisateur de Raspberry Pi dont l'ID n'est pas 1000) ne pouvait pas supprimer les photos envoyées ni les miniatures ; Wanmory s'exécute désormais en tant que propriétaire du dossier de données, tout ce qu'il écrit lui appartient, et les fichiers laissés par les anciennes versions lui sont rendus",
     "Les fichiers de modèles téléchargés par le service IA appartenaient à root et ne pouvaient pas être supprimés sur l'hôte ; ils reviennent maintenant au propriétaire du dossier des modèles",

@@ -3,6 +3,10 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.5': [
+    "Bei Uploads mit großen Videos startete die KI-Analyse, sobald die Fotos fertig waren, obwohl die Videos noch hochgeladen wurden, und machte dem Upload Ressourcen streitig; jetzt wartet die KI, solange noch eine Datei unvollständig ist (ein abgebrochener Upload beendet das Warten sofort, einer ohne Aktivität seit 10 Minuten hält sie nicht mehr auf)",
+    "Aufgabenbereich oben rechts: Was eine Aufgabe tut und wie weit sie ist (Restzeit, worauf sie wartet) stehen in getrennten Zeilen und brechen bei Bedarf um, statt auf wenige Zeichen gekürzt zu werden; der Bereich scrollt nicht mehr seitwärts",
+  ],
   'v0.4.4': [
     "Seit v0.4.2 gab Wanmory die Dateien im Datenordner dem Benutzer im Container, sodass der Benutzer auf dem Host (etwa ein Raspberry-Pi-Benutzer mit einer anderen ID als 1000) hochgeladene Fotos und Vorschaubilder nicht löschen konnte; jetzt läuft Wanmory als Besitzer des Datenordners, alles Geschriebene gehört ihm, und Dateien älterer Versionen werden zurückgegeben",
     "Vom KI-Dienst heruntergeladene Modelldateien gehörten root und ließen sich auf dem Host nicht löschen; sie gehen jetzt an den Besitzer des Modellordners",

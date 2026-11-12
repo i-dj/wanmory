@@ -3,6 +3,10 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.5': [
+    "Con video grandi in un caricamento, l'analisi IA partiva appena finite le foto mentre i video si stavano ancora caricando, contendendo le risorse al caricamento; ora l'IA aspetta finché c'è un file non completato (un caricamento annullato smette subito di trattenerla, e uno fermo da 10 minuti non la blocca più)",
+    "Pannello delle attività in alto a destra: cosa fa ogni attività e il suo avanzamento (tempo rimanente, cosa sta aspettando) sono su righe separate e vanno a capo se serve, invece di essere tagliati a pochi caratteri; il pannello non scorre più in orizzontale",
+  ],
   'v0.4.4': [
     "Dalla v0.4.2 Wanmory assegnava i file della cartella dei dati all'utente del container, quindi l'utente dell'host (per esempio un utente di Raspberry Pi con ID diverso da 1000) non poteva eliminare le foto caricate e le miniature; ora Wanmory gira come proprietario della cartella dei dati, tutto ciò che scrive gli appartiene e i file lasciati dalle versioni precedenti gli vengono restituiti",
     "I file dei modelli scaricati dal servizio IA appartenevano a root e non si potevano eliminare sull'host; ora passano al proprietario della cartella dei modelli",

@@ -2,6 +2,10 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.5': [
+    "Khi một lượt tải lên có video lớn, AI bắt đầu phân tích ngay khi ảnh xong dù video vẫn đang tải lên, tranh tài nguyên với việc tải lên; giờ AI chờ đến khi không còn tệp nào chưa xong (tệp bị hủy thôi chờ ngay, tệp 10 phút không có động tĩnh cũng không chờ nữa)",
+    "Bảng tác vụ góc trên bên phải: việc đang làm và tiến độ (còn bao lâu, đang chờ gì) nằm trên hai dòng riêng và tự xuống dòng khi cần, không còn bị cắt còn vài chữ; bảng không còn thanh cuộn ngang",
+  ],
   'v0.4.4': [
     "Từ v0.4.2, Wanmory chuyển các tệp trong thư mục dữ liệu cho người dùng trong container, nên người dùng trên máy chủ (ví dụ người dùng Raspberry Pi có ID khác 1000) không xóa được ảnh đã tải lên và ảnh thu nhỏ; giờ Wanmory chạy với danh nghĩa chủ thư mục dữ liệu, mọi tệp nó ghi đều thuộc người đó, và các tệp do phiên bản cũ để lại cũng được trả lại",
     "Tệp mô hình do dịch vụ AI tải về thuộc root nên không xóa được trên máy chủ; giờ được giao cho chủ thư mục mô hình",
