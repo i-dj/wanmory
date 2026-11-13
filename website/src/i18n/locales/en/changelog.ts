@@ -3,6 +3,14 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "Uploading videos and other large files in Safari stalled for tens of seconds on every chunk, managing only a fraction of a MB per second on a local network; Safari is now as fast as Chrome (30 videos, 1.9 GB, in 25 seconds in testing)",
+    "Settings → Background processing has a new “Wait after uploads”: AI waits 30 seconds to 4 hours after photos finish uploading, so it doesn't compete for resources between batches; combine it with the Night window to wait until night",
+    "Simpler task panel at the top right: each task has one short line — what it's doing or why it's waiting on the left, time left on the right; without models it simply says “Download the models in Settings first”",
+    "While uploading or paused, the × at the top right of the upload section cancels everything at once, keeping photos that already finished; time left no longer says “About”, and the wider panel keeps it from being cut off",
+    "The sign-in line fits on exactly two lines in every language; menus and dialogs are less transparent, so they stay readable in browsers that skip the background blur",
+    "Rewritten website docs: every install script option and prompt, what each uninstall option deletes, how to update, when AI runs, and running the AI service separately with uv on macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "“Saving” after large uploads is much faster: the checksum is computed while the file is received, so the whole file is no longer read from disk again (a video of a few hundred MB used to take tens of seconds on a Raspberry Pi); for files over 20 MB the log records receive speed and save time, so a slow upload shows whether the network or the disk is the limit",
     "Smaller images: the server now uses a single-file ffmpeg instead of pulling in over 300 MB of unused libraries, cutting the download by about a third; the AI service image no longer ships its packaging tool",

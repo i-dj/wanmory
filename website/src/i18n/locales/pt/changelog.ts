@@ -3,6 +3,14 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "Ao enviar vídeos e outros arquivos grandes pelo Safari, cada pedaço travava dezenas de segundos, com só uma fração de MB por segundo na rede local; agora o Safari é tão rápido quanto o Chrome (30 vídeos, 1,9 GB, em 25 segundos nos testes)",
+    "Configurações → Processamento em segundo plano ganhou “Espera após envios”: a IA espera de 30 segundos a 4 horas depois que os envios terminam, para não disputar recursos entre lotes; combine com o horário noturno para esperar até a noite",
+    "Painel de tarefas mais simples no canto superior direito: uma linha curta por tarefa — à esquerda o que está fazendo ou por que está esperando, à direita o tempo restante; sem modelos ele diz apenas “Baixe primeiro os modelos em Configurações”",
+    "Durante o envio ou em pausa, o × no canto superior direito da seção de envio cancela tudo de uma vez, mantendo as fotos que já terminaram; o tempo restante não diz mais “Cerca de” e o painel mais largo não o corta",
+    "A frase da página de login cabe em exatamente duas linhas em todos os idiomas; menus e diálogos estão menos transparentes e continuam legíveis em navegadores sem desfoque de fundo",
+    "Documentação do site reescrita: todas as opções e etapas do script de instalação, o que cada opção da desinstalação apaga, como atualizar, quando a IA processa e como rodar o serviço de IA separado com uv no macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "A etapa “Salvando” depois de enviar arquivos grandes ficou muito mais rápida: a soma de verificação é calculada enquanto o arquivo chega, então ele não é mais lido inteiro de novo do disco (num Raspberry Pi, um vídeo de algumas centenas de MB levava dezenas de segundos); para arquivos acima de 20 MB, o log registra a velocidade de recebimento e o tempo de gravação, mostrando se o limite é a rede ou o disco",
     "Imagens menores: o servidor agora usa um ffmpeg de arquivo único em vez de mais de 300 MB de bibliotecas sem uso, reduzindo o download em cerca de um terço; a imagem do serviço de IA não traz mais a ferramenta de empacotamento",

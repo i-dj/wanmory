@@ -3,6 +3,14 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "En envoyant des vidéos et autres gros fichiers depuis Safari, chaque morceau se bloquait des dizaines de secondes, à une fraction de Mo par seconde sur le réseau local ; Safari est désormais aussi rapide que Chrome (30 vidéos, 1,9 Go, en 25 secondes lors des tests)",
+    "Réglages → Traitement en arrière-plan propose « Attente après les envois » : l'IA attend de 30 secondes à 4 heures après la fin des envois, pour ne pas prendre les ressources entre deux lots ; combinez-la avec la plage de nuit pour attendre la nuit",
+    "Panneau des tâches plus simple en haut à droite : une courte ligne par tâche — ce qu'elle fait ou pourquoi elle attend à gauche, le temps restant à droite ; sans modèles, il indique simplement « Téléchargez d'abord les modèles dans Réglages »",
+    "Pendant l'envoi ou en pause, le × en haut à droite de la section d'envoi annule tout d'un coup en conservant les photos déjà envoyées ; le temps restant n'affiche plus « Environ » et le panneau plus large ne le coupe plus",
+    "La phrase de la page de connexion tient sur exactement deux lignes dans toutes les langues ; menus et boîtes de dialogue sont moins transparents et restent lisibles dans les navigateurs sans flou d'arrière-plan",
+    "Documentation du site réécrite : toutes les options et étapes du script d'installation, ce que supprime chaque option de désinstallation, la mise à jour, le moment où l'IA travaille et l'exécution séparée du service IA avec uv sous macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "L'étape « Enregistrement » après un gros envoi est bien plus rapide : la somme de contrôle est calculée pendant la réception, le fichier n'est donc plus relu entièrement depuis le disque (une vidéo de quelques centaines de Mo prenait des dizaines de secondes sur un Raspberry Pi) ; pour les fichiers de plus de 20 Mo, le journal note la vitesse de réception et la durée d'enregistrement, pour savoir si c'est le réseau ou le disque qui ralentit",
     "Images plus légères : le serveur utilise un ffmpeg en un seul fichier au lieu de plus de 300 Mo de bibliothèques inutiles, soit un téléchargement réduit d'environ un tiers ; l'image du service IA n'embarque plus son outil d'empaquetage",

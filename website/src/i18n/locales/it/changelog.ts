@@ -3,6 +3,14 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "Caricando video e altri file grandi da Safari, ogni blocco si fermava per decine di secondi, con meno di 1 MB al secondo in rete locale; ora Safari è veloce quanto Chrome (nei test 30 video, 1,9 GB, in 25 secondi)",
+    "Impostazioni → Elaborazione in background ha «Attesa dopo i caricamenti»: l'IA aspetta da 30 secondi a 4 ore dopo la fine dei caricamenti, per non sottrarre risorse tra un gruppo e l'altro; abbinala alla fascia notturna per aspettare la notte",
+    "Pannello delle attività più semplice in alto a destra: una riga breve per attività — a sinistra cosa fa o perché aspetta, a destra il tempo rimanente; senza modelli dice semplicemente «Scarica prima i modelli nelle Impostazioni»",
+    "Durante il caricamento o in pausa, la × in alto a destra della sezione caricamenti annulla tutto in un colpo, tenendo le foto già caricate; il tempo rimanente non dice più «Circa» e il pannello più largo non lo taglia",
+    "La frase della pagina di accesso sta esattamente su due righe in ogni lingua; menu e finestre di dialogo sono meno trasparenti e si leggono anche nei browser senza sfocatura dello sfondo",
+    "Documentazione del sito riscritta: tutte le opzioni e i passaggi dello script di installazione, cosa elimina ogni opzione di disinstallazione, come aggiornare, quando lavora l'IA e come avviare il servizio IA separato con uv su macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "La fase «Salvataggio» dopo il caricamento di file grandi è molto più rapida: il checksum viene calcolato mentre il file arriva, così non viene più riletto per intero dal disco (su un Raspberry Pi un video di qualche centinaio di MB richiedeva decine di secondi); per i file sopra i 20 MB il log registra velocità di ricezione e tempo di salvataggio, per capire se il limite è la rete o il disco",
     "Immagini più piccole: il server usa un ffmpeg a file singolo invece di oltre 300 MB di librerie inutilizzate, con un download più leggero di circa un terzo; l'immagine del servizio IA non contiene più lo strumento di pacchettizzazione",

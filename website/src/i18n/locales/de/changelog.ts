@@ -3,6 +3,14 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "Beim Hochladen von Videos und anderen großen Dateien in Safari hing jeder Abschnitt Dutzende Sekunden, im lokalen Netz kamen nur Bruchteile eines MB pro Sekunde an; Safari ist jetzt so schnell wie Chrome (im Test 30 Videos, 1,9 GB, in 25 Sekunden)",
+    "Einstellungen → Hintergrundverarbeitung hat jetzt „Wartezeit nach Uploads“: Die KI wartet nach dem Hochladen 30 Sekunden bis 4 Stunden, damit sie zwischen Uploads keine Ressourcen wegnimmt; zusammen mit dem Nachtfenster lässt sie sich bis zur Nacht aufschieben",
+    "Schlankerer Aufgabenbereich oben rechts: pro Aufgabe eine kurze Zeile – links, was gerade passiert oder worauf gewartet wird, rechts die Restzeit; ohne Modelle steht dort einfach „Lade zuerst die Modelle in den Einstellungen herunter“",
+    "Während des Hochladens oder in der Pause bricht das × oben rechts im Upload-Bereich alles auf einmal ab, fertig hochgeladene Fotos bleiben; die Restzeit steht ohne „Etwa“, und der breitere Bereich schneidet sie nicht mehr ab",
+    "Der Satz auf der Anmeldeseite passt in jeder Sprache auf genau zwei Zeilen; Menüs und Dialoge sind weniger transparent und bleiben auch in Browsern ohne Hintergrundunschärfe lesbar",
+    "Neu geschriebene Website-Dokumentation: alle Optionen und Schritte des Installationsskripts, was jede Deinstallationsoption löscht, Aktualisieren, wann die KI arbeitet und der getrennte Betrieb des KI-Dienstes mit uv unter macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "„Wird gespeichert“ nach großen Uploads geht viel schneller: Die Prüfsumme wird beim Empfang berechnet, die Datei wird also nicht noch einmal komplett von der Festplatte gelesen (bei einem Video von einigen hundert MB dauerte das auf einem Raspberry Pi Dutzende Sekunden); bei Dateien über 20 MB protokolliert das Log Empfangsgeschwindigkeit und Speicherzeit, sodass man bei langsamen Uploads sieht, ob Netzwerk oder Festplatte bremst",
     "Kleinere Images: Der Server nutzt jetzt ein ffmpeg aus einer einzigen Datei statt über 300 MB ungenutzter Bibliotheken, der Download wird um etwa ein Drittel kleiner; das Image des KI-Dienstes enthält kein Paketierungswerkzeug mehr",

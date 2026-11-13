@@ -3,6 +3,14 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "Al subir vídeos y otros archivos grandes desde Safari, cada fragmento se atascaba decenas de segundos, con apenas una fracción de MB por segundo en la red local; ahora Safari va tan rápido como Chrome (30 vídeos, 1,9 GB, en 25 segundos en las pruebas)",
+    "Ajustes → Procesamiento en segundo plano tiene «Espera tras subir»: la IA espera de 30 segundos a 4 horas después de que terminen las subidas, para no quitar recursos entre tandas; combínala con el horario nocturno para esperar a la noche",
+    "Panel de tareas más sencillo arriba a la derecha: una línea corta por tarea — a la izquierda lo que hace o por qué espera, a la derecha el tiempo restante; sin modelos dice simplemente «Descarga primero los modelos en Ajustes»",
+    "Mientras se sube o en pausa, la × de arriba a la derecha de la sección de subida lo cancela todo de una vez y conserva las fotos que ya terminaron; el tiempo restante ya no dice «Unos» y el panel más ancho no lo corta",
+    "La frase de la página de inicio de sesión ocupa justo dos líneas en todos los idiomas; menús y diálogos son menos transparentes y se leen bien en navegadores sin desenfoque de fondo",
+    "Documentación del sitio reescrita: todas las opciones y pasos del script de instalación, qué borra cada opción de desinstalación, cómo actualizar, cuándo trabaja la IA y cómo ejecutar el servicio de IA por separado con uv en macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "El paso «Guardando» tras subir archivos grandes es mucho más rápido: la suma de comprobación se calcula mientras se recibe el archivo, así que ya no se vuelve a leer entero del disco (en una Raspberry Pi, un vídeo de unos cientos de MB tardaba decenas de segundos); para archivos de más de 20 MB, el registro anota la velocidad de recepción y el tiempo de guardado, para ver si el límite es la red o el disco",
     "Imágenes más pequeñas: el servidor usa ahora un ffmpeg de un solo archivo en lugar de más de 300 MB de bibliotecas que no usa, y la descarga se reduce en un tercio; la imagen del servicio de IA ya no incluye su herramienta de empaquetado",

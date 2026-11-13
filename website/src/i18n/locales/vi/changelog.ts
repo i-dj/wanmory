@@ -2,6 +2,14 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.7': [
+    "Khi tải video và tệp lớn lên bằng Safari, mỗi phần bị đứng vài chục giây, trong mạng nội bộ chỉ được chưa tới 1 MB mỗi giây; giờ Safari nhanh như Chrome (thử nghiệm 30 video, 1,9 GB, trong 25 giây)",
+    "Cài đặt → Xử lý nền có thêm “Chờ sau khi tải lên”: AI chờ 30 giây đến 4 giờ sau khi ảnh tải lên xong rồi mới bắt đầu, không tranh tài nguyên giữa các đợt tải; muốn chờ đến đêm thì kết hợp với khung giờ ban đêm",
+    "Bảng tác vụ góc trên bên phải gọn hơn: mỗi tác vụ một dòng ngắn — bên trái là việc đang làm hoặc lý do đang chờ, bên phải là thời gian còn lại; chưa có mô hình thì chỉ báo “Hãy tải mô hình trong Cài đặt trước”",
+    "Khi đang tải lên hoặc tạm dừng, nút × ở góc trên bên phải phần tải lên hủy tất cả một lần, ảnh đã tải xong vẫn được giữ; thời gian còn lại không còn chữ “Khoảng”, bảng rộng hơn nên không bị cắt",
+    "Câu trên trang đăng nhập vừa đúng hai dòng ở mọi ngôn ngữ; menu và hộp thoại ít trong suốt hơn, vẫn dễ đọc trên trình duyệt không làm mờ nền",
+    "Viết lại tài liệu trên trang web: mọi tùy chọn và từng bước của script cài đặt, mỗi tùy chọn gỡ cài đặt xóa những gì, cách cập nhật, khi nào AI xử lý, và chạy riêng dịch vụ AI bằng uv trên macOS / Windows / Linux",
+  ],
   'v0.4.6': [
     "Bước “Đang lưu” sau khi tải lên tệp lớn nhanh hơn nhiều: mã kiểm tra được tính ngay khi nhận, nên không phải đọc lại cả tệp từ ổ đĩa (trên Raspberry Pi, video vài trăm MB từng mất vài chục giây); với tệp trên 20 MB, nhật ký ghi lại tốc độ nhận và thời gian lưu, khi tải chậm sẽ biết là do mạng hay ổ đĩa",
     "Image nhỏ hơn: máy chủ dùng ffmpeg dạng một tệp thay vì hơn 300 MB thư viện không dùng, dung lượng tải về giảm khoảng một phần ba; image dịch vụ AI không còn kèm công cụ đóng gói",
