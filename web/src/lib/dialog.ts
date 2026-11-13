@@ -89,9 +89,14 @@ export function showError(title: string, err: unknown) {
 // askConfirm 问一句要不要做，确定返回 true。danger 时确定按钮是红的（删除、取消上传这种）
 export function askConfirm(
   title: string,
-  { message, confirmLabel = t('确定'), danger }: { message?: string; confirmLabel?: string; danger?: boolean } = {},
+  {
+    message,
+    confirmLabel = t('确定'),
+    cancelLabel = t('取消'),
+    danger,
+  }: { message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean } = {},
 ) {
-  return push({ tone: danger ? 'danger' : 'warn', title, message, confirmLabel, cancelLabel: t('取消') })
+  return push({ tone: danger ? 'danger' : 'warn', title, message, confirmLabel, cancelLabel })
 }
 
 // askDelete 是通用的「删除对话框」：上面红色圆圈里一个感叹号，标题「删除「…」？」，下面一行说明删了会怎样，

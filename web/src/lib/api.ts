@@ -264,7 +264,8 @@ export const largeUrl = (a: Asset) => `/api/assets/${a.id}/large`
 
 const UPLOAD_CHUNK_SIZE = 16 * 1024 * 1024 // 每片 16 MB，过反向代理（例如有 100 MB 上限的）也没问题
 const RETRY_DELAYS = [0, 1000, 3000, 5000, 10000, 20000, 30000] // 毫秒；全部用完才算失败
-const UPLOAD_STALL_MS = 45_000 // 正在发数据却这么久没有进度，算卡住了，断开重连
+// 正在发数据却这么久一点进度都没有，算卡住了，断开重连。只要数据还在走，浏览器就不停地报进度，网慢也不会误判
+const UPLOAD_STALL_MS = 15_000
 
 // UploadHandle 控制一个正在进行的上传。
 export interface UploadHandle {
@@ -280,6 +281,23 @@ export interface UploadHandle {
 // 刷新页面后重新选同一个文件，也会接着上次的进度传（进度记在浏览器的 localStorage 里）。
 // 结束时（成功、被服务器拒绝、重试用完）调用一次 onDone；暂停和取消不会调用。
 // album 不为空时，传完由服务器直接放进这个相册。
+// memoryFileReader 让分片上传的每一片先读进内存、再包成一个新的 Blob 发出去。
+// Safari 的 bug：直接发 file.slice() 切出来的片段（背后是磁盘上的文件）或者 ArrayBuffer，请求会把数据发完却一直不结束，
+// 服务器收不全、不回复，只能等超时重连（局域网里一个视频要传几分钟）；整个文件一次发、或者发内存里的 Blob 都正常。
+// Chrome 没有这个问题，统一这样做也没坏处：一次只多占一片（16 MB）的内存
+const memoryFileReader = {
+  async openFile(file: File) {
+    return {
+      size: file.size,
+      async slice(start: number, end: number) {
+        const value = new Blob([await file.slice(start, end).arrayBuffer()])
+        return { value, done: end >= file.size }
+      },
+      close() {},
+    }
+  },
+}
+
 export function startUpload(
   file: File,
   {
@@ -300,12 +318,13 @@ export function startUpload(
     void upload.abort(false).then(() => {
       if (!stopped) upload.start()
     })
-  }, 5000)
+  }, 3000)
   const finish = () => window.clearInterval(watchdog)
   const upload = new tus.Upload(file, {
     endpoint: '/api/uploads/',
     chunkSize: UPLOAD_CHUNK_SIZE,
     retryDelays: RETRY_DELAYS,
+    fileReader: memoryFileReader,
     removeFingerprintOnSuccess: true,
     metadata: {
       filename: file.name,
@@ -924,6 +943,7 @@ export interface PerfSettings {
   night_start: number
   night_end: number
   workers: number // 0 是自动
+  delay: number // 照片传完后再等几分钟才开始 AI，0 是 30 秒
 }
 export interface PerfStatus {
   settings: PerfSettings

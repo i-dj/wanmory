@@ -33,7 +33,7 @@ function Capsule() {
 
   const button = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
-  const position = useAnchorPosition(button, open, { minWidth: 380, need: 240, align: 'end' })
+  const position = useAnchorPosition(button, open, { minWidth: 420, need: 240, align: 'end' })
 
   // 点胶囊和面板以外的地方（确认框除外）、按 Esc 收起
   useEffect(() => {
@@ -129,7 +129,7 @@ function Capsule() {
             ref={panel}
             role="dialog"
             aria-label={tr('上传和后台任务')}
-            className="popover-card glass-menu fixed z-50 w-[380px] max-w-[calc(100vw-16px)] overflow-x-hidden overflow-y-auto rounded-2xl p-4"
+            className="popover-card glass-menu fixed z-50 w-[420px] max-w-[calc(100vw-16px)] overflow-x-hidden overflow-y-auto rounded-2xl p-4"
             style={position}
           >
             {hasUploads && (

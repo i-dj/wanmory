@@ -235,6 +235,99 @@ make run       # 后端 + 网页都在 http://localhost:8080，启动时自动�
 
 不想在本机装这些工具，可以用 `make run-docker` 在容器里跑后端（和 `make run` 二选一，都占 8080 端口），本机只需要 Docker。
 
+## 安装、更新与卸载
+
+完整说明（每一步提示的意思、常见问题，12 种语言）见官网的[部署与文档](https://wanmory.com/docs/)。
+
+### 安装
+
+在装好 Docker 的 64 位 Linux 或 macOS 上执行，一路回车用默认值即可：
+
+```bash
+curl -fsSL https://wanmory.com/install.sh | bash
+```
+
+脚本依次：检查系统（64 位、Docker、Docker Compose、内存和磁盘）→ 逐项提问 → 写 `.env`（挂载照片目录时还写 `docker-compose.override.yml`）→ 下载 `docker-compose.yml` → 拉镜像、先启动数据库并把密码同步成 `.env` 里的 → 等相册启动（最多 5 分钟，反复重启时直接打印日志）→ 打印访问地址。装好后打开网页创建管理员，再在「系统设置 → AI 运行方式」下载模型。
+
+| 选项 | 作用 |
+| --- | --- |
+| `-y`、`--yes` | 不提问，全部用默认值或下面的环境变量；数据库密码随机生成 |
+| `--dir 目录` | 安装目录，默认 `~/wanmory` |
+| `--dry-run` | 只检查环境、写配置文件，不拉镜像、不启动 |
+| `-h`、`--help` | 显示帮助 |
+
+| 环境变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `WANMORY_DIR` | `~/wanmory` | 安装目录，同 `--dir` |
+| `WANMORY_PORT` | 8080 | 网页端口 |
+| `WANMORY_DOMAIN` | wanmory.local | 局域网访问域名，必须以 `.local` 结尾 |
+| `WANMORY_DB_PASSWORD` | 随机生成 | 数据库密码 |
+| `WANMORY_DB_DIR` | 空（Docker 数据卷 pgdata） | 数据库放在本机哪个目录，不要放在网络共享上 |
+| `WANMORY_TZ` | 本机时区，识别不了时 Asia/Shanghai | EXIF 里没有时区的照片按它算 |
+| `WANMORY_DATA_DIR` | `./data` | 缩略图、预览图和网页上传的原图 |
+| `WANMORY_MODELS_DIR` | `./models` | AI 模型，1–4 GB |
+| `WANMORY_PHOTOS` | 空 | 已有照片目录，逗号分隔，默认只读，路径后加 `:rw` 可读写 |
+| `WANMORY_REGISTRY` | `ghcr.io/i-dj` | 镜像仓库，拉不动时换镜像源 |
+| `WANMORY_VERSION` | latest | 安装哪个版本 |
+
+目录里已有 `.env` 时会问是否沿用原配置（重装、升级选 Y）；没沿用配置但旧数据库还在时会问是否保留（保留则照片、相册、账号都在）。相册容器以数据目录主人的身份运行，宿主机上不用 sudo 就能管理上传的文件。
+
+### 更新
+
+```bash
+cd ~/wanmory                 # 安装目录
+docker compose pull && docker compose up -d
+```
+
+照片、数据库、设置和模型都会保留，数据库结构在启动时自动升级；「系统设置 → 系统更新」能看到新版本和更新说明。`.env` 里用 `WANMORY_VERSION` 固定了版本时先改掉它。重新运行安装脚本并沿用原配置也一样。
+
+### 卸载
+
+```bash
+curl -fsSL https://wanmory.com/uninstall.sh | bash
+```
+
+容器和网络总会删除；数据库、数据目录（含网页上传的原图）、AI 模型、Docker 镜像、配置文件逐项询问，默认都不删。选了删除数据库或数据目录时要输入 `DELETE` 才会继续；容器写出的、当前用户删不掉的文件会借一个临时容器删除。挂载的已有照片目录永远不会被删除。`-y` 只删容器保留一切，`--purge` 不提问全部删除，`--dry-run` 只显示要做什么。
+
+### AI 什么时候处理
+
+「系统设置 → 后台处理」：
+
+| 设置 | 选项 | 作用 |
+| --- | --- | --- |
+| 处理时机 | 空闲时（默认） | 上传、生成缩略图期间暂停 AI |
+| | 随时 | 一直处理，上传时可能变慢 |
+| | 夜间 | 只在设定时段处理（默认 1:00–7:00，可跨零点） |
+| 传完后等多久再开始 | 30 秒 / 5、15、30 分钟 / 1、2、4 小时 | 照片传完后先等这么久再开始 AI，在「空闲时」和「夜间」下生效；想等到明天选「夜间」 |
+
+当前档位的模型没下载时 AI 一律暂停；还有没传完的上传时 AI 一直等待。
+
+### 单独部署 AI 服务（远程）
+
+在显卡更好的电脑（Apple 芯片 Mac、NVIDIA 显卡的 Windows / Linux）上直接运行 `ml/`，用 [uv](https://docs.astral.sh/uv/) 管理 Python：
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/i-dj/wanmory.git && cd wanmory/ml
+uv sync --extra torch                       # 没有显卡可以只 uv sync（启动时也去掉 --extra torch）
+export WANMORY_ML_TOKEN=$(openssl rand -hex 24)
+WANMORY_FACE_MODEL_PRELOAD=1 uv run --extra torch python -m wanmory_ml
+```
+
+```powershell
+# Windows（PowerShell）
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/i-dj/wanmory.git; cd wanmory\ml
+uv sync --extra torch
+uv pip install --reinstall torch --index-url https://download.pytorch.org/whl/cu126   # 有 NVIDIA 显卡时
+$env:WANMORY_ML_TOKEN = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
+uv run --no-sync python -m wanmory_ml        # 没装 CUDA 版时用 uv run --extra torch python -m wanmory_ml
+New-NetFirewallRule -DisplayName "Wanmory AI" -Direction Inbound -Protocol TCP -LocalPort 3003 -Action Allow   # 管理员 PowerShell
+```
+
+默认监听 `0.0.0.0:3003`（`WANMORY_ML_HOST`、`WANMORY_ML_PORT`），模型在 `~/.cache/wanmory/models`（`WANMORY_MODEL_DIR`），设置了 `WANMORY_ML_TOKEN` 时请求要带 `Authorization: Bearer 令牌`。然后在相册「系统设置 → AI 运行方式」选「远程服务」，填服务地址（如 `http://192.168.1.20:3003`）和访问令牌，测试连接后保存，再在「模型档位」下载模型。只在局域网或 VPN 里用，不要把 3003 端口暴露到公网。Windows 开机自启、systemd 等见官网文档。
+
 ## 挂载已有的照片目录
 
 NAS、移动硬盘、电脑上已经有很多照片，不用一张张上传：把目录挂载进相册的照片目录（Docker 里是 `/photos`，本机开发是 `data/library`），相册每 15 分钟扫一遍，新的照片和视频**原地导入**（不复制、不移动），然后和上传的一样读拍摄信息、生成缩略图、做 AI 识别（人脸、分类、语义搜索、文字识别）。

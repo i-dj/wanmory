@@ -27,6 +27,9 @@ const counts = (auto: number, max: number, unit: (n: number) => string): [string
 const photosN = (n: number) => tr('{n} 张', { n })
 const threadsN = (n: number) => tr('{n} 个线程', { n })
 
+// 传完后等多久再开始 AI 能选的分钟数（和服务器的 perf.Delays 一样），0 是 30 秒
+const DELAYS = [0, 5, 15, 30, 60, 120, 240]
+
 const SCHEDULES: { value: PerfSchedule; label: string; hint: string }[] = [
   {
     value: 'idle',
@@ -145,6 +148,25 @@ export default function PerformanceSettings() {
             segments={SCHEDULES.map((x) => ({ value: x.value, label: x.label, disabled }))}
           />
         </SettingRow>
+
+        {s.schedule !== 'always' && (
+          <SettingRow
+            title={tr('传完后等多久再开始')}
+            description={tr('照片传完后，AI 先等一会儿再开始，免得一批接一批上传时插进来抢资源。想等到夜里再处理，选上面的「夜间」。')}
+          >
+            <Select
+              label={tr('传完后等多久再开始')}
+              value={String(s.delay ?? 0)}
+              onChange={(v) => void save({ delay: Number(v) })}
+              options={DELAYS.map((m) => [
+                String(m),
+                m === 0 ? tr('30 秒') : m < 60 ? tr('{v0} 分钟', { v0: m }) : tr('{v0} 小时', { v0: m / 60 }),
+              ])}
+              disabled={disabled}
+              className="sm:w-48"
+            />
+          </SettingRow>
+        )}
 
         <SettingRow title={tr('照片处理并发数')} description={tr('同时读取信息、生成缩略图的照片数量。')}>
           <Select

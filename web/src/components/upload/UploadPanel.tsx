@@ -103,6 +103,17 @@ export function UploadSection({
 }) {
   const [expanded, setExpanded] = useState(false)
   const { phase, ratio, title, detail, unfinished, retryable } = summary
+  const cancelAll = async () => {
+    if (
+      await askConfirm(tr('取消还没传完的 {unfinished} 个文件？', { unfinished }), {
+        message: tr('已经传完的照片会留着，没传完的部分会被删除。'),
+        confirmLabel: tr('全部取消'),
+        cancelLabel: tr('继续上传'), // 不写「取消」：和「全部取消」挨着，分不清点哪个是不传了
+        danger: true,
+      })
+    )
+      queue.cancelAll()
+  }
 
   return (
     <div>
@@ -128,10 +139,17 @@ export function UploadSection({
         <HeaderButton label={expanded ? tr('收起列表') : tr('展开列表')} onClick={() => setExpanded((e) => !e)}>
           {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
         </HeaderButton>
-        {(phase === 'done' || phase === 'failed') && (
+        {/* ×：传完了是关闭；还在传、暂停着是不想传了——问一句后全部取消（已经传完的照片留着） */}
+        {phase === 'done' || phase === 'failed' ? (
           <HeaderButton label={tr('关闭')} onClick={onClose}>
             <X className="size-4" />
           </HeaderButton>
+        ) : (
+          unfinished > 0 && (
+            <HeaderButton label={tr('全部取消')} onClick={cancelAll}>
+              <X className="size-4" />
+            </HeaderButton>
+          )
         )}
       </div>
 
@@ -153,16 +171,7 @@ export function UploadSection({
               {unfinished > 0 ? (
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (
-                      await askConfirm(tr('取消还没传完的 {unfinished} 个文件？', { unfinished }), {
-                        message: tr('已经上传的部分会被删除。'),
-                        confirmLabel: tr('全部取消'),
-                        danger: true,
-                      })
-                    )
-                      queue.cancelAll()
-                  }}
+                  onClick={cancelAll}
                   className="text-caption text-muted hover:text-danger"
                 >
                   {tr('全部取消')}
@@ -254,8 +263,9 @@ function useRemainingTime(sent: number, total: number, running: boolean): string
   if (seconds < 3 || last.sent <= first.sent) return null
   const left = (total - sent) / ((last.sent - first.sent) / seconds)
   if (left < 60) return tr('不到 1 分钟')
-  if (left < 3600) return tr('约 {v0} 分钟', { v0: Math.round(left / 60) })
-  return tr('约 {v0} 小时', { v0: (left / 3600).toFixed(1).replace(/\.0$/, '') })
+  // 不写「约」：那一行空间有限，放不下时先被截掉的就是时间
+  if (left < 3600) return tr('{v0} 分钟', { v0: Math.round(left / 60) })
+  return tr('{v0} 小时', { v0: (left / 3600).toFixed(1).replace(/\.0$/, '') })
 }
 
 const ROW_HEIGHT = 60 // 像素，每行固定高度，才能只渲染看得见的行

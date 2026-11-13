@@ -207,10 +207,12 @@
   /* 菜单、下拉、提示气泡、删除确认这些弹出的小卡片：和底部操作栏（.frost）同一种透明磨砂——
      半透明的斜向渐变底，背后的内容模糊着透出来，一圈细亮边、顶上一道高光 */
   .glass-menu {
+    /* 底色不能太透：Chrome 关了硬件加速、或者某些显卡上不做背景模糊，只剩半透明的底，后面的照片会清清楚楚透出来、字看不清。
+       不透明度高一些，模糊不生效时也是一块看得清的深色卡片，生效时（Safari、大多数 Chrome）还是磨砂 */
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--color-surface) 78%, transparent),
-      color-mix(in srgb, var(--color-surface) 55%, transparent)
+      color-mix(in srgb, var(--color-surface) 92%, transparent),
+      color-mix(in srgb, var(--color-surface) 84%, transparent)
     );
     backdrop-filter: blur(28px) saturate(1.9);
     -webkit-backdrop-filter: blur(28px) saturate(1.9);
@@ -223,8 +225,8 @@
     position: relative;
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--color-surface) 80%, transparent),
-      color-mix(in srgb, var(--color-surface) 60%, transparent)
+      color-mix(in srgb, var(--color-surface) 92%, transparent),
+      color-mix(in srgb, var(--color-surface) 84%, transparent)
     );
     backdrop-filter: blur(32px) saturate(1.9);
     -webkit-backdrop-filter: blur(32px) saturate(1.9);

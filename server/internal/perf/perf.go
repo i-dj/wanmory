@@ -11,8 +11,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,7 +47,11 @@ type Settings struct {
 	NightStart int    `json:"night_start"` // 夜间时段，几点开始（0–23）
 	NightEnd   int    `json:"night_end"`   // 几点结束；比开始小表示跨过零点
 	Workers    int    `json:"workers"`     // 同时处理几个任务，0 是自动
+	Delay      int    `json:"delay"`       // 照片传完后再等几分钟才开始 AI（0 是 30 秒）：一批接一批地传时，AI 不会在两批之间插进来
 }
+
+// Delays 是「传完后再等多久」能选的分钟数（0 是默认的 30 秒）
+var Delays = []int{0, 5, 15, 30, 60, 120, 240}
 
 var defaults = Settings{Schedule: "idle", NightStart: 1, NightEnd: 7}
 
@@ -254,8 +260,16 @@ func (s *Service) aiState() (bool, string) {
 	if s.uploading.Load() > 0 || s.openUploads() > 0 {
 		return false, "有照片正在上传"
 	}
-	if d := now.Sub(time.Unix(0, s.lastUpload.Load())); d >= 0 && d < uploadQuiet {
-		return false, fmt.Sprintf("刚传完照片，%d 秒后开始", int((uploadQuiet-d).Seconds())+1)
+	quiet := uploadQuiet
+	if cur.Delay > 0 {
+		quiet = time.Duration(cur.Delay) * time.Minute
+	}
+	if d := now.Sub(time.Unix(0, s.lastUpload.Load())); d >= 0 && d < quiet {
+		left := quiet - d
+		if left > time.Minute {
+			return false, fmt.Sprintf("刚传完照片，%d 分钟后开始", int(math.Ceil(left.Minutes())))
+		}
+		return false, fmt.Sprintf("刚传完照片，%d 秒后开始", int(left.Seconds())+1)
 	}
 	if s.localActive != nil && s.localActive() > 0 {
 		return false, "正在生成缩略图"
@@ -286,6 +300,9 @@ func normalize(v Settings) Settings {
 		v.NightEnd = defaults.NightEnd
 	}
 	v.Workers = max(0, v.Workers)
+	if !slices.Contains(Delays, v.Delay) {
+		v.Delay = 0
+	}
 	return v
 }
 
@@ -325,6 +342,7 @@ func (s *Service) put(w http.ResponseWriter, r *http.Request) {
 		NightStart *int    `json:"night_start"`
 		NightEnd   *int    `json:"night_end"`
 		Workers    *int    `json:"workers"`
+		Delay      *int    `json:"delay"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
@@ -359,6 +377,13 @@ func (s *Service) put(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		next.Workers = *req.Workers
+	}
+	if req.Delay != nil {
+		if !slices.Contains(Delays, *req.Delay) {
+			httpx.Error(w, http.StatusBadRequest, "等待时间不在可选的范围里")
+			return
+		}
+		next.Delay = *req.Delay
 	}
 	u := auth.UserFrom(r.Context())
 	if err := s.store.Set(r.Context(), SettingKey, next, &u.ID); err != nil {

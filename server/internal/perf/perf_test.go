@@ -161,3 +161,23 @@ func TestOpenUploadsKeepAIWaiting(t *testing.T) {
 		t.Fatal("取消的上传不该挡着 AI")
 	}
 }
+
+func TestAIDelay(t *testing.T) {
+	now := time.Date(2026, 11, 8, 12, 0, 0, 0, time.Local)
+	s := &Service{cur: Settings{Schedule: "idle", Delay: 15}, now: func() time.Time { return now }}
+	s.lastUpload.Store(now.Add(-2 * time.Minute).UnixNano())
+	if ok, why := s.aiState(); ok || why != "刚传完照片，13 分钟后开始" {
+		t.Fatalf("设了传完等 15 分钟，2 分钟时应该还在等: %v %q", ok, why)
+	}
+	now = now.Add(12*time.Minute + 30*time.Second) // 传完 14 分 30 秒
+	if ok, why := s.aiState(); ok || why != "刚传完照片，31 秒后开始" {
+		t.Fatalf("最后一分钟按秒说: %v %q", ok, why)
+	}
+	now = now.Add(time.Minute)
+	if !s.AllowAI() {
+		t.Fatal("等够了应该开始")
+	}
+	if normalize(Settings{Delay: 7}).Delay != 0 {
+		t.Fatal("不在可选范围里的等待时间应该回到默认")
+	}
+}
