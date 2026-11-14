@@ -97,7 +97,7 @@ const docs: DocsDict = {
     },
   ],
   intro:
-    '本文件面向在 NAS、家用伺服器或個人電腦上自架萬象 Wanmory 的管理員，覆蓋安裝、設定、AI 服務部署、日常使用、系統設定和維運。系統架構與演算法細節見[功能架構](/architecture/)。',
+    '本文件面向在 NAS、伺服器或個人電腦上自架萬象 Wanmory 的管理員，覆蓋安裝、設定、AI 服務部署、日常使用、系統設定和維運。系統架構與演算法細節見[功能架構](/architecture/)。',
   blocks: [
     {
       h2: 'intro',
@@ -288,25 +288,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
           title: 'Checking system（檢查系統）',
           body: [
             {
-              table: ['提示', '意思'],
-              rows: [
-                [
-                  '`OS: Linux` / `OS: macOS`',
-                  '作業系統。macOS 會提醒：容器裡的 AI 用不到 Apple 顯示卡，想快可以在 Mac 上直接執行 AI 服務（見[單獨部署 AI 服務](#ai-remote)）。其他系統直接退出。',
-                ],
-                [
-                  '`CPU: x86_64 (linux/amd64 images)`',
-                  'CPU 架構。只支援 64 位的 amd64 和 arm64；32 位系統（包括 64 位核心配 32 位系統的老樹莓派系統）會退出，需要裝 64 位系統。',
-                ],
-                [
-                  '`Docker 27.x`',
-                  'Docker 可用。沒裝時給出安裝連結（群暉、威聯通在套件中心安裝 Container Manager / Container Station）；提示 `Permission denied` 時用 sudo 執行，或把使用者加進 docker 組後重新登入。',
-                ],
-                ['`Docker Compose v2.x`', 'Docker Compose 可用。只有老的 docker-compose v1 時會建議升級，但能繼續。'],
-                [
-                  '`Memory: 8 GB`',
-                  '記憶體。不到 4 GB 時提醒 `AI will use the lite model tier`：AI 會自動用輕量檔；不到 2 GB 時提醒 AI 識別可能跑不起來。',
-                ],
+              qa: [
+                {
+                  q: '`OS: Linux` / `OS: macOS`',
+                  a: '作業系統。macOS 會提醒：容器裡的 AI 用不到 Apple 顯示卡，想快可以在 Mac 上直接執行 AI 服務（見[單獨部署 AI 服務](#ai-remote)）。其他系統直接退出。',
+                },
+                {
+                  q: '`CPU: x86_64 (linux/amd64 images)`',
+                  a: 'CPU 架構。只支援 64 位的 amd64 和 arm64；32 位系統（包括 64 位核心配 32 位系統的老樹莓派系統）會退出，需要裝 64 位系統。',
+                },
+                {
+                  q: '`Docker 27.x`',
+                  a: 'Docker 可用。沒裝時給出安裝連結（群暉、威聯通在套件中心安裝 Container Manager / Container Station）；提示 `Permission denied` 時用 sudo 執行，或把使用者加進 docker 組後重新登入。',
+                },
+                {
+                  q: '`Docker Compose v2.x`',
+                  a: 'Docker Compose 可用。只有老的 docker-compose v1 時會建議升級，但能繼續。',
+                },
+                {
+                  q: '`Memory: 8 GB`',
+                  a: '記憶體。不到 4 GB 時提醒 `AI will use the lite model tier`：AI 會自動用輕量檔；不到 2 GB 時提醒 AI 識別可能跑不起來。',
+                },
               ],
             },
           ],
@@ -318,44 +320,55 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
               p: '逐個提問，直接回車用方括號裡的預設值。',
             },
             {
-              table: ['提示', '意思和建議'],
-              rows: [
-                [
-                  '`Install directory`',
-                  '安裝目錄，存放 `.env`、`docker-compose.yml`，以及預設的 data、models。接著顯示這塊磁碟的剩餘空間，不到 10 GB 會提醒。',
-                ],
-                [
-                  '`Keep the existing configuration`',
-                  '只在目錄裡已經有 `.env`（以前裝過）時出現。回車（Y）沿用原來的連接埠、域名、資料庫密碼等，跳過下面的問題，適合重灌和升級；選 n 重新填寫。資料庫建好以後不要隨便改密碼。',
-                ],
-                ['`Web port`', '網頁連接埠，預設 8080。被佔用時會提示換一個。'],
-                [
-                  '`LAN domain (must end in .local)`',
-                  '在區域網裡開啟相簿用的域名，預設 wanmory.local，也可以填 photos.local 之類。以後在網頁的系統設定裡也能改。',
-                ],
-                [
-                  '`Generate a random database password`',
-                  '回車自動生成隨機密碼並存進 `.env`，你不需要記住它。選 n 則自己輸入兩遍（至少 8 位，不能有空格、引號和 `$ \\ @ : / # ?`）。',
-                ],
-                [
-                  '`Database location`',
-                  '資料庫放在哪裡。空著回車用 Docker 資料卷 pgdata（推薦）；也可以填本機目錄，如 `/volume1/wanmory/db`。會提醒不要放在 SMB / NFS 網路共享上，否則資料庫可能損壞。',
-                ],
-                [
-                  '`Time zone`',
-                  '時區，EXIF 裡沒有時區的照片按它計算時間。可以輸城市或國家搜尋，如 shanghai、tokyo、london、北京；匹配到多個時列出編號讓你選。',
-                ],
-                ['`Data directory`', '資料目錄，預設 ./data。縮圖、預覽圖和網頁上傳的原圖都存在這裡，要留夠空間。'],
-                ['`AI model directory (1-4 GB)`', 'AI 模型目錄，預設 ./models。'],
-                [
-                  '`Add existing photo folders from a NAS or external drive`',
-                  '是否接入已有的照片目錄（不用重新上傳）。選 Y 後輸入路徑；目錄不存在時會再確認一次。',
-                ],
-                [
-                  '`Mount read-only`',
-                  '回車為只讀掛載：相簿永遠不會修改或刪除原檔案（推薦）。選 n 為可讀寫：在相簿裡永久刪除照片時，原檔案也會被刪除。',
-                ],
-                ['`Add another photo folder`', '繼續新增下一個目錄；回車（N）結束。'],
+              qa: [
+                {
+                  q: '`Install directory`',
+                  a: '安裝目錄，存放 `.env`、`docker-compose.yml`，以及預設的 data、models。接著顯示這塊磁碟的剩餘空間，不到 10 GB 會提醒。',
+                },
+                {
+                  q: '`Keep the existing configuration`',
+                  a: '只在目錄裡已經有 `.env`（以前裝過）時出現。回車（Y）沿用原來的連接埠、域名、資料庫密碼等，跳過下面的問題，適合重灌和升級；選 n 重新填寫。資料庫建好以後不要隨便改密碼。',
+                },
+                {
+                  q: '`Web port`',
+                  a: '網頁連接埠，預設 8080。被佔用時會提示換一個。',
+                },
+                {
+                  q: '`LAN domain (must end in .local)`',
+                  a: '在區域網裡開啟相簿用的域名，預設 wanmory.local，也可以填 photos.local 之類。以後在網頁的系統設定裡也能改。',
+                },
+                {
+                  q: '`Generate a random database password`',
+                  a: '回車自動生成隨機密碼並存進 `.env`，你不需要記住它。選 n 則自己輸入兩遍（至少 8 位，不能有空格、引號和 `$ \\ @ : / # ?`）。',
+                },
+                {
+                  q: '`Database location`',
+                  a: '資料庫放在哪裡。空著回車用 Docker 資料卷 pgdata（推薦）；也可以填本機目錄，如 `/volume1/wanmory/db`。會提醒不要放在 SMB / NFS 網路共享上，否則資料庫可能損壞。',
+                },
+                {
+                  q: '`Time zone`',
+                  a: '時區，EXIF 裡沒有時區的照片按它計算時間。可以輸城市或國家搜尋，如 shanghai、tokyo、london、北京；匹配到多個時列出編號讓你選。',
+                },
+                {
+                  q: '`Data directory`',
+                  a: '資料目錄，預設 ./data。縮圖、預覽圖和網頁上傳的原圖都存在這裡，要留夠空間。',
+                },
+                {
+                  q: '`AI model directory (1-4 GB)`',
+                  a: 'AI 模型目錄，預設 ./models。',
+                },
+                {
+                  q: '`Add existing photo folders from a NAS or external drive`',
+                  a: '是否接入已有的照片目錄（不用重新上傳）。選 Y 後輸入路徑；目錄不存在時會再確認一次。',
+                },
+                {
+                  q: '`Mount read-only`',
+                  a: '回車為只讀掛載：相簿永遠不會修改或刪除原檔案（推薦）。選 n 為可讀寫：在相簿裡永久刪除照片時，原檔案也會被刪除。',
+                },
+                {
+                  q: '`Add another photo folder`',
+                  a: '繼續新增下一個目錄；回車（N）結束。',
+                },
               ],
             },
           ],
@@ -406,22 +419,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
       h2: 'install-faq',
     },
     {
-      table: ['問題', '原因和解決'],
-      rows: [
-        [
-          '重灌後相簿連不上資料庫（密碼認證失敗）',
-          '資料庫只在第一次建立時使用 `.env` 裡的密碼，之後改 `.env` 不會改資料庫裡的密碼。現在的安裝腳本啟動時會自動把資料庫密碼同步成 `.env` 裡的，重新執行一次安裝腳本即可。手動部署時在安裝目錄執行 `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'新密碼\';"`，再執行 `docker compose up -d`。',
-        ],
-        [
-          '資料目錄裡的檔案歸誰、宿主機上刪不掉',
-          '相簿容器以資料目錄主人的身份執行：目錄是普通使用者建的（安裝腳本就是這樣），上傳的照片和縮圖都歸這個使用者，宿主機上不用 sudo 就能管理；目錄歸 root 或使用 Docker 資料卷時，以 uid 1000 執行。U 盤的 exFAT / NTFS、SMB 共享這類不能修改歸屬的檔案系統上，會以 root 執行。以前版本留下的歸屬不對的檔案，啟動時會自動改正。',
-        ],
-        [
-          '樹莓派',
-          '必須使用 64 位系統（Raspberry Pi OS 64-bit），32 位系統腳本會直接退出。4 GB 記憶體會自動使用輕量檔；第一次啟動和第一次處理照片比較慢，建議把資料和資料庫放在 SSD 上。',
-        ],
-        ['連接埠被佔用', '換一個連接埠，或用 `WANMORY_PORT=9000` 執行腳本。'],
-        ['拉取映象很慢或失敗', '把 `WANMORY_REGISTRY` 設為能訪問的映象源後重新執行。'],
+      qa: [
+        {
+          q: '重灌後相簿連不上資料庫（密碼認證失敗）',
+          a: '資料庫只在第一次建立時使用 `.env` 裡的密碼，之後改 `.env` 不會改資料庫裡的密碼。現在的安裝腳本啟動時會自動把資料庫密碼同步成 `.env` 裡的，重新執行一次安裝腳本即可。手動部署時在安裝目錄執行 `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'新密碼\';"`，再執行 `docker compose up -d`。',
+        },
+        {
+          q: '資料目錄裡的檔案歸誰、宿主機上刪不掉',
+          a: '相簿容器以資料目錄主人的身份執行：目錄是普通使用者建的（安裝腳本就是這樣），上傳的照片和縮圖都歸這個使用者，宿主機上不用 sudo 就能管理；目錄歸 root 或使用 Docker 資料卷時，以 uid 1000 執行。U 盤的 exFAT / NTFS、SMB 共享這類不能修改歸屬的檔案系統上，會以 root 執行。以前版本留下的歸屬不對的檔案，啟動時會自動改正。',
+        },
+        {
+          q: '樹莓派',
+          a: '必須使用 64 位系統（Raspberry Pi OS 64-bit），32 位系統腳本會直接退出。4 GB 記憶體會自動使用輕量檔；第一次啟動和第一次處理照片比較慢，建議把資料和資料庫放在 SSD 上。',
+        },
+        {
+          q: '連接埠被佔用',
+          a: '換一個連接埠，或用 `WANMORY_PORT=9000` 執行腳本。',
+        },
+        {
+          q: '拉取映象很慢或失敗',
+          a: '把 `WANMORY_REGISTRY` 設為能訪問的映象源後重新執行。',
+        },
       ],
     },
     {
@@ -649,10 +667,10 @@ location /api/uploads/ {
       h2: 'ai-remote',
     },
     {
-      p: '內建的 AI 容器只用 CPU。如果家裡有一臺更快的電腦（Apple 晶片的 Mac，或帶 NVIDIA 顯示卡的 Windows / Linux 電腦），可以在那臺電腦上直接執行 AI 服務（倉庫 `ml/` 目錄裡的 Python 程式），相簿把照片發給它計算。Python 和依賴都由 [uv](https://docs.astral.sh/uv/) 管理，不需要自己安裝 Python。',
+      p: '內建的 AI 容器只用 CPU。如果有一臺更快的電腦（Apple 晶片的 Mac，或帶 NVIDIA 顯示卡的 Windows / Linux 電腦），可以在那臺電腦上直接執行 AI 服務（倉庫 `ml/` 目錄裡的 Python 程式），相簿把照片發給它計算。Python 和依賴都由 [uv](https://docs.astral.sh/uv/) 管理，不需要自己安裝 Python。',
     },
     {
-      table: ['電腦', '能用上的加速'],
+      table: ['電腦', '可使用加速'],
       rows: [
         ['Apple 晶片 Mac', '人臉識別用 CoreML，語義搜尋用 MPS（PyTorch）。'],
         ['Linux + NVIDIA 顯示卡', '語義搜尋用 CUDA（PyTorch 半精度，約 1.9 GB 視訊記憶體）。'],
@@ -1021,18 +1039,35 @@ sudo ufw allow 3003/tcp      # 使用 ufw 防火牆時放行連接埠`,
       h2: 'browse',
     },
     {
-      table: ['功能', '說明'],
-      rows: [
-        ['圖庫', '按月份分組的照片時間線，頂部為 AI 精選輪播與「那年今天」。'],
-        [
-          '自然語言搜尋',
-          '輸入一句描述（如「寶寶三歲生日的照片」），綜合文字辨識結果、拍攝地點與 Chinese-CLIP 語意相似度排序；輸入分類名直接返回該分類。',
-        ],
-        ['人物', '人臉自動分群，至少在 3 張照片中出現才單獨列出；可命名、合併、設定生日，按年齡檢視成長、足跡與合影。'],
-        ['相簿 · 智慧相簿', '相簿手動選擇照片，可設為私有；智慧相簿按人物、地點、時間等條件自動收錄。'],
-        ['足跡', '按 GPS 在地圖上展示拍攝地點，支援地圖、衛星、網格三種檢視。'],
-        ['連拍整理', '自動歸組連拍與相似照片，推薦保留最佳的一張；「重複」中列出內容完全相同的檔案。'],
-        ['幻燈片', '圖庫、相簿、人物與回憶均可播放，直式照片自動兩三張拼成一頁，支援背景音樂與轉場。'],
+      qa: [
+        {
+          q: '圖庫',
+          a: '按月份分組的照片時間線，頂部為 AI 精選輪播與「那年今天」。',
+        },
+        {
+          q: '自然語言搜尋',
+          a: '輸入一句描述（如「寶寶三歲生日的照片」），綜合文字辨識結果、拍攝地點與 Chinese-CLIP 語意相似度排序；輸入分類名直接返回該分類。',
+        },
+        {
+          q: '人物',
+          a: '人臉自動分群，至少在 3 張照片中出現才單獨列出；可命名、合併、設定生日，按年齡檢視成長、足跡與合影。',
+        },
+        {
+          q: '相簿 · 智慧相簿',
+          a: '相簿手動選擇照片，可設為私有；智慧相簿按人物、地點、時間等條件自動收錄。',
+        },
+        {
+          q: '足跡',
+          a: '按 GPS 在地圖上展示拍攝地點，支援地圖、衛星、網格三種檢視。',
+        },
+        {
+          q: '連拍整理',
+          a: '自動歸組連拍與相似照片，推薦保留最佳的一張；「重複」中列出內容完全相同的檔案。',
+        },
+        {
+          q: '幻燈片',
+          a: '圖庫、相簿、人物與回憶均可播放，直式照片自動兩三張拼成一頁，支援背景音樂與轉場。',
+        },
       ],
     },
     {
@@ -1219,26 +1254,31 @@ docker compose exec server wanmory reset-password <名字>     # 直接指定帳
       h2: 'troubleshooting',
     },
     {
-      table: ['現象', '排查方向'],
-      rows: [
-        [
-          '無法透過 wanmory.local 存取',
-          '確認 mdns 服務在執行（docker compose ps）；部分 Android 裝置不支援 mDNS，改用 IP；檢查主機 5353 連接埠是否被佔用。',
-        ],
-        [
-          'AI 設定顯示「無法連線，AI 處理已暫停」',
-          '內建模式檢查 ml 容器日誌（docker compose logs ml）；遠端模式檢查位址、連接埠、防火牆與權杖是否一致。',
-        ],
-        [
-          '人物、搜尋沒有結果',
-          '確認模型已下載；在「效能」中檢視 AI 是否因處理時機設定而暫停；檢視任務指示器中的 AI 辨識進度。',
-        ],
-        ['大檔案上傳失敗', '反向代理的請求體大小限制過小，參考「反向代理與公開網路存取」調整 client_max_body_size。'],
-        [
-          '掛載目錄的照片沒有出現',
-          '目錄需掛載到 /photos 下的子目錄；首次掃描在啟動約 20 秒後進行，之後每 15 分鐘一次；隱藏目錄會被跳過。',
-        ],
-        ['映像拉取緩慢或失敗', '在 .env 中設定 WANMORY_REGISTRY 為可存取的映像儲存庫位址。'],
+      qa: [
+        {
+          q: '無法透過 wanmory.local 存取',
+          a: '確認 mdns 服務在執行（docker compose ps）；部分 Android 裝置不支援 mDNS，改用 IP；檢查主機 5353 連接埠是否被佔用。',
+        },
+        {
+          q: 'AI 設定顯示「無法連線，AI 處理已暫停」',
+          a: '內建模式檢查 ml 容器日誌（docker compose logs ml）；遠端模式檢查位址、連接埠、防火牆與權杖是否一致。',
+        },
+        {
+          q: '人物、搜尋沒有結果',
+          a: '確認模型已下載；在「效能」中檢視 AI 是否因處理時機設定而暫停；檢視任務指示器中的 AI 辨識進度。',
+        },
+        {
+          q: '大檔案上傳失敗',
+          a: '反向代理的請求體大小限制過小，參考「反向代理與公開網路存取」調整 client_max_body_size。',
+        },
+        {
+          q: '掛載目錄的照片沒有出現',
+          a: '目錄需掛載到 /photos 下的子目錄；首次掃描在啟動約 20 秒後進行，之後每 15 分鐘一次；隱藏目錄會被跳過。',
+        },
+        {
+          q: '映像拉取緩慢或失敗',
+          a: '在 .env 中設定 WANMORY_REGISTRY 為可存取的映像儲存庫位址。',
+        },
       ],
     },
     {
@@ -1274,19 +1314,27 @@ docker compose exec server wanmory reset-password <名字>     # 直接指定帳
               p: '容器和網路總會刪除，下面每一項詢問一次：',
             },
             {
-              table: ['提示', '刪除的內容'],
-              rows: [
-                [
-                  '`Delete the database`',
-                  '資料庫（Docker 資料卷 pgdata，或 `WANMORY_DB_DIR` 指定的目錄）：人物、相簿、設定、AI 結果和帳號，無法恢復。',
-                ],
-                ['`Delete the data directory`', '資料目錄：縮圖，以及**透過網頁上傳的原始照片**。'],
-                ['`Delete the AI models`', 'AI 模型目錄，重新安裝後可以再下載。'],
-                ['`Remove the Docker images`', '永珍用到的 Docker 映象（包括 postgres/pgvector），可以重新拉取。'],
-                [
-                  '`Delete the configuration files`',
-                  '`.env`（含資料庫密碼）、`docker-compose.yml`、`docker-compose.override.yml`；安裝目錄空了會一起刪除。',
-                ],
+              qa: [
+                {
+                  q: '`Delete the database`',
+                  a: '資料庫（Docker 資料卷 pgdata，或 `WANMORY_DB_DIR` 指定的目錄）：人物、相簿、設定、AI 結果和帳號，無法恢復。',
+                },
+                {
+                  q: '`Delete the data directory`',
+                  a: '資料目錄：縮圖，以及**透過網頁上傳的原始照片**。',
+                },
+                {
+                  q: '`Delete the AI models`',
+                  a: 'AI 模型目錄，重新安裝後可以再下載。',
+                },
+                {
+                  q: '`Remove the Docker images`',
+                  a: '永珍用到的 Docker 映象（包括 postgres/pgvector），可以重新拉取。',
+                },
+                {
+                  q: '`Delete the configuration files`',
+                  a: '`.env`（含資料庫密碼）、`docker-compose.yml`、`docker-compose.override.yml`；安裝目錄空了會一起刪除。',
+                },
               ],
             },
           ],

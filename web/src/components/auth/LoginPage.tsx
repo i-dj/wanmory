@@ -66,8 +66,8 @@ export default function LoginPage({ setup, onSignedIn }: { setup: boolean; onSig
             </h1>
             <p className="mt-2 text-body text-muted">
               {setup
-                ? t('先建一个管理员账号，之后可以在设置里给家里人加账号。')
-                : t('用你的名字和密码登录，家里人各自一个账号。')}
+                ? t('先建一个管理员账号，之后可以在设置里给其他人加账号。')
+                : t('用你的名字和密码登录，每个人各自一个账号。')}
             </p>
 
             <div className="mt-8 space-y-5">
@@ -169,7 +169,7 @@ function ArtPanel() {
         <div>
           {/* 两行，每行不换行：窄一点的屏幕（左边这块也窄）字小一点，各种语言都放得下 */}
           <p className="text-[24px] leading-snug font-bold whitespace-nowrap xl:text-[30px]">{tx('拾起散落的时光碎片，{br}编织成岁月的诗篇。', { br: <br /> })}</p>
-          <p className="mt-3 text-body text-white/70">{t('照片、视频都在你自己的服务器上，只有家里人能看。')}</p>
+          <p className="mt-3 text-body text-white/70">{t('照片、视频都在你自己的服务器上，只有你允许的人能看。')}</p>
         </div>
       </div>
     </aside>

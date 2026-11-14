@@ -99,7 +99,7 @@ export default function PhotosPage({
   albumVersion: number // 改了智能相册的条件后变化，重新加载照片
   autoAddTo: string | null // 刚建好的相册，打开时自动弹出「添加照片」
   onAutoAdded: () => void
-  uploadRef: RefObject<((files: FileList) => void) | null> // 把「加进上传队列」交给左边菜单的上传按钮
+  uploadRef: RefObject<((files: FileList | File[]) => void) | null> // 把「加进上传队列」交给左边菜单的上传按钮
 }) {
   const { view, album, person, picking, tab } = route
   const range = useDateRange(view.path + (picking ? ':pick' : ''))
@@ -238,7 +238,7 @@ export default function PhotosPage({
   const synced = !!album && isSynced(album) // 按条件自动同步的智能相册，不能手动加减照片
   const uploadAlbum = album && !synced ? album.id : undefined
   const addFiles = useCallback(
-    (files: FileList) => uploads.queue.add(Array.from(files), { album: uploadAlbum }),
+    (files: FileList | File[]) => uploads.queue.add(Array.from(files), { album: uploadAlbum }),
     [uploads.queue, uploadAlbum],
   )
   useEffect(() => {

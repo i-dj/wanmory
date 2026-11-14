@@ -25,12 +25,11 @@ import {
   UsersRound,
   UtensilsCrossed,
   Video,
-  X,
-} from 'lucide-react'
+  X, FolderUp } from 'lucide-react'
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import type { AssetStats } from '@/lib/api'
 import { cx } from '@/lib/cx'
-import { openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
+import { FolderInput, openFilePicker, UPLOAD_ACCEPT } from '@/components/photos/UploadButton'
 import Logo from './Logo'
 import { useUpdate, useVersion, versionLabel } from '@/lib/version'
 import UserAvatar from '@/components/ui/UserAvatar'
@@ -104,7 +103,7 @@ export default function Sidebar({
 }: {
   path: string
   stats: AssetStats | null
-  onUpload: (files: FileList) => void // 「上传照片 / 视频」选好了文件
+  onUpload: (files: FileList | File[]) => void // 「上传照片 / 视频」选好了文件
   navigate: (to: string) => void
 }) {
   const { guest, signIn } = useCurrentUser()
@@ -333,7 +332,6 @@ export default function Sidebar({
             </nav>
             <OverlayScrollbar target={navRef} className="hidden md:flex" />
           </div>
-          {!guest && stats?.disk && !rail && <StorageCard disk={stats.disk} />}
           <div className={cx('pt-1 md:pb-3', rail ? 'px-3' : 'px-2.5')}>
             <ProfileCard path={path} onAccount={() => go(ACCOUNT_PATH)} onSettings={() => go(SETTINGS_PATH)} />
           </div>
@@ -582,23 +580,39 @@ function SidebarSignIn({ onClick }: { onClick: () => void }) {
 }
 
 // SidebarUpload 是菜单顶上的大按钮「上传照片 / 视频」：点了打开选择文件的窗口（照片、视频、HEIC、DNG 都能选，可以多选）。
+// 右边一截是文件夹图标：选一个文件夹，里面所有的照片、视频（子文件夹里的也算）一起传。
 // 深色底白字（深色模式反过来），带一层柔和的投影，是整个菜单里最显眼的一个；鼠标放上去颜色稍微变浅一点，按下去稍微缩一下
-function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
+function SidebarUpload({ onFiles }: { onFiles: (files: FileList | File[]) => void }) {
   const input = useRef<HTMLInputElement>(null)
-  const rail = useContext(Rail) // 收起时只有图标
+  const folder = useRef<HTMLInputElement>(null)
+  const rail = useContext(Rail) // 收起时只有图标，不分两截
   return (
     <>
-      <Tooltip label={rail ? t('上传照片 / 视频') : ''} side="right">
-        <button
-          type="button"
-          onClick={() => openFilePicker(input.current)}
-          aria-label={t('上传照片 / 视频')}
-          className={BIG_BUTTON}
-        >
-          <Upload className="size-4" strokeWidth={2.2} />
-          {!rail && t('上传照片 / 视频')}
-        </button>
-      </Tooltip>
+      <div className={cx(BIG_BUTTON, 'overflow-hidden p-0 hover:bg-fg active:scale-100')}>
+        <Tooltip label={rail ? t('上传照片 / 视频') : ''} side="right">
+          <button
+            type="button"
+            onClick={() => openFilePicker(input.current)}
+            aria-label={t('上传照片 / 视频')}
+            className="flex h-full min-w-0 flex-1 items-center justify-center gap-2 transition hover:bg-page/10 active:scale-[0.98]"
+          >
+            <Upload className="size-4" strokeWidth={2.2} />
+            {!rail && t('上传照片 / 视频')}
+          </button>
+        </Tooltip>
+        {!rail && (
+          <Tooltip label={t('上传文件夹')}>
+            <button
+              type="button"
+              onClick={() => openFilePicker(folder.current)}
+              aria-label={t('上传文件夹')}
+              className="flex h-full w-10 shrink-0 items-center justify-center border-l border-page/20 transition hover:bg-page/10 active:scale-[0.96]"
+            >
+              <FolderUp className="size-4" strokeWidth={2.2} />
+            </button>
+          </Tooltip>
+        )}
+      </div>
       <input
         ref={input}
         type="file"
@@ -610,6 +624,7 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList) => void }) {
           e.target.value = '' // 同一批文件再选一次也能触发
         }}
       />
+      <FolderInput ref={folder} onFiles={onFiles} />
     </>
   )
 }
@@ -708,37 +723,6 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
       )}
     </div>
   )
-}
-
-// StorageCard 是菜单底部的「存储空间」：存照片的那块磁盘用了多少、一共多大，下面一条进度条；快满时进度条变红
-function StorageCard({ disk }: { disk: { total: number; free: number } }) {
-  const used = Math.max(0, disk.total - disk.free)
-  const ratio = disk.total > 0 ? used / disk.total : 0
-  return (
-    <div className="mx-3.5 mb-2 rounded-xl border border-line/70 bg-well px-3.5 py-3">
-      <div className="flex items-center justify-between text-caption text-muted">
-        <span>{t('存储空间')}</span>
-        <span className="tabular-nums">{diskLabel(used, disk.total)}</span>
-      </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-fg/[0.08]">
-        <div
-          className={cx('h-full rounded-full', ratio > 0.9 ? 'bg-danger' : 'bg-accent')}
-          style={{ width: `${Math.max(2, ratio * 100)}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
-// diskLabel：「23.3 / 100 GB」，大的磁盘用 TB
-function diskLabel(used: number, total: number) {
-  const tb = total >= 1e12
-  const unit = tb ? 1e12 : 1e9
-  const fmt = (n: number) => {
-    const v = n / unit
-    return v >= 100 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, '')
-  }
-  return `${fmt(used)} / ${fmt(total)} ${tb ? 'TB' : 'GB'}`
 }
 
 // VersionLine 是名字下面那行：版本号；有新版本时后面一个小标签「有新版本」，点了去设置里的系统更新（访客不显示）

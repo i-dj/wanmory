@@ -637,7 +637,9 @@ export const assetPlace = (id: string) => send<GeoPlace | null>('POST', `/api/as
 export interface AssetDetails {
   albums: string[]
   // 照片里认出来、起了名字的人，按在照片里从左到右排；face 是他在这张照片里的脸，birthday 用来算当时多大
-  people: { id: string; name: string; birthday: string | null; face: string }[]
+  people: { id: string; name: string; birthday: string | null; face: string }[] // 认出来的人，名字空的是还没起名字
+  unknown_faces: string[] | null // 没归到任何人的脸（太小、太糊或者只出现过一次）
+  face_status: 'done' | 'pending' | 'none' // 人脸识别做完了 / 还在排队（或 AI 停着）/ 没排上（例如视频）
   original: {
     taken_at_local: string | null
     taken_at_offset: string | null

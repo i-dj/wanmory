@@ -1,12 +1,13 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useElementSize } from '@/hooks/useElementSize'
 import { type Asset, assetDates, type Filter, listAssets, previewUrl, thumbnailUrl, localGeo } from '@/lib/api'
 import { findMemories, type Memory } from '@/lib/memories'
 import { memoryPath } from '@/lib/views'
 import { t } from '@/i18n'
 
 // MemoriesStrip 是图库精选轮播下面的「那年今天」：往年今天前后拍的照片，一年一张卡片，近的在前。
-// 卡片一起撑满一行、两端对齐；多到每张窄于 w-72 时不再缩，改成左右滑。
+// 一行放得下几张显示几张，一起撑满一行，不横着滚。
 // 每张卡片是那几天里最好看的一张照片铺满，左下角一行小字「三年前的今天」，下面是地点和日期（没有地点只写日期），
 // 鼠标移上去右下角出箭头；点进去看那几天的所有照片（可以直接播放幻灯片）。没有回忆时什么都不显示
 export default function MemoriesStrip({
@@ -18,16 +19,34 @@ export default function MemoriesStrip({
 }) {
   const memories = useMemories(filter)
   if (!memories?.length) return null
+  return <Strip memories={memories} navigate={navigate} />
+}
+
+const CARD_MIN = 288 // 每张卡片至少这么宽（px）
+const GAP = 18 // 卡片之间的空隙（gap-4.5）
+
+// Strip 是有回忆时的那一排：量出这一行有多宽，放得下几张就显示几张（每张不窄于 CARD_MIN），一起撑满一行；
+// 放不下的不显示，不横着滚，也没有滚动条。窗口变宽时多显示几张
+function Strip({
+  memories,
+  navigate,
+}: {
+  memories: NonNullable<ReturnType<typeof useMemories>>
+  navigate: (to: string) => void
+}) {
+  const row = useRef<HTMLUListElement>(null)
+  const { width } = useElementSize(row)
+  const fit = width ? Math.max(1, Math.floor((width + GAP) / (CARD_MIN + GAP))) : memories.length
   return (
-    <section aria-label={t('那年今天')} className="mt-9 mb-6">
+    <section aria-label={t('那年今天')} className="mt-9 mb-6 w-full min-w-0">
       <h2 className="flex items-center gap-2 text-[20px] font-bold tracking-tight">
         <Sparkles className="size-5 text-accent" strokeWidth={2} />
         {t('那年今天')}
       </h2>
-      {/* 横着滚的一排会把超出的部分裁掉：四周留出 6 像素，指上去时卡片外面那圈框（隔 2 像素、粗 2 像素）不被切掉 */}
-      <ul className="-mx-1.5 mt-3 flex snap-x scroll-px-1.5 gap-4.5 overflow-x-auto p-1.5 pb-2.5">
-        {memories.map(({ memory, covers }) => (
-          <li key={memory.key} className="min-w-72 flex-1 shrink-0 snap-start">
+      {/* 四周留出 6 像素，指上去时卡片外面那圈框（隔 2 像素、粗 2 像素）不被切掉 */}
+      <ul ref={row} className="-mx-1.5 mt-3 flex gap-4.5 overflow-hidden p-1.5">
+        {memories.slice(0, fit).map(({ memory, covers }) => (
+          <li key={memory.key} className="min-w-0 flex-1">
             <MemoryCard
               memory={memory}
               covers={covers}

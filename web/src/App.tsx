@@ -45,7 +45,7 @@ export default function App() {
   const [stats, setStats] = useState<AssetStats | null>(null)
   const mainRef = useRef<HTMLElement>(null)
   // 上传：队列在照片页里（切到别的页也不中断），照片页把「加进队列」放在这里，左边菜单的上传按钮调用它
-  const uploadRef = useRef<((files: FileList) => void) | null>(null)
+  const uploadRef = useRef<((files: FileList | File[]) => void) | null>(null)
   const { albums, refresh: refreshAlbums } = useAlbums()
   const { people, refresh: refreshPeople } = usePeople()
   const [path, navigate] = usePath()

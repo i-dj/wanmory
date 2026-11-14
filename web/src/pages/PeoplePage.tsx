@@ -11,6 +11,7 @@ import { showError } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
 import { t } from '@/i18n'
 
+const IDLE_POLL_MS = 15000 // 没在识别时多久问一次（又传了照片能接上）
 const POLL_MS = 4000 // 还在识别时多久刷新一次进度和人物
 
 // PeoplePage 是人脸识别归出来的人物：一张张竖的大照片（封面是这个人拍得最好的一张），名字和照片张数写在照片下方
@@ -58,7 +59,7 @@ export default function PeoplePage({
           <p className="mt-3 text-body">
             {status && status.pending > 0
               ? t('正在找照片里的人脸，同一个人出现几次以后就会出现在这里。')
-              : t('还没有认出人物。同一个人至少要在 3 张照片里出现，才会单独列出来。')}
+              : t('还没有认出人物。同一个人至少要在 2 张照片里出现，才会单独列出来。')}
           </p>
         </div>
       )}
@@ -235,24 +236,30 @@ function DuplicateNameDialog({
 // sameName：名字一样（不管前后空格、大小写）
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 
-// useFaceStatus 读人脸识别的进度；还在识别时定时刷新，顺便刷新人物列表，新认出的人陆续出现
+// useFaceStatus 读人脸识别的进度，一直定时问：还在识别时问得勤（POLL_MS），没在识别时 15 秒问一次——
+// 页面开着的时候又传了照片，也能接上。进度一有变化（又看完几张、认出新的人）就刷新人物列表，
+// 包括刚打开这一页、识别刚结束的那一次，最后认出的人也会出现
 function useFaceStatus(onProgress: () => Promise<void>) {
   const [status, setStatus] = useState<FaceStatus | null>(null)
   useEffect(() => {
     let alive = true
     let timer = 0
+    let last = ''
     const tick = async () => {
+      let busy = false
       try {
         const s = await faceStatus()
         if (!alive) return
         setStatus(s)
-        if (s.pending > 0) {
-          await onProgress()
-          timer = window.setTimeout(tick, POLL_MS)
-        }
+        busy = s.pending > 0
+        const sig = `${s.done}/${s.pending}/${s.people}/${s.faces}`
+        // 第一次（刚打开这一页）也刷新：人物列表是整个网页启动时读的，那之后认出的人要现在拿
+        if (sig !== last) await onProgress()
+        last = sig
       } catch (e) {
         console.error('读取人脸识别进度失败', e)
       }
+      if (alive) timer = window.setTimeout(tick, busy ? POLL_MS : IDLE_POLL_MS)
     }
     void tick()
     return () => {
@@ -271,5 +278,5 @@ function statusLine(s: FaceStatus): string {
       v1: s.pending.toLocaleString(),
     })
   if (s.people === 0) return s.done > 0 ? t('已看过 {v0} 张照片', { v0: s.done.toLocaleString() }) : ''
-  return t('已认出 {v0} 个人', { v0: s.people.toLocaleString() })
+  return t('已认出 {v0} 个人', { v0: s.people.toLocaleString(), n: s.people })
 }

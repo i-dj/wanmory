@@ -280,10 +280,34 @@ function highlightComment(line: string) {
   )
 }
 
+// Table：宽屏是表格；手机宽度下每一行换成一张小卡片（第一列加粗当标题，其余列上面写列名），文字不会被挤成一列一个字，也不用左右滑
 function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   return (
-    <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-      <table className="w-full min-w-[560px] text-left text-sm">
+    <>
+      <div className="mt-4 space-y-2 sm:hidden">
+        {rows.map((r, k) => (
+          <div key={k} className="rounded-xl border border-line px-4 py-3 text-sm leading-relaxed">
+            {r[0] && <div className="font-medium text-fg">{r[0]}</div>}
+            {r.slice(1).map((c, j) => (
+              <div key={j} className="mt-1.5">
+                <div className="text-xs text-faint">{head[j + 1]}</div>
+                <div className="text-muted">{c}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <TableWide head={head} rows={rows} />
+    </>
+  )
+}
+
+function TableWide({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
+  // 四列以上的表第一列也允许换行（只在空格处换），不然宽度不够时整张表会超出
+  const first = head.length > 3 ? 'min-w-[7rem] text-fg' : 'whitespace-nowrap text-fg'
+  return (
+    <div className="mt-4 hidden overflow-x-auto rounded-xl border border-line sm:block">
+      <table className="w-full text-left text-sm">
         <thead className="bg-[#18181b] text-xs text-muted">
           <tr>
             {head.map((h) => (
@@ -297,7 +321,7 @@ function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
           {rows.map((r, k) => (
             <tr key={k} className="border-t border-line align-top">
               {r.map((c, j) => (
-                <td key={j} className={`px-4 py-2.5 leading-relaxed ${j === 0 ? 'whitespace-nowrap text-fg' : 'text-muted'}`}>
+                <td key={j} className={`px-4 py-2.5 leading-relaxed ${j === 0 ? first : 'min-w-[8rem] text-muted'}`}>
                   {c}
                 </td>
               ))}
@@ -305,6 +329,20 @@ function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// QA：一问一答，问题加粗，下面一段回答；长句子的「问题 / 原因和解决」用它，不用表格
+function QA({ items }: { items: { q: ReactNode; a: ReactNode }[] }) {
+  return (
+    <div className="mt-4 divide-y divide-line rounded-xl border border-line">
+      {items.map((it, k) => (
+        <div key={k} className="px-4 py-3.5">
+          <div className="text-[15px] leading-7 font-semibold text-fg">{it.q}</div>
+          <div className="mt-1 text-[15px] leading-7 text-soft/90">{it.a}</div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -362,6 +400,7 @@ function Block({ b, labels }: { b: DocsBlock; labels: Record<string, { label: st
   if ('ul' in b) return <UL items={b.ul.map((x, k) => <Rich key={k} text={x} code={CODE} />)} />
   if ('code' in b) return <Code lang={b.lang}>{b.code}</Code>
   if ('table' in b) return <Table head={b.table} rows={b.rows.map((r) => r.map((c, k) => <Rich key={k} text={c} code={CODE} />))} />
+  if ('qa' in b) return <QA items={b.qa.map((x) => ({ q: <Rich text={x.q} code={CODE} />, a: <Rich text={x.a} code={CODE} /> }))} />
   if ('note' in b)
     return (
       <Note warn={b.warn}>

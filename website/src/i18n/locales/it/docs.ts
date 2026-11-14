@@ -95,7 +95,7 @@ const docs: DocsDict = {
     },
   ],
   intro:
-    'Questa documentazione è pensata per gli amministratori che ospitano Wanmory su un NAS, un server domestico o un computer personale. Copre installazione, configurazione, servizio IA, uso quotidiano, impostazioni di sistema e manutenzione. Per la progettazione del sistema e gli algoritmi, vedi [Architettura](/architecture/).',
+    'Questa documentazione è pensata per gli amministratori che ospitano Wanmory su un NAS, un server o un computer personale. Copre installazione, configurazione, servizio IA, uso quotidiano, impostazioni di sistema e manutenzione. Per la progettazione del sistema e gli algoritmi, vedi [Architettura](/architecture/).',
   blocks: [
     {
       h2: 'intro',
@@ -317,28 +317,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
           title: 'Checking system',
           body: [
             {
-              table: ['Messaggio', 'Significato'],
-              rows: [
-                [
-                  '`OS: Linux` / `OS: macOS`',
-                  'Sistema operativo. Su macOS avvisa che l’IA nei container non può usare la GPU Apple; per la velocità avvia il servizio IA direttamente sul Mac (vedi [Eseguire il servizio IA a parte](#ai-remote)). Gli altri sistemi si fermano qui.',
-                ],
-                [
-                  '`CPU: x86_64 (linux/amd64 images)`',
-                  'Architettura della CPU. Solo amd64 e arm64 a 64 bit; un sistema a 32 bit (compreso il vecchio Raspberry Pi OS con kernel a 64 bit ma spazio utente a 32) si ferma: installa un sistema a 64 bit.',
-                ],
-                [
-                  '`Docker 27.x`',
-                  'Docker funziona. Se manca, compare un link all’installazione (Synology / QNAP: Container Manager / Container Station dal centro pacchetti). Con `Permission denied` esegui con sudo oppure aggiungi l’utente al gruppo docker e rientra.',
-                ],
-                [
-                  '`Docker Compose v2.x`',
-                  'Docker Compose funziona. Con il solo vecchio docker-compose v1 consiglia di aggiornare ma continua.',
-                ],
-                [
-                  '`Memory: 8 GB`',
-                  'Memoria. Sotto i 4 GB dice `AI will use the lite model tier`: l’IA usa automaticamente il livello leggero; sotto i 2 GB avvisa che il riconoscimento potrebbe non funzionare.',
-                ],
+              qa: [
+                {
+                  q: '`OS: Linux` / `OS: macOS`',
+                  a: 'Sistema operativo. Su macOS avvisa che l’IA nei container non può usare la GPU Apple; per la velocità avvia il servizio IA direttamente sul Mac (vedi [Eseguire il servizio IA a parte](#ai-remote)). Gli altri sistemi si fermano qui.',
+                },
+                {
+                  q: '`CPU: x86_64 (linux/amd64 images)`',
+                  a: 'Architettura della CPU. Solo amd64 e arm64 a 64 bit; un sistema a 32 bit (compreso il vecchio Raspberry Pi OS con kernel a 64 bit ma spazio utente a 32) si ferma: installa un sistema a 64 bit.',
+                },
+                {
+                  q: '`Docker 27.x`',
+                  a: 'Docker funziona. Se manca, compare un link all’installazione (Synology / QNAP: Container Manager / Container Station dal centro pacchetti). Con `Permission denied` esegui con sudo oppure aggiungi l’utente al gruppo docker e rientra.',
+                },
+                {
+                  q: '`Docker Compose v2.x`',
+                  a: 'Docker Compose funziona. Con il solo vecchio docker-compose v1 consiglia di aggiornare ma continua.',
+                },
+                {
+                  q: '`Memory: 8 GB`',
+                  a: 'Memoria. Sotto i 4 GB dice `AI will use the lite model tier`: l’IA usa automaticamente il livello leggero; sotto i 2 GB avvisa che il riconoscimento potrebbe non funzionare.',
+                },
               ],
             },
           ],
@@ -350,47 +349,55 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
               p: 'Una domanda alla volta; Invio accetta il valore predefinito tra parentesi quadre.',
             },
             {
-              table: ['Domanda', 'Significato e consiglio'],
-              rows: [
-                [
-                  '`Install directory`',
-                  'Dove stanno `.env`, `docker-compose.yml` e, per impostazione predefinita, data e models. Poi mostra lo spazio libero del disco; sotto i 10 GB avvisa.',
-                ],
-                [
-                  '`Keep the existing configuration`',
-                  'Compare solo se esiste già un `.env` (installazione precedente). Invio (Y) mantiene porta, dominio, password del database ecc. e salta le domande seguenti; ideale per reinstallare e aggiornare. n per compilare tutto da capo. Non cambiare la password a cuor leggero dopo che il database è stato creato.',
-                ],
-                ['`Web port`', 'Porta web, predefinita 8080. Se è occupata ne chiede un’altra.'],
-                [
-                  '`LAN domain (must end in .local)`',
-                  'Nome per aprire la libreria sulla rete locale, predefinito wanmory.local; va bene anche photos.local. Si può cambiare in seguito nelle impostazioni web.',
-                ],
-                [
-                  '`Generate a random database password`',
-                  'Invio genera una password casuale e la salva in `.env`; non serve ricordarla. n per digitarne una due volte (almeno 8 caratteri; niente spazi, virgolette o `$ \\ @ : / # ?`).',
-                ],
-                [
-                  '`Database location`',
-                  'Dove sta il database. Lascia vuoto e premi Invio per il volume Docker pgdata (consigliato), oppure indica una cartella locale come `/volume1/wanmory/db`. Avvisa di non usare una condivisione SMB / NFS, che può danneggiare il database.',
-                ],
-                [
-                  '`Time zone`',
-                  'Serve a datare le foto senza fuso orario negli EXIF. Digita una città o un paese, ad es. rome, milan, zurich; se corrispondono più voci, scegli per numero.',
-                ],
-                [
-                  '`Data directory`',
-                  'Cartella dati, predefinita ./data. Qui finiscono miniature, anteprime e foto caricate: lascia spazio a sufficienza.',
-                ],
-                ['`AI model directory (1-4 GB)`', 'Cartella dei modelli IA, predefinita ./models.'],
-                [
-                  '`Add existing photo folders from a NAS or external drive`',
-                  'Se aggiungere cartelle foto che hai già (senza ricaricarle). Rispondi Y e inserisci un percorso; se non esiste viene chiesta conferma.',
-                ],
-                [
-                  '`Mount read-only`',
-                  'Invio monta in sola lettura: Wanmory non modifica né elimina mai gli originali (consigliato). n per lettura e scrittura: eliminare definitivamente una foto in Wanmory cancella anche il file originale.',
-                ],
-                ['`Add another photo folder`', 'Aggiunge la cartella successiva; Invio (N) termina.'],
+              qa: [
+                {
+                  q: '`Install directory`',
+                  a: 'Dove stanno `.env`, `docker-compose.yml` e, per impostazione predefinita, data e models. Poi mostra lo spazio libero del disco; sotto i 10 GB avvisa.',
+                },
+                {
+                  q: '`Keep the existing configuration`',
+                  a: 'Compare solo se esiste già un `.env` (installazione precedente). Invio (Y) mantiene porta, dominio, password del database ecc. e salta le domande seguenti; ideale per reinstallare e aggiornare. n per compilare tutto da capo. Non cambiare la password a cuor leggero dopo che il database è stato creato.',
+                },
+                {
+                  q: '`Web port`',
+                  a: 'Porta web, predefinita 8080. Se è occupata ne chiede un’altra.',
+                },
+                {
+                  q: '`LAN domain (must end in .local)`',
+                  a: 'Nome per aprire la libreria sulla rete locale, predefinito wanmory.local; va bene anche photos.local. Si può cambiare in seguito nelle impostazioni web.',
+                },
+                {
+                  q: '`Generate a random database password`',
+                  a: 'Invio genera una password casuale e la salva in `.env`; non serve ricordarla. n per digitarne una due volte (almeno 8 caratteri; niente spazi, virgolette o `$ \\ @ : / # ?`).',
+                },
+                {
+                  q: '`Database location`',
+                  a: 'Dove sta il database. Lascia vuoto e premi Invio per il volume Docker pgdata (consigliato), oppure indica una cartella locale come `/volume1/wanmory/db`. Avvisa di non usare una condivisione SMB / NFS, che può danneggiare il database.',
+                },
+                {
+                  q: '`Time zone`',
+                  a: 'Serve a datare le foto senza fuso orario negli EXIF. Digita una città o un paese, ad es. rome, milan, zurich; se corrispondono più voci, scegli per numero.',
+                },
+                {
+                  q: '`Data directory`',
+                  a: 'Cartella dati, predefinita ./data. Qui finiscono miniature, anteprime e foto caricate: lascia spazio a sufficienza.',
+                },
+                {
+                  q: '`AI model directory (1-4 GB)`',
+                  a: 'Cartella dei modelli IA, predefinita ./models.',
+                },
+                {
+                  q: '`Add existing photo folders from a NAS or external drive`',
+                  a: 'Se aggiungere cartelle foto che hai già (senza ricaricarle). Rispondi Y e inserisci un percorso; se non esiste viene chiesta conferma.',
+                },
+                {
+                  q: '`Mount read-only`',
+                  a: 'Invio monta in sola lettura: Wanmory non modifica né elimina mai gli originali (consigliato). n per lettura e scrittura: eliminare definitivamente una foto in Wanmory cancella anche il file originale.',
+                },
+                {
+                  q: '`Add another photo folder`',
+                  a: 'Aggiunge la cartella successiva; Invio (N) termina.',
+                },
               ],
             },
           ],
@@ -441,25 +448,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
       h2: 'install-faq',
     },
     {
-      table: ['Problema', 'Causa e soluzione'],
-      rows: [
-        [
-          'Dopo la reinstallazione Wanmory non si collega al database (autenticazione fallita)',
-          'Il database usa la password di `.env` solo quando viene creato; modificare `.env` dopo non la cambia. Lo script attuale allinea la password del database a `.env` a ogni avvio, quindi basta rieseguirlo. In un’installazione manuale esegui nella cartella di installazione `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'nuova-password\';"`, poi `docker compose up -d`.',
-        ],
-        [
-          'A chi appartengono i file della cartella dati / non si eliminano sull’host',
-          'Il container di Wanmory gira come proprietario della cartella dati: se l’ha creata un utente normale (come fa lo script), caricamenti e miniature sono suoi e si gestiscono senza sudo; se la cartella è di root o è un volume Docker, gira come uid 1000. Sui file system che non permettono di cambiare proprietario (chiavette exFAT / NTFS, condivisioni SMB) gira come root. I file con proprietario sbagliato lasciati da versioni precedenti vengono corretti all’avvio.',
-        ],
-        [
-          'Raspberry Pi',
-          'Serve un sistema a 64 bit (Raspberry Pi OS 64-bit); a 32 bit lo script si ferma. Con 4 GB di memoria viene usato automaticamente il livello leggero; il primo avvio e la prima elaborazione delle foto sono lenti, quindi tieni dati e database su un SSD.',
-        ],
-        ['Porta già in uso', 'Scegli un’altra porta oppure esegui lo script con `WANMORY_PORT=9000`.'],
-        [
-          'Download delle immagini lento o fallito',
-          'Imposta `WANMORY_REGISTRY` su un mirror raggiungibile e riesegui.',
-        ],
+      qa: [
+        {
+          q: 'Dopo la reinstallazione Wanmory non si collega al database (autenticazione fallita)',
+          a: 'Il database usa la password di `.env` solo quando viene creato; modificare `.env` dopo non la cambia. Lo script attuale allinea la password del database a `.env` a ogni avvio, quindi basta rieseguirlo. In un’installazione manuale esegui nella cartella di installazione `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'nuova-password\';"`, poi `docker compose up -d`.',
+        },
+        {
+          q: 'A chi appartengono i file della cartella dati / non si eliminano sull’host',
+          a: 'Il container di Wanmory gira come proprietario della cartella dati: se l’ha creata un utente normale (come fa lo script), caricamenti e miniature sono suoi e si gestiscono senza sudo; se la cartella è di root o è un volume Docker, gira come uid 1000. Sui file system che non permettono di cambiare proprietario (chiavette exFAT / NTFS, condivisioni SMB) gira come root. I file con proprietario sbagliato lasciati da versioni precedenti vengono corretti all’avvio.',
+        },
+        {
+          q: 'Raspberry Pi',
+          a: 'Serve un sistema a 64 bit (Raspberry Pi OS 64-bit); a 32 bit lo script si ferma. Con 4 GB di memoria viene usato automaticamente il livello leggero; il primo avvio e la prima elaborazione delle foto sono lenti, quindi tieni dati e database su un SSD.',
+        },
+        {
+          q: 'Porta già in uso',
+          a: 'Scegli un’altra porta oppure esegui lo script con `WANMORY_PORT=9000`.',
+        },
+        {
+          q: 'Download delle immagini lento o fallito',
+          a: 'Imposta `WANMORY_REGISTRY` su un mirror raggiungibile e riesegui.',
+        },
       ],
     },
     {
@@ -1103,36 +1112,35 @@ sudo ufw allow 3003/tcp      # se usi il firewall ufw`,
       h2: 'browse',
     },
     {
-      table: ['Funzione', 'Descrizione'],
-      rows: [
-        [
-          'Libreria',
-          'Cronologia delle foto raggruppata per mese, con in alto il carosello delle scelte IA e «Accadde oggi».',
-        ],
-        [
-          'Ricerca in linguaggio naturale',
-          'Scrivi una descrizione (come «foto del terzo compleanno del bimbo»); i risultati si ordinano combinando testo riconosciuto, luogo dello scatto e similarità semantica di Chinese-CLIP. Scrivere il nome di una categoria restituisce direttamente quella categoria.',
-        ],
-        [
-          'Persone',
-          'I volti si raggruppano in automatico; una persona compare quando è presente in almeno 3 foto. Dai nomi, unisci, imposta compleanni e guarda la crescita per età, i luoghi e le foto di gruppo.',
-        ],
-        [
-          'Album · Album intelligenti',
-          'Gli album contengono foto scelte a mano e possono essere privati; gli album intelligenti raccolgono le foto da soli per persona, luogo, data e altre condizioni.',
-        ],
-        [
-          'Luoghi',
-          'Mostra su una mappa dove è stata scattata ogni foto grazie al GPS, con le viste Mappa, Satellite e Griglia.',
-        ],
-        [
-          'Raffiche e simili',
-          'Raggruppa in automatico raffiche e foto simili e consiglia la migliore da tenere; «Duplicati» elenca i file con contenuto identico.',
-        ],
-        [
-          'Presentazioni',
-          'Riproduci libreria, album, persone e ricordi; le foto verticali vengono affiancate due o tre per pagina, con musica di sottofondo e transizioni.',
-        ],
+      qa: [
+        {
+          q: 'Libreria',
+          a: 'Cronologia delle foto raggruppata per mese, con in alto il carosello delle scelte IA e «Accadde oggi».',
+        },
+        {
+          q: 'Ricerca in linguaggio naturale',
+          a: 'Scrivi una descrizione (come «foto del terzo compleanno del bimbo»); i risultati si ordinano combinando testo riconosciuto, luogo dello scatto e similarità semantica di Chinese-CLIP. Scrivere il nome di una categoria restituisce direttamente quella categoria.',
+        },
+        {
+          q: 'Persone',
+          a: 'I volti si raggruppano in automatico; una persona compare quando è presente in almeno 3 foto. Dai nomi, unisci, imposta compleanni e guarda la crescita per età, i luoghi e le foto di gruppo.',
+        },
+        {
+          q: 'Album · Album intelligenti',
+          a: 'Gli album contengono foto scelte a mano e possono essere privati; gli album intelligenti raccolgono le foto da soli per persona, luogo, data e altre condizioni.',
+        },
+        {
+          q: 'Luoghi',
+          a: 'Mostra su una mappa dove è stata scattata ogni foto grazie al GPS, con le viste Mappa, Satellite e Griglia.',
+        },
+        {
+          q: 'Raffiche e simili',
+          a: 'Raggruppa in automatico raffiche e foto simili e consiglia la migliore da tenere; «Duplicati» elenca i file con contenuto identico.',
+        },
+        {
+          q: 'Presentazioni',
+          a: 'Riproduci libreria, album, persone e ricordi; le foto verticali vengono affiancate due o tre per pagina, con musica di sottofondo e transizioni.',
+        },
       ],
     },
     {
@@ -1372,32 +1380,31 @@ docker compose exec server wanmory reset-password <nome>      # indica direttame
       h2: 'troubleshooting',
     },
     {
-      table: ['Sintomo', 'Cosa controllare'],
-      rows: [
-        [
-          'wanmory.local non raggiungibile',
-          'Verifica che il servizio mdns sia attivo (docker compose ps); alcuni Android non supportano mDNS, usa l’IP; controlla se la porta 5353 è occupata sull’host.',
-        ],
-        [
-          'Le impostazioni IA mostrano «Connessione impossibile, elaborazione IA in pausa»',
-          'In modalità integrata guarda i log del container ml (docker compose logs ml); in modalità remota verifica che indirizzo, porta, firewall e token coincidano.',
-        ],
-        [
-          'Nessun risultato in Persone o nella ricerca',
-          'Verifica che i modelli siano scaricati; in «Prestazioni» controlla se l’IA è in pausa per l’orario di elaborazione; guarda l’avanzamento del riconoscimento nell’indicatore dei lavori.',
-        ],
-        [
-          'I caricamenti grandi falliscono',
-          'Il limite di dimensione delle richieste del reverse proxy è troppo basso; regola client_max_body_size come in «Reverse proxy e accesso da internet».',
-        ],
-        [
-          'Le foto di una cartella montata non compaiono',
-          'Le cartelle vanno montate come sottocartelle di /photos; la prima scansione avviene circa 20 secondi dopo l’avvio, poi ogni 15 minuti; le cartelle nascoste vengono saltate.',
-        ],
-        [
-          'Il download delle immagini è lento o fallisce',
-          'Imposta nel .env WANMORY_REGISTRY con un registro raggiungibile.',
-        ],
+      qa: [
+        {
+          q: 'wanmory.local non raggiungibile',
+          a: 'Verifica che il servizio mdns sia attivo (docker compose ps); alcuni Android non supportano mDNS, usa l’IP; controlla se la porta 5353 è occupata sull’host.',
+        },
+        {
+          q: 'Le impostazioni IA mostrano «Connessione impossibile, elaborazione IA in pausa»',
+          a: 'In modalità integrata guarda i log del container ml (docker compose logs ml); in modalità remota verifica che indirizzo, porta, firewall e token coincidano.',
+        },
+        {
+          q: 'Nessun risultato in Persone o nella ricerca',
+          a: 'Verifica che i modelli siano scaricati; in «Prestazioni» controlla se l’IA è in pausa per l’orario di elaborazione; guarda l’avanzamento del riconoscimento nell’indicatore dei lavori.',
+        },
+        {
+          q: 'I caricamenti grandi falliscono',
+          a: 'Il limite di dimensione delle richieste del reverse proxy è troppo basso; regola client_max_body_size come in «Reverse proxy e accesso da internet».',
+        },
+        {
+          q: 'Le foto di una cartella montata non compaiono',
+          a: 'Le cartelle vanno montate come sottocartelle di /photos; la prima scansione avviene circa 20 secondi dopo l’avvio, poi ogni 15 minuti; le cartelle nascoste vengono saltate.',
+        },
+        {
+          q: 'Il download delle immagini è lento o fallisce',
+          a: 'Imposta nel .env WANMORY_REGISTRY con un registro raggiungibile.',
+        },
       ],
     },
     {
@@ -1433,28 +1440,27 @@ docker compose exec server wanmory reset-password <nome>      # indica direttame
               p: 'Container e rete vengono sempre rimossi. Ogni voce qui sotto viene chiesta una volta:',
             },
             {
-              table: ['Domanda', 'Cosa viene eliminato'],
-              rows: [
-                [
-                  '`Delete the database`',
-                  'Il database (volume Docker pgdata o la cartella `WANMORY_DB_DIR`): persone, album, impostazioni, risultati IA e account. Irreversibile.',
-                ],
-                [
-                  '`Delete the data directory`',
-                  'La cartella dati: miniature e **le foto originali caricate dalla pagina web**.',
-                ],
-                [
-                  '`Delete the AI models`',
-                  'La cartella dei modelli IA; si possono riscaricare dopo la reinstallazione.',
-                ],
-                [
-                  '`Remove the Docker images`',
-                  'Le immagini Docker usate da Wanmory (compresa postgres/pgvector); si possono riscaricare.',
-                ],
-                [
-                  '`Delete the configuration files`',
-                  '`.env` (con la password del database), `docker-compose.yml`, `docker-compose.override.yml`; se la cartella di installazione resta vuota, viene rimossa anch’essa.',
-                ],
+              qa: [
+                {
+                  q: '`Delete the database`',
+                  a: 'Il database (volume Docker pgdata o la cartella `WANMORY_DB_DIR`): persone, album, impostazioni, risultati IA e account. Irreversibile.',
+                },
+                {
+                  q: '`Delete the data directory`',
+                  a: 'La cartella dati: miniature e **le foto originali caricate dalla pagina web**.',
+                },
+                {
+                  q: '`Delete the AI models`',
+                  a: 'La cartella dei modelli IA; si possono riscaricare dopo la reinstallazione.',
+                },
+                {
+                  q: '`Remove the Docker images`',
+                  a: 'Le immagini Docker usate da Wanmory (compresa postgres/pgvector); si possono riscaricare.',
+                },
+                {
+                  q: '`Delete the configuration files`',
+                  a: '`.env` (con la password del database), `docker-compose.yml`, `docker-compose.override.yml`; se la cartella di installazione resta vuota, viene rimossa anch’essa.',
+                },
               ],
             },
           ],

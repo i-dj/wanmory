@@ -95,7 +95,7 @@ const docs: DocsDict = {
     },
   ],
   intro:
-    '이 문서는 NAS, 가정용 서버, 개인 PC에서 Wanmory를 셀프 호스팅하는 관리자를 위한 것으로, 설치, 설정, AI 서비스 배포, 일상적인 사용, 시스템 설정, 운영을 다룹니다. 시스템 구조와 알고리즘에 관한 자세한 내용은 [아키텍처](/architecture/)를 참고하세요.',
+    '이 문서는 NAS, 서버, 개인 PC에서 Wanmory를 셀프 호스팅하는 관리자를 위한 것으로, 설치, 설정, AI 서비스 배포, 일상적인 사용, 시스템 설정, 운영을 다룹니다. 시스템 구조와 알고리즘에 관한 자세한 내용은 [아키텍처](/architecture/)를 참고하세요.',
   blocks: [
     {
       h2: 'intro',
@@ -305,28 +305,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
           title: 'Checking system(시스템 점검)',
           body: [
             {
-              table: ['메시지', '뜻'],
-              rows: [
-                [
-                  '`OS: Linux` / `OS: macOS`',
-                  '운영체제. macOS에서는 컨테이너 안의 AI가 Apple GPU를 쓸 수 없으니, 빠르게 하려면 Mac에서 AI 서비스를 직접 실행하라고 안내합니다([AI 서비스 따로 실행하기](#ai-remote) 참고). 그 밖의 OS는 종료합니다.',
-                ],
-                [
-                  '`CPU: x86_64 (linux/amd64 images)`',
-                  'CPU 아키텍처. 64비트 amd64와 arm64만 지원합니다. 32비트 시스템(64비트 커널에 32비트 사용자 영역을 쓰는 예전 Raspberry Pi OS 포함)은 종료하니 64비트 OS를 설치하세요.',
-                ],
-                [
-                  '`Docker 27.x`',
-                  'Docker 사용 가능. 없으면 설치 링크를 보여 줍니다(Synology / QNAP은 패키지 센터에서 Container Manager / Container Station 설치). `Permission denied`가 나오면 sudo로 실행하거나 사용자를 docker 그룹에 추가하고 다시 로그인하세요.',
-                ],
-                [
-                  '`Docker Compose v2.x`',
-                  'Docker Compose 사용 가능. 예전 docker-compose v1만 있으면 업그레이드를 권하지만 계속 진행합니다.',
-                ],
-                [
-                  '`Memory: 8 GB`',
-                  '메모리. 4 GB 미만이면 `AI will use the lite model tier`(AI가 자동으로 경량 등급 사용), 2 GB 미만이면 AI 인식이 동작하지 않을 수 있다고 알립니다.',
-                ],
+              qa: [
+                {
+                  q: '`OS: Linux` / `OS: macOS`',
+                  a: '운영체제. macOS에서는 컨테이너 안의 AI가 Apple GPU를 쓸 수 없으니, 빠르게 하려면 Mac에서 AI 서비스를 직접 실행하라고 안내합니다([AI 서비스 따로 실행하기](#ai-remote) 참고). 그 밖의 OS는 종료합니다.',
+                },
+                {
+                  q: '`CPU: x86_64 (linux/amd64 images)`',
+                  a: 'CPU 아키텍처. 64비트 amd64와 arm64만 지원합니다. 32비트 시스템(64비트 커널에 32비트 사용자 영역을 쓰는 예전 Raspberry Pi OS 포함)은 종료하니 64비트 OS를 설치하세요.',
+                },
+                {
+                  q: '`Docker 27.x`',
+                  a: 'Docker 사용 가능. 없으면 설치 링크를 보여 줍니다(Synology / QNAP은 패키지 센터에서 Container Manager / Container Station 설치). `Permission denied`가 나오면 sudo로 실행하거나 사용자를 docker 그룹에 추가하고 다시 로그인하세요.',
+                },
+                {
+                  q: '`Docker Compose v2.x`',
+                  a: 'Docker Compose 사용 가능. 예전 docker-compose v1만 있으면 업그레이드를 권하지만 계속 진행합니다.',
+                },
+                {
+                  q: '`Memory: 8 GB`',
+                  a: '메모리. 4 GB 미만이면 `AI will use the lite model tier`(AI가 자동으로 경량 등급 사용), 2 GB 미만이면 AI 인식이 동작하지 않을 수 있다고 알립니다.',
+                },
               ],
             },
           ],
@@ -338,47 +337,55 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
               p: '하나씩 질문합니다. Enter를 누르면 대괄호 안의 기본값을 씁니다.',
             },
             {
-              table: ['질문', '뜻과 권장'],
-              rows: [
-                [
-                  '`Install directory`',
-                  '설치 디렉터리. `.env`, `docker-compose.yml`, 기본 설정이면 data와 models도 여기에 둡니다. 이어서 그 디스크의 남은 공간을 보여 주고, 10 GB 미만이면 알립니다.',
-                ],
-                [
-                  '`Keep the existing configuration`',
-                  '디렉터리에 `.env`가 있을 때(예전에 설치함)만 나옵니다. Enter(Y)는 포트, 도메인, 데이터베이스 비밀번호 등을 그대로 쓰고 아래 질문을 건너뜁니다. 재설치·업그레이드에 적합. n이면 다시 입력합니다. 데이터베이스가 만들어진 뒤에는 비밀번호를 함부로 바꾸지 마세요.',
-                ],
-                ['`Web port`', '웹 포트, 기본 8080. 사용 중이면 다른 번호를 묻습니다.'],
-                [
-                  '`LAN domain (must end in .local)`',
-                  '로컬 네트워크에서 보관함을 여는 도메인, 기본 wanmory.local. photos.local 등도 가능하며 나중에 웹 설정에서 바꿀 수 있습니다.',
-                ],
-                [
-                  '`Generate a random database password`',
-                  'Enter를 누르면 무작위 비밀번호를 만들어 `.env`에 저장합니다. 외울 필요 없음. n이면 직접 두 번 입력(8자 이상, 공백·따옴표·`$ \\ @ : / # ?` 불가).',
-                ],
-                [
-                  '`Database location`',
-                  '데이터베이스 위치. 비워 두고 Enter면 Docker 볼륨 pgdata(권장), 또는 `/volume1/wanmory/db` 같은 로컬 디렉터리. SMB / NFS 네트워크 공유는 데이터베이스가 손상될 수 있다고 경고합니다.',
-                ],
-                [
-                  '`Time zone`',
-                  '시간대. EXIF에 시간대가 없는 사진의 시간 계산에 씁니다. seoul, tokyo, london 등 도시나 나라로 검색하고, 여러 개가 맞으면 번호로 고릅니다.',
-                ],
-                [
-                  '`Data directory`',
-                  '데이터 디렉터리, 기본 ./data. 썸네일, 미리보기, 웹으로 업로드한 원본 사진이 저장되므로 공간을 넉넉히 두세요.',
-                ],
-                ['`AI model directory (1-4 GB)`', 'AI 모델 디렉터리, 기본 ./models.'],
-                [
-                  '`Add existing photo folders from a NAS or external drive`',
-                  '이미 있는 사진 폴더를 추가할지(다시 업로드할 필요 없음). Y를 누르고 경로를 입력합니다. 없는 경로면 한 번 더 확인합니다.',
-                ],
-                [
-                  '`Mount read-only`',
-                  'Enter면 읽기 전용: 원본 파일을 절대 수정하거나 삭제하지 않습니다(권장). n이면 읽기·쓰기: Wanmory에서 사진을 영구 삭제하면 원본 파일도 삭제됩니다.',
-                ],
-                ['`Add another photo folder`', '다음 폴더 추가. Enter(N)로 끝냅니다.'],
+              qa: [
+                {
+                  q: '`Install directory`',
+                  a: '설치 디렉터리. `.env`, `docker-compose.yml`, 기본 설정이면 data와 models도 여기에 둡니다. 이어서 그 디스크의 남은 공간을 보여 주고, 10 GB 미만이면 알립니다.',
+                },
+                {
+                  q: '`Keep the existing configuration`',
+                  a: '디렉터리에 `.env`가 있을 때(예전에 설치함)만 나옵니다. Enter(Y)는 포트, 도메인, 데이터베이스 비밀번호 등을 그대로 쓰고 아래 질문을 건너뜁니다. 재설치·업그레이드에 적합. n이면 다시 입력합니다. 데이터베이스가 만들어진 뒤에는 비밀번호를 함부로 바꾸지 마세요.',
+                },
+                {
+                  q: '`Web port`',
+                  a: '웹 포트, 기본 8080. 사용 중이면 다른 번호를 묻습니다.',
+                },
+                {
+                  q: '`LAN domain (must end in .local)`',
+                  a: '로컬 네트워크에서 보관함을 여는 도메인, 기본 wanmory.local. photos.local 등도 가능하며 나중에 웹 설정에서 바꿀 수 있습니다.',
+                },
+                {
+                  q: '`Generate a random database password`',
+                  a: 'Enter를 누르면 무작위 비밀번호를 만들어 `.env`에 저장합니다. 외울 필요 없음. n이면 직접 두 번 입력(8자 이상, 공백·따옴표·`$ \\ @ : / # ?` 불가).',
+                },
+                {
+                  q: '`Database location`',
+                  a: '데이터베이스 위치. 비워 두고 Enter면 Docker 볼륨 pgdata(권장), 또는 `/volume1/wanmory/db` 같은 로컬 디렉터리. SMB / NFS 네트워크 공유는 데이터베이스가 손상될 수 있다고 경고합니다.',
+                },
+                {
+                  q: '`Time zone`',
+                  a: '시간대. EXIF에 시간대가 없는 사진의 시간 계산에 씁니다. seoul, tokyo, london 등 도시나 나라로 검색하고, 여러 개가 맞으면 번호로 고릅니다.',
+                },
+                {
+                  q: '`Data directory`',
+                  a: '데이터 디렉터리, 기본 ./data. 썸네일, 미리보기, 웹으로 업로드한 원본 사진이 저장되므로 공간을 넉넉히 두세요.',
+                },
+                {
+                  q: '`AI model directory (1-4 GB)`',
+                  a: 'AI 모델 디렉터리, 기본 ./models.',
+                },
+                {
+                  q: '`Add existing photo folders from a NAS or external drive`',
+                  a: '이미 있는 사진 폴더를 추가할지(다시 업로드할 필요 없음). Y를 누르고 경로를 입력합니다. 없는 경로면 한 번 더 확인합니다.',
+                },
+                {
+                  q: '`Mount read-only`',
+                  a: 'Enter면 읽기 전용: 원본 파일을 절대 수정하거나 삭제하지 않습니다(권장). n이면 읽기·쓰기: Wanmory에서 사진을 영구 삭제하면 원본 파일도 삭제됩니다.',
+                },
+                {
+                  q: '`Add another photo folder`',
+                  a: '다음 폴더 추가. Enter(N)로 끝냅니다.',
+                },
               ],
             },
           ],
@@ -429,22 +436,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
       h2: 'install-faq',
     },
     {
-      table: ['문제', '원인과 해결'],
-      rows: [
-        [
-          '재설치 후 데이터베이스에 연결되지 않음(비밀번호 인증 실패)',
-          '데이터베이스는 처음 만들어질 때만 `.env`의 비밀번호를 쓰고, 나중에 `.env`를 바꿔도 바뀌지 않습니다. 현재 설치 스크립트는 시작할 때 데이터베이스 비밀번호를 `.env`에 맞추므로 스크립트를 다시 실행하면 됩니다. 수동 설치라면 설치 디렉터리에서 `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'새 비밀번호\';"`를 실행한 뒤 `docker compose up -d`.',
-        ],
-        [
-          '데이터 디렉터리 파일의 소유자 / 호스트에서 삭제가 안 됨',
-          'Wanmory 컨테이너는 데이터 디렉터리 소유자로 실행됩니다. 일반 사용자가 만든 디렉터리(설치 스크립트가 그렇게 만듦)라면 업로드와 썸네일이 그 사용자 소유가 되어 호스트에서 sudo 없이 관리할 수 있습니다. 디렉터리가 root 소유이거나 Docker 볼륨이면 uid 1000으로 실행됩니다. exFAT / NTFS USB 드라이브, SMB 공유처럼 소유자를 바꿀 수 없는 파일 시스템에서는 root로 실행됩니다. 예전 버전이 남긴 소유자가 잘못된 파일은 시작할 때 고쳐집니다.',
-        ],
-        [
-          'Raspberry Pi',
-          '64비트 OS(Raspberry Pi OS 64-bit)가 필요하며 32비트에서는 스크립트가 종료합니다. 메모리 4 GB면 자동으로 경량 등급을 씁니다. 첫 시작과 첫 사진 처리가 느리니 데이터와 데이터베이스는 SSD에 두는 것을 권장합니다.',
-        ],
-        ['포트가 사용 중', '다른 포트를 고르거나 `WANMORY_PORT=9000`으로 스크립트를 실행하세요.'],
-        ['이미지 받기가 느리거나 실패', '`WANMORY_REGISTRY`를 접속되는 미러로 설정하고 다시 실행하세요.'],
+      qa: [
+        {
+          q: '재설치 후 데이터베이스에 연결되지 않음(비밀번호 인증 실패)',
+          a: '데이터베이스는 처음 만들어질 때만 `.env`의 비밀번호를 쓰고, 나중에 `.env`를 바꿔도 바뀌지 않습니다. 현재 설치 스크립트는 시작할 때 데이터베이스 비밀번호를 `.env`에 맞추므로 스크립트를 다시 실행하면 됩니다. 수동 설치라면 설치 디렉터리에서 `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'새 비밀번호\';"`를 실행한 뒤 `docker compose up -d`.',
+        },
+        {
+          q: '데이터 디렉터리 파일의 소유자 / 호스트에서 삭제가 안 됨',
+          a: 'Wanmory 컨테이너는 데이터 디렉터리 소유자로 실행됩니다. 일반 사용자가 만든 디렉터리(설치 스크립트가 그렇게 만듦)라면 업로드와 썸네일이 그 사용자 소유가 되어 호스트에서 sudo 없이 관리할 수 있습니다. 디렉터리가 root 소유이거나 Docker 볼륨이면 uid 1000으로 실행됩니다. exFAT / NTFS USB 드라이브, SMB 공유처럼 소유자를 바꿀 수 없는 파일 시스템에서는 root로 실행됩니다. 예전 버전이 남긴 소유자가 잘못된 파일은 시작할 때 고쳐집니다.',
+        },
+        {
+          q: 'Raspberry Pi',
+          a: '64비트 OS(Raspberry Pi OS 64-bit)가 필요하며 32비트에서는 스크립트가 종료합니다. 메모리 4 GB면 자동으로 경량 등급을 씁니다. 첫 시작과 첫 사진 처리가 느리니 데이터와 데이터베이스는 SSD에 두는 것을 권장합니다.',
+        },
+        {
+          q: '포트가 사용 중',
+          a: '다른 포트를 고르거나 `WANMORY_PORT=9000`으로 스크립트를 실행하세요.',
+        },
+        {
+          q: '이미지 받기가 느리거나 실패',
+          a: '`WANMORY_REGISTRY`를 접속되는 미러로 설정하고 다시 실행하세요.',
+        },
       ],
     },
     {
@@ -691,7 +703,7 @@ location /api/uploads/ {
       p: '내장 AI 컨테이너는 CPU만 씁니다. 더 빠른 컴퓨터(Apple 실리콘 Mac, NVIDIA GPU가 있는 Windows / Linux PC)가 있다면 그 컴퓨터에서 AI 서비스(저장소 `ml/` 폴더의 Python 프로그램)를 직접 실행하고, Wanmory가 사진을 보내 계산하게 할 수 있습니다. Python과 의존성은 [uv](https://docs.astral.sh/uv/)가 관리하므로 Python을 따로 설치할 필요가 없습니다.',
     },
     {
-      table: ['컴퓨터', '쓸 수 있는 가속'],
+      table: ['컴퓨터', '사용 가능한 가속'],
       rows: [
         ['Apple 실리콘 Mac', '얼굴 인식은 CoreML, 스마트 검색은 MPS(PyTorch).'],
         ['Linux + NVIDIA GPU', '스마트 검색은 CUDA(PyTorch 반정밀도, VRAM 약 1.9 GB).'],
@@ -1068,30 +1080,35 @@ sudo ufw allow 3003/tcp      # ufw 방화벽을 쓰는 경우`,
       h2: 'browse',
     },
     {
-      table: ['기능', '설명'],
-      rows: [
-        ['보관함', '월별로 묶은 사진 타임라인으로, 위쪽에 AI 추천 캐러셀과 「그날의 오늘」이 있습니다.'],
-        [
-          '자연어 검색',
-          '「아기 세 돌 생일 사진」 같은 설명을 입력하면 문자 인식 결과, 촬영 장소, Chinese-CLIP 의미 유사도를 종합해 정렬합니다. 분류 이름을 입력하면 그 분류를 바로 돌려줍니다.',
-        ],
-        [
-          '인물',
-          '얼굴을 자동으로 클러스터링하며, 사진 3장 이상에 나온 사람만 따로 표시합니다. 이름 붙이기, 합치기, 생일 설정이 가능하고 나이별 성장, 발자취, 단체 사진을 볼 수 있습니다.',
-        ],
-        [
-          '앨범 · 스마트 앨범',
-          '앨범은 사진을 직접 고르며 비공개로 설정할 수 있습니다. 스마트 앨범은 인물, 장소, 시간 등의 조건으로 자동으로 모읍니다.',
-        ],
-        ['발자취', 'GPS로 촬영 장소를 지도에 보여 주며, 지도, 위성, 격자의 세 가지 보기를 지원합니다.'],
-        [
-          '연사 정리',
-          '연사와 비슷한 사진을 자동으로 묶고 가장 좋은 한 장을 남기도록 추천합니다. 「중복」에는 내용이 완전히 같은 파일이 나옵니다.',
-        ],
-        [
-          '슬라이드쇼',
-          '보관함, 앨범, 인물, 추억을 재생할 수 있으며, 세로 사진은 두세 장을 자동으로 한 페이지에 모으고 배경 음악과 전환 효과를 지원합니다.',
-        ],
+      qa: [
+        {
+          q: '보관함',
+          a: '월별로 묶은 사진 타임라인으로, 위쪽에 AI 추천 캐러셀과 「그날의 오늘」이 있습니다.',
+        },
+        {
+          q: '자연어 검색',
+          a: '「아기 세 돌 생일 사진」 같은 설명을 입력하면 문자 인식 결과, 촬영 장소, Chinese-CLIP 의미 유사도를 종합해 정렬합니다. 분류 이름을 입력하면 그 분류를 바로 돌려줍니다.',
+        },
+        {
+          q: '인물',
+          a: '얼굴을 자동으로 클러스터링하며, 사진 3장 이상에 나온 사람만 따로 표시합니다. 이름 붙이기, 합치기, 생일 설정이 가능하고 나이별 성장, 발자취, 단체 사진을 볼 수 있습니다.',
+        },
+        {
+          q: '앨범 · 스마트 앨범',
+          a: '앨범은 사진을 직접 고르며 비공개로 설정할 수 있습니다. 스마트 앨범은 인물, 장소, 시간 등의 조건으로 자동으로 모읍니다.',
+        },
+        {
+          q: '발자취',
+          a: 'GPS로 촬영 장소를 지도에 보여 주며, 지도, 위성, 격자의 세 가지 보기를 지원합니다.',
+        },
+        {
+          q: '연사 정리',
+          a: '연사와 비슷한 사진을 자동으로 묶고 가장 좋은 한 장을 남기도록 추천합니다. 「중복」에는 내용이 완전히 같은 파일이 나옵니다.',
+        },
+        {
+          q: '슬라이드쇼',
+          a: '보관함, 앨범, 인물, 추억을 재생할 수 있으며, 세로 사진은 두세 장을 자동으로 한 페이지에 모으고 배경 음악과 전환 효과를 지원합니다.',
+        },
       ],
     },
     {
@@ -1317,29 +1334,31 @@ docker compose exec server wanmory reset-password <이름>     # 계정을 바�
       h2: 'troubleshooting',
     },
     {
-      table: ['증상', '확인할 점'],
-      rows: [
-        [
-          'wanmory.local로 접속할 수 없음',
-          'mdns 서비스가 실행 중인지 확인합니다(docker compose ps). 일부 Android 기기는 mDNS를 지원하지 않으니 IP를 쓰세요. 호스트의 5353번 포트를 다른 프로그램이 쓰고 있지 않은지 확인합니다.',
-        ],
-        [
-          'AI 설정에 「연결할 수 없음, AI 처리 일시 중지」가 표시됨',
-          '내장 방식이면 ml 컨테이너 로그(docker compose logs ml)를 확인합니다. 원격 방식이면 주소, 포트, 방화벽, 토큰이 맞는지 확인합니다.',
-        ],
-        [
-          '인물이나 검색 결과가 없음',
-          '모델을 내려받았는지 확인합니다. 「성능」에서 처리 시점 설정 때문에 AI가 멈춰 있지 않은지, 작업 표시기에서 AI 인식 진행률을 확인합니다.',
-        ],
-        [
-          '큰 파일 업로드 실패',
-          '리버스 프록시의 요청 본문 크기 제한이 너무 작습니다. 「리버스 프록시와 외부 접속」을 참고해 client_max_body_size를 조정합니다.',
-        ],
-        [
-          '마운트한 폴더의 사진이 보이지 않음',
-          '폴더는 /photos 아래 하위 디렉터리로 마운트해야 합니다. 첫 스캔은 시작 후 약 20초 뒤, 이후 15분마다 실행됩니다. 숨김 폴더는 건너뜁니다.',
-        ],
-        ['이미지 받기가 느리거나 실패함', '.env의 WANMORY_REGISTRY를 접근 가능한 레지스트리 주소로 설정합니다.'],
+      qa: [
+        {
+          q: 'wanmory.local로 접속할 수 없음',
+          a: 'mdns 서비스가 실행 중인지 확인합니다(docker compose ps). 일부 Android 기기는 mDNS를 지원하지 않으니 IP를 쓰세요. 호스트의 5353번 포트를 다른 프로그램이 쓰고 있지 않은지 확인합니다.',
+        },
+        {
+          q: 'AI 설정에 「연결할 수 없음, AI 처리 일시 중지」가 표시됨',
+          a: '내장 방식이면 ml 컨테이너 로그(docker compose logs ml)를 확인합니다. 원격 방식이면 주소, 포트, 방화벽, 토큰이 맞는지 확인합니다.',
+        },
+        {
+          q: '인물이나 검색 결과가 없음',
+          a: '모델을 내려받았는지 확인합니다. 「성능」에서 처리 시점 설정 때문에 AI가 멈춰 있지 않은지, 작업 표시기에서 AI 인식 진행률을 확인합니다.',
+        },
+        {
+          q: '큰 파일 업로드 실패',
+          a: '리버스 프록시의 요청 본문 크기 제한이 너무 작습니다. 「리버스 프록시와 외부 접속」을 참고해 client_max_body_size를 조정합니다.',
+        },
+        {
+          q: '마운트한 폴더의 사진이 보이지 않음',
+          a: '폴더는 /photos 아래 하위 디렉터리로 마운트해야 합니다. 첫 스캔은 시작 후 약 20초 뒤, 이후 15분마다 실행됩니다. 숨김 폴더는 건너뜁니다.',
+        },
+        {
+          q: '이미지 받기가 느리거나 실패함',
+          a: '.env의 WANMORY_REGISTRY를 접근 가능한 레지스트리 주소로 설정합니다.',
+        },
       ],
     },
     {
@@ -1375,22 +1394,27 @@ docker compose exec server wanmory reset-password <이름>     # 계정을 바�
               p: '컨테이너와 네트워크는 항상 지웁니다. 아래 항목은 하나씩 묻습니다:',
             },
             {
-              table: ['질문', '지워지는 것'],
-              rows: [
-                [
-                  '`Delete the database`',
-                  '데이터베이스(Docker 볼륨 pgdata 또는 `WANMORY_DB_DIR` 디렉터리): 인물, 앨범, 설정, AI 결과, 계정. 되돌릴 수 없습니다.',
-                ],
-                ['`Delete the data directory`', '데이터 디렉터리: 썸네일과 **웹으로 업로드한 원본 사진**.'],
-                ['`Delete the AI models`', 'AI 모델 디렉터리. 재설치 후 다시 내려받을 수 있습니다.'],
-                [
-                  '`Remove the Docker images`',
-                  'Wanmory가 쓰는 Docker 이미지(postgres/pgvector 포함). 다시 받을 수 있습니다.',
-                ],
-                [
-                  '`Delete the configuration files`',
-                  '`.env`(데이터베이스 비밀번호 포함), `docker-compose.yml`, `docker-compose.override.yml`. 비게 된 설치 디렉터리도 지웁니다.',
-                ],
+              qa: [
+                {
+                  q: '`Delete the database`',
+                  a: '데이터베이스(Docker 볼륨 pgdata 또는 `WANMORY_DB_DIR` 디렉터리): 인물, 앨범, 설정, AI 결과, 계정. 되돌릴 수 없습니다.',
+                },
+                {
+                  q: '`Delete the data directory`',
+                  a: '데이터 디렉터리: 썸네일과 **웹으로 업로드한 원본 사진**.',
+                },
+                {
+                  q: '`Delete the AI models`',
+                  a: 'AI 모델 디렉터리. 재설치 후 다시 내려받을 수 있습니다.',
+                },
+                {
+                  q: '`Remove the Docker images`',
+                  a: 'Wanmory가 쓰는 Docker 이미지(postgres/pgvector 포함). 다시 받을 수 있습니다.',
+                },
+                {
+                  q: '`Delete the configuration files`',
+                  a: '`.env`(데이터베이스 비밀번호 포함), `docker-compose.yml`, `docker-compose.override.yml`. 비게 된 설치 디렉터리도 지웁니다.',
+                },
               ],
             },
           ],

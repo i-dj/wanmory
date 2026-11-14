@@ -10,6 +10,7 @@ import { forgetMapSource } from '@/lib/mapSource'
 import AccountSettings from '@/components/settings/AccountSettings'
 import AISettings from '@/components/settings/AISettings'
 import PerformanceSettings from '@/components/settings/PerformanceSettings'
+import StorageSettings from '@/components/settings/StorageSettings'
 import SystemUpdate from '@/components/settings/SystemUpdate'
 import { askConfirm } from '@/lib/dialog'
 import { cx } from '@/lib/cx'
@@ -107,6 +108,7 @@ export default function SettingsPage() {
             }
           />
         ))}
+        <StorageSettings />
         <SystemUpdate />
       </div>
 

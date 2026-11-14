@@ -95,7 +95,7 @@ const docs: DocsDict = {
     },
   ],
   intro:
-    'Tài liệu này dành cho quản trị viên tự lưu trữ Wanmory trên NAS, máy chủ gia đình hoặc máy tính cá nhân, bao gồm cài đặt, cấu hình, triển khai dịch vụ AI, sử dụng hằng ngày, cài đặt hệ thống và vận hành. Chi tiết kiến trúc và thuật toán xem tại [Kiến trúc](/architecture/).',
+    'Tài liệu này dành cho quản trị viên tự lưu trữ Wanmory trên NAS, máy chủ hoặc máy tính cá nhân, bao gồm cài đặt, cấu hình, triển khai dịch vụ AI, sử dụng hằng ngày, cài đặt hệ thống và vận hành. Chi tiết kiến trúc và thuật toán xem tại [Kiến trúc](/architecture/).',
   blocks: [
     {
       h2: 'intro',
@@ -305,28 +305,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
           title: 'Checking system (kiểm tra hệ thống)',
           body: [
             {
-              table: ['Thông báo', 'Ý nghĩa'],
-              rows: [
-                [
-                  '`OS: Linux` / `OS: macOS`',
-                  'Hệ điều hành. Trên macOS sẽ nhắc rằng AI trong container không dùng được GPU của Apple; muốn nhanh hãy chạy dịch vụ AI trực tiếp trên Mac (xem [Chạy riêng dịch vụ AI](#ai-remote)). Hệ điều hành khác sẽ dừng.',
-                ],
-                [
-                  '`CPU: x86_64 (linux/amd64 images)`',
-                  'Kiến trúc CPU. Chỉ hỗ trợ amd64 và arm64 64 bit; hệ thống 32 bit (kể cả Raspberry Pi OS cũ dùng nhân 64 bit nhưng phần người dùng 32 bit) sẽ dừng, hãy cài hệ điều hành 64 bit.',
-                ],
-                [
-                  '`Docker 27.x`',
-                  'Docker dùng được. Nếu chưa cài sẽ hiện liên kết cài đặt (Synology / QNAP: cài Container Manager / Container Station trong trung tâm gói). Gặp `Permission denied` thì chạy bằng sudo, hoặc thêm người dùng vào nhóm docker rồi đăng nhập lại.',
-                ],
-                [
-                  '`Docker Compose v2.x`',
-                  'Docker Compose dùng được. Nếu chỉ có docker-compose v1 cũ sẽ khuyên nâng cấp nhưng vẫn tiếp tục.',
-                ],
-                [
-                  '`Memory: 8 GB`',
-                  'Bộ nhớ. Dưới 4 GB sẽ báo `AI will use the lite model tier`: AI tự dùng mức nhẹ; dưới 2 GB sẽ cảnh báo AI có thể không chạy được.',
-                ],
+              qa: [
+                {
+                  q: '`OS: Linux` / `OS: macOS`',
+                  a: 'Hệ điều hành. Trên macOS sẽ nhắc rằng AI trong container không dùng được GPU của Apple; muốn nhanh hãy chạy dịch vụ AI trực tiếp trên Mac (xem [Chạy riêng dịch vụ AI](#ai-remote)). Hệ điều hành khác sẽ dừng.',
+                },
+                {
+                  q: '`CPU: x86_64 (linux/amd64 images)`',
+                  a: 'Kiến trúc CPU. Chỉ hỗ trợ amd64 và arm64 64 bit; hệ thống 32 bit (kể cả Raspberry Pi OS cũ dùng nhân 64 bit nhưng phần người dùng 32 bit) sẽ dừng, hãy cài hệ điều hành 64 bit.',
+                },
+                {
+                  q: '`Docker 27.x`',
+                  a: 'Docker dùng được. Nếu chưa cài sẽ hiện liên kết cài đặt (Synology / QNAP: cài Container Manager / Container Station trong trung tâm gói). Gặp `Permission denied` thì chạy bằng sudo, hoặc thêm người dùng vào nhóm docker rồi đăng nhập lại.',
+                },
+                {
+                  q: '`Docker Compose v2.x`',
+                  a: 'Docker Compose dùng được. Nếu chỉ có docker-compose v1 cũ sẽ khuyên nâng cấp nhưng vẫn tiếp tục.',
+                },
+                {
+                  q: '`Memory: 8 GB`',
+                  a: 'Bộ nhớ. Dưới 4 GB sẽ báo `AI will use the lite model tier`: AI tự dùng mức nhẹ; dưới 2 GB sẽ cảnh báo AI có thể không chạy được.',
+                },
               ],
             },
           ],
@@ -338,47 +337,55 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
               p: 'Hỏi từng câu một; nhấn Enter để dùng giá trị mặc định trong ngoặc vuông.',
             },
             {
-              table: ['Câu hỏi', 'Ý nghĩa và gợi ý'],
-              rows: [
-                [
-                  '`Install directory`',
-                  'Thư mục cài đặt, chứa `.env`, `docker-compose.yml` và mặc định cả data, models. Sau đó hiện dung lượng trống của ổ đĩa; dưới 10 GB sẽ cảnh báo.',
-                ],
-                [
-                  '`Keep the existing configuration`',
-                  'Chỉ xuất hiện khi thư mục đã có `.env` (từng cài trước đây). Enter (Y) giữ nguyên cổng, tên miền, mật khẩu cơ sở dữ liệu… và bỏ qua các câu hỏi bên dưới, hợp cho cài lại và nâng cấp. Chọn n để nhập lại từ đầu. Sau khi cơ sở dữ liệu đã tạo thì đừng tùy tiện đổi mật khẩu.',
-                ],
-                ['`Web port`', 'Cổng web, mặc định 8080. Nếu đã bị dùng sẽ hỏi cổng khác.'],
-                [
-                  '`LAN domain (must end in .local)`',
-                  'Tên miền để mở thư viện trong mạng nội bộ, mặc định wanmory.local; photos.local cũng được. Sau này có thể đổi trong cài đặt trên web.',
-                ],
-                [
-                  '`Generate a random database password`',
-                  'Enter tạo mật khẩu ngẫu nhiên và lưu vào `.env`, bạn không cần nhớ. Chọn n để tự nhập hai lần (ít nhất 8 ký tự; không có khoảng trắng, dấu nháy và `$ \\ @ : / # ?`).',
-                ],
-                [
-                  '`Database location`',
-                  'Nơi đặt cơ sở dữ liệu. Để trống và Enter để dùng volume Docker pgdata (khuyên dùng), hoặc nhập thư mục trên máy như `/volume1/wanmory/db`. Sẽ cảnh báo không dùng thư mục chia sẻ SMB / NFS vì có thể làm hỏng cơ sở dữ liệu.',
-                ],
-                [
-                  '`Time zone`',
-                  'Múi giờ, dùng để tính thời gian cho ảnh không có múi giờ trong EXIF. Gõ tên thành phố hoặc quốc gia để tìm, ví dụ ho_chi_minh, bangkok, tokyo; nếu khớp nhiều kết quả thì chọn theo số.',
-                ],
-                [
-                  '`Data directory`',
-                  'Thư mục dữ liệu, mặc định ./data. Ảnh thu nhỏ, ảnh xem trước và ảnh gốc tải lên đều nằm ở đây, hãy để đủ dung lượng.',
-                ],
-                ['`AI model directory (1-4 GB)`', 'Thư mục mô hình AI, mặc định ./models.'],
-                [
-                  '`Add existing photo folders from a NAS or external drive`',
-                  'Có thêm các thư mục ảnh có sẵn không (không cần tải lên lại). Chọn Y rồi nhập đường dẫn; nếu thư mục không tồn tại sẽ hỏi xác nhận thêm.',
-                ],
-                [
-                  '`Mount read-only`',
-                  'Enter là gắn chỉ đọc: Wanmory không bao giờ sửa hay xóa tệp gốc (khuyên dùng). Chọn n là đọc ghi: xóa vĩnh viễn ảnh trong Wanmory sẽ xóa luôn tệp gốc.',
-                ],
-                ['`Add another photo folder`', 'Thêm thư mục tiếp theo; Enter (N) để kết thúc.'],
+              qa: [
+                {
+                  q: '`Install directory`',
+                  a: 'Thư mục cài đặt, chứa `.env`, `docker-compose.yml` và mặc định cả data, models. Sau đó hiện dung lượng trống của ổ đĩa; dưới 10 GB sẽ cảnh báo.',
+                },
+                {
+                  q: '`Keep the existing configuration`',
+                  a: 'Chỉ xuất hiện khi thư mục đã có `.env` (từng cài trước đây). Enter (Y) giữ nguyên cổng, tên miền, mật khẩu cơ sở dữ liệu… và bỏ qua các câu hỏi bên dưới, hợp cho cài lại và nâng cấp. Chọn n để nhập lại từ đầu. Sau khi cơ sở dữ liệu đã tạo thì đừng tùy tiện đổi mật khẩu.',
+                },
+                {
+                  q: '`Web port`',
+                  a: 'Cổng web, mặc định 8080. Nếu đã bị dùng sẽ hỏi cổng khác.',
+                },
+                {
+                  q: '`LAN domain (must end in .local)`',
+                  a: 'Tên miền để mở thư viện trong mạng nội bộ, mặc định wanmory.local; photos.local cũng được. Sau này có thể đổi trong cài đặt trên web.',
+                },
+                {
+                  q: '`Generate a random database password`',
+                  a: 'Enter tạo mật khẩu ngẫu nhiên và lưu vào `.env`, bạn không cần nhớ. Chọn n để tự nhập hai lần (ít nhất 8 ký tự; không có khoảng trắng, dấu nháy và `$ \\ @ : / # ?`).',
+                },
+                {
+                  q: '`Database location`',
+                  a: 'Nơi đặt cơ sở dữ liệu. Để trống và Enter để dùng volume Docker pgdata (khuyên dùng), hoặc nhập thư mục trên máy như `/volume1/wanmory/db`. Sẽ cảnh báo không dùng thư mục chia sẻ SMB / NFS vì có thể làm hỏng cơ sở dữ liệu.',
+                },
+                {
+                  q: '`Time zone`',
+                  a: 'Múi giờ, dùng để tính thời gian cho ảnh không có múi giờ trong EXIF. Gõ tên thành phố hoặc quốc gia để tìm, ví dụ ho_chi_minh, bangkok, tokyo; nếu khớp nhiều kết quả thì chọn theo số.',
+                },
+                {
+                  q: '`Data directory`',
+                  a: 'Thư mục dữ liệu, mặc định ./data. Ảnh thu nhỏ, ảnh xem trước và ảnh gốc tải lên đều nằm ở đây, hãy để đủ dung lượng.',
+                },
+                {
+                  q: '`AI model directory (1-4 GB)`',
+                  a: 'Thư mục mô hình AI, mặc định ./models.',
+                },
+                {
+                  q: '`Add existing photo folders from a NAS or external drive`',
+                  a: 'Có thêm các thư mục ảnh có sẵn không (không cần tải lên lại). Chọn Y rồi nhập đường dẫn; nếu thư mục không tồn tại sẽ hỏi xác nhận thêm.',
+                },
+                {
+                  q: '`Mount read-only`',
+                  a: 'Enter là gắn chỉ đọc: Wanmory không bao giờ sửa hay xóa tệp gốc (khuyên dùng). Chọn n là đọc ghi: xóa vĩnh viễn ảnh trong Wanmory sẽ xóa luôn tệp gốc.',
+                },
+                {
+                  q: '`Add another photo folder`',
+                  a: 'Thêm thư mục tiếp theo; Enter (N) để kết thúc.',
+                },
               ],
             },
           ],
@@ -429,22 +436,27 @@ curl -fsSL https://wanmory.com/install.sh | WANMORY_PORT=9000 WANMORY_PHOTOS=/vo
       h2: 'install-faq',
     },
     {
-      table: ['Vấn đề', 'Nguyên nhân và cách xử lý'],
-      rows: [
-        [
-          'Cài lại xong Wanmory không kết nối được cơ sở dữ liệu (xác thực mật khẩu thất bại)',
-          'Cơ sở dữ liệu chỉ dùng mật khẩu trong `.env` lúc mới tạo; đổi `.env` về sau không đổi được mật khẩu bên trong. Script cài đặt hiện tại mỗi lần khởi động đều đồng bộ mật khẩu theo `.env`, nên chỉ cần chạy lại script. Nếu cài thủ công, chạy trong thư mục cài đặt `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'mat-khau-moi\';"`, rồi `docker compose up -d`.',
-        ],
-        [
-          'Tệp trong thư mục dữ liệu thuộc về ai / không xóa được trên máy chủ',
-          'Container Wanmory chạy dưới danh tính chủ sở hữu thư mục dữ liệu: nếu thư mục do người dùng thường tạo (script cài đặt làm như vậy), ảnh tải lên và ảnh thu nhỏ thuộc về người đó và quản lý được mà không cần sudo; nếu thư mục thuộc root hoặc là volume Docker thì chạy với uid 1000. Trên hệ thống tệp không đổi được chủ sở hữu (USB exFAT / NTFS, thư mục chia sẻ SMB) thì chạy bằng root. Các tệp sai chủ sở hữu do phiên bản cũ để lại sẽ được sửa khi khởi động.',
-        ],
-        [
-          'Raspberry Pi',
-          'Bắt buộc dùng hệ điều hành 64 bit (Raspberry Pi OS 64-bit), với 32 bit script sẽ dừng. Bộ nhớ 4 GB sẽ tự dùng mức nhẹ; lần khởi động và lần xử lý ảnh đầu tiên khá chậm, nên đặt dữ liệu và cơ sở dữ liệu trên SSD.',
-        ],
-        ['Cổng đã bị dùng', 'Chọn cổng khác, hoặc chạy script với `WANMORY_PORT=9000`.'],
-        ['Tải image chậm hoặc thất bại', 'Đặt `WANMORY_REGISTRY` thành bản sao truy cập được rồi chạy lại.'],
+      qa: [
+        {
+          q: 'Cài lại xong Wanmory không kết nối được cơ sở dữ liệu (xác thực mật khẩu thất bại)',
+          a: 'Cơ sở dữ liệu chỉ dùng mật khẩu trong `.env` lúc mới tạo; đổi `.env` về sau không đổi được mật khẩu bên trong. Script cài đặt hiện tại mỗi lần khởi động đều đồng bộ mật khẩu theo `.env`, nên chỉ cần chạy lại script. Nếu cài thủ công, chạy trong thư mục cài đặt `docker compose exec postgres psql -U wanmory -c "ALTER USER wanmory WITH PASSWORD \'mat-khau-moi\';"`, rồi `docker compose up -d`.',
+        },
+        {
+          q: 'Tệp trong thư mục dữ liệu thuộc về ai / không xóa được trên máy chủ',
+          a: 'Container Wanmory chạy dưới danh tính chủ sở hữu thư mục dữ liệu: nếu thư mục do người dùng thường tạo (script cài đặt làm như vậy), ảnh tải lên và ảnh thu nhỏ thuộc về người đó và quản lý được mà không cần sudo; nếu thư mục thuộc root hoặc là volume Docker thì chạy với uid 1000. Trên hệ thống tệp không đổi được chủ sở hữu (USB exFAT / NTFS, thư mục chia sẻ SMB) thì chạy bằng root. Các tệp sai chủ sở hữu do phiên bản cũ để lại sẽ được sửa khi khởi động.',
+        },
+        {
+          q: 'Raspberry Pi',
+          a: 'Bắt buộc dùng hệ điều hành 64 bit (Raspberry Pi OS 64-bit), với 32 bit script sẽ dừng. Bộ nhớ 4 GB sẽ tự dùng mức nhẹ; lần khởi động và lần xử lý ảnh đầu tiên khá chậm, nên đặt dữ liệu và cơ sở dữ liệu trên SSD.',
+        },
+        {
+          q: 'Cổng đã bị dùng',
+          a: 'Chọn cổng khác, hoặc chạy script với `WANMORY_PORT=9000`.',
+        },
+        {
+          q: 'Tải image chậm hoặc thất bại',
+          a: 'Đặt `WANMORY_REGISTRY` thành bản sao truy cập được rồi chạy lại.',
+        },
       ],
     },
     {
@@ -688,10 +700,10 @@ location /api/uploads/ {
       h2: 'ai-remote',
     },
     {
-      p: 'Container AI tích hợp chỉ dùng CPU. Nếu nhà bạn có máy nhanh hơn (Mac dùng chip Apple, hoặc máy Windows / Linux có GPU NVIDIA), có thể chạy trực tiếp dịch vụ AI (chương trình Python trong thư mục `ml/` của kho mã) trên máy đó, Wanmory sẽ gửi ảnh sang để tính toán. Python và các thư viện do [uv](https://docs.astral.sh/uv/) quản lý, bạn không cần tự cài Python.',
+      p: 'Container AI tích hợp chỉ dùng CPU. Nếu bạn có máy nhanh hơn (Mac dùng chip Apple, hoặc máy Windows / Linux có GPU NVIDIA), có thể chạy trực tiếp dịch vụ AI (chương trình Python trong thư mục `ml/` của kho mã) trên máy đó, Wanmory sẽ gửi ảnh sang để tính toán. Python và các thư viện do [uv](https://docs.astral.sh/uv/) quản lý, bạn không cần tự cài Python.',
     },
     {
-      table: ['Máy', 'Tăng tốc dùng được'],
+      table: ['Máy', 'Tăng tốc khả dụng'],
       rows: [
         ['Mac dùng chip Apple', 'Nhận diện khuôn mặt dùng CoreML, tìm kiếm thông minh dùng MPS (PyTorch).'],
         ['Linux + GPU NVIDIA', 'Tìm kiếm thông minh dùng CUDA (PyTorch nửa độ chính xác, khoảng 1,9 GB VRAM).'],
@@ -1068,30 +1080,35 @@ sudo ufw allow 3003/tcp      # nếu dùng tường lửa ufw`,
       h2: 'browse',
     },
     {
-      table: ['Tính năng', 'Giải thích'],
-      rows: [
-        ['Thư viện', 'Dòng thời gian ảnh theo tháng, phía trên là băng chuyền AI chọn lọc và «Ngày này năm xưa».'],
-        [
-          'Tìm bằng ngôn ngữ tự nhiên',
-          'Gõ một câu mô tả (như «ảnh sinh nhật ba tuổi của bé»), sắp xếp tổng hợp theo kết quả nhận dạng chữ, địa điểm chụp và độ tương đồng ngữ nghĩa Chinese-CLIP; gõ tên phân loại thì trả về thẳng phân loại đó.',
-        ],
-        [
-          'Mọi người',
-          'Khuôn mặt được gom nhóm tự động, xuất hiện trong ít nhất 3 ảnh mới được liệt kê riêng; có thể đặt tên, gộp, đặt ngày sinh, xem quá trình lớn lên theo tuổi, dấu chân và ảnh chung.',
-        ],
-        [
-          'Album · Album thông minh',
-          'Album thì tự chọn ảnh, có thể đặt riêng tư; album thông minh tự thu ảnh theo điều kiện người, địa điểm, thời gian…',
-        ],
-        ['Dấu chân', 'Hiển thị nơi chụp trên bản đồ theo GPS, có ba chế độ bản đồ, vệ tinh, lưới.'],
-        [
-          'Ảnh liên tiếp',
-          'Tự động gom nhóm ảnh chụp liên tiếp và ảnh giống nhau, gợi ý giữ lại tấm tốt nhất; mục «Trùng lặp» liệt kê các tệp có nội dung giống hệt.',
-        ],
-        [
-          'Trình chiếu',
-          'Thư viện, album, mọi người và kỷ niệm đều trình chiếu được, ảnh dọc tự ghép hai ba tấm thành một trang, có nhạc nền và chuyển cảnh.',
-        ],
+      qa: [
+        {
+          q: 'Thư viện',
+          a: 'Dòng thời gian ảnh theo tháng, phía trên là băng chuyền AI chọn lọc và «Ngày này năm xưa».',
+        },
+        {
+          q: 'Tìm bằng ngôn ngữ tự nhiên',
+          a: 'Gõ một câu mô tả (như «ảnh sinh nhật ba tuổi của bé»), sắp xếp tổng hợp theo kết quả nhận dạng chữ, địa điểm chụp và độ tương đồng ngữ nghĩa Chinese-CLIP; gõ tên phân loại thì trả về thẳng phân loại đó.',
+        },
+        {
+          q: 'Mọi người',
+          a: 'Khuôn mặt được gom nhóm tự động, xuất hiện trong ít nhất 3 ảnh mới được liệt kê riêng; có thể đặt tên, gộp, đặt ngày sinh, xem quá trình lớn lên theo tuổi, dấu chân và ảnh chung.',
+        },
+        {
+          q: 'Album · Album thông minh',
+          a: 'Album thì tự chọn ảnh, có thể đặt riêng tư; album thông minh tự thu ảnh theo điều kiện người, địa điểm, thời gian…',
+        },
+        {
+          q: 'Dấu chân',
+          a: 'Hiển thị nơi chụp trên bản đồ theo GPS, có ba chế độ bản đồ, vệ tinh, lưới.',
+        },
+        {
+          q: 'Ảnh liên tiếp',
+          a: 'Tự động gom nhóm ảnh chụp liên tiếp và ảnh giống nhau, gợi ý giữ lại tấm tốt nhất; mục «Trùng lặp» liệt kê các tệp có nội dung giống hệt.',
+        },
+        {
+          q: 'Trình chiếu',
+          a: 'Thư viện, album, mọi người và kỷ niệm đều trình chiếu được, ảnh dọc tự ghép hai ba tấm thành một trang, có nhạc nền và chuyển cảnh.',
+        },
       ],
     },
     {
@@ -1324,29 +1341,31 @@ docker compose exec server wanmory reset-password <tên>       # chỉ định t
       h2: 'troubleshooting',
     },
     {
-      table: ['Hiện tượng', 'Hướng kiểm tra'],
-      rows: [
-        [
-          'Không vào được qua wanmory.local',
-          'Kiểm tra dịch vụ mdns có đang chạy (docker compose ps); một số Android không hỗ trợ mDNS, hãy dùng IP; kiểm tra cổng 5353 trên máy chủ có bị chiếm không.',
-        ],
-        [
-          'Cài đặt AI báo «Không kết nối được, đã tạm dừng xử lý AI»',
-          'Chế độ tích hợp thì xem nhật ký container ml (docker compose logs ml); chế độ từ xa thì kiểm tra địa chỉ, cổng, tường lửa và token có khớp không.',
-        ],
-        [
-          'Mọi người, tìm kiếm không có kết quả',
-          'Kiểm tra mô hình đã tải chưa; vào «Hiệu năng» xem AI có đang tạm dừng do cài đặt thời điểm xử lý không; xem tiến độ AI nhận diện ở biểu tượng tác vụ.',
-        ],
-        [
-          'Tải tệp lớn thất bại',
-          'Giới hạn kích thước yêu cầu của reverse proxy quá nhỏ, tham khảo «Reverse proxy và truy cập từ Internet» để chỉnh client_max_body_size.',
-        ],
-        [
-          'Ảnh trong thư mục đã gắn không xuất hiện',
-          'Thư mục phải gắn vào thư mục con dưới /photos; lần quét đầu diễn ra khoảng 20 giây sau khi khởi động, sau đó mỗi 15 phút một lần; thư mục ẩn bị bỏ qua.',
-        ],
-        ['Kéo image chậm hoặc thất bại', 'Đặt WANMORY_REGISTRY trong .env thành địa chỉ kho image truy cập được.'],
+      qa: [
+        {
+          q: 'Không vào được qua wanmory.local',
+          a: 'Kiểm tra dịch vụ mdns có đang chạy (docker compose ps); một số Android không hỗ trợ mDNS, hãy dùng IP; kiểm tra cổng 5353 trên máy chủ có bị chiếm không.',
+        },
+        {
+          q: 'Cài đặt AI báo «Không kết nối được, đã tạm dừng xử lý AI»',
+          a: 'Chế độ tích hợp thì xem nhật ký container ml (docker compose logs ml); chế độ từ xa thì kiểm tra địa chỉ, cổng, tường lửa và token có khớp không.',
+        },
+        {
+          q: 'Mọi người, tìm kiếm không có kết quả',
+          a: 'Kiểm tra mô hình đã tải chưa; vào «Hiệu năng» xem AI có đang tạm dừng do cài đặt thời điểm xử lý không; xem tiến độ AI nhận diện ở biểu tượng tác vụ.',
+        },
+        {
+          q: 'Tải tệp lớn thất bại',
+          a: 'Giới hạn kích thước yêu cầu của reverse proxy quá nhỏ, tham khảo «Reverse proxy và truy cập từ Internet» để chỉnh client_max_body_size.',
+        },
+        {
+          q: 'Ảnh trong thư mục đã gắn không xuất hiện',
+          a: 'Thư mục phải gắn vào thư mục con dưới /photos; lần quét đầu diễn ra khoảng 20 giây sau khi khởi động, sau đó mỗi 15 phút một lần; thư mục ẩn bị bỏ qua.',
+        },
+        {
+          q: 'Kéo image chậm hoặc thất bại',
+          a: 'Đặt WANMORY_REGISTRY trong .env thành địa chỉ kho image truy cập được.',
+        },
       ],
     },
     {
@@ -1382,22 +1401,27 @@ docker compose exec server wanmory reset-password <tên>       # chỉ định t
               p: 'Container và mạng luôn bị xóa. Mỗi mục dưới đây được hỏi một lần:',
             },
             {
-              table: ['Câu hỏi', 'Nội dung bị xóa'],
-              rows: [
-                [
-                  '`Delete the database`',
-                  'Cơ sở dữ liệu (volume Docker pgdata, hoặc thư mục trong `WANMORY_DB_DIR`): người, album, cài đặt, kết quả AI và tài khoản. Không khôi phục được.',
-                ],
-                ['`Delete the data directory`', 'Thư mục dữ liệu: ảnh thu nhỏ và **ảnh gốc tải lên qua trang web**.'],
-                ['`Delete the AI models`', 'Thư mục mô hình AI, cài lại xong có thể tải lại.'],
-                [
-                  '`Remove the Docker images`',
-                  'Các image Docker Wanmory dùng (kể cả postgres/pgvector), có thể tải lại.',
-                ],
-                [
-                  '`Delete the configuration files`',
-                  '`.env` (có mật khẩu cơ sở dữ liệu), `docker-compose.yml`, `docker-compose.override.yml`; thư mục cài đặt trống thì xóa luôn.',
-                ],
+              qa: [
+                {
+                  q: '`Delete the database`',
+                  a: 'Cơ sở dữ liệu (volume Docker pgdata, hoặc thư mục trong `WANMORY_DB_DIR`): người, album, cài đặt, kết quả AI và tài khoản. Không khôi phục được.',
+                },
+                {
+                  q: '`Delete the data directory`',
+                  a: 'Thư mục dữ liệu: ảnh thu nhỏ và **ảnh gốc tải lên qua trang web**.',
+                },
+                {
+                  q: '`Delete the AI models`',
+                  a: 'Thư mục mô hình AI, cài lại xong có thể tải lại.',
+                },
+                {
+                  q: '`Remove the Docker images`',
+                  a: 'Các image Docker Wanmory dùng (kể cả postgres/pgvector), có thể tải lại.',
+                },
+                {
+                  q: '`Delete the configuration files`',
+                  a: '`.env` (có mật khẩu cơ sở dữ liệu), `docker-compose.yml`, `docker-compose.override.yml`; thư mục cài đặt trống thì xóa luôn.',
+                },
               ],
             },
           ],

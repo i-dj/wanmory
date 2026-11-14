@@ -4,10 +4,10 @@ import { cx } from '@/lib/cx'
 import { t as tr } from '@/i18n'
 import { serverText } from '@/i18n/server'
 
-// 每组叫什么、进度条下面那句短话（正在做什么），按这个顺序显示：先导入（本机做），再 AI 识别
-const GROUPS: Record<string, { label: string; doing: string }> = {
-  import: { label: tr('导入照片'), doing: tr('生成缩略图中…') },
-  ai: { label: tr('AI 识别照片'), doing: tr('识别中…') },
+// 每组叫什么，按这个顺序显示：先导入（本机做），再 AI 识别
+const GROUPS: Record<string, { label: string }> = {
+  import: { label: tr('导入照片') },
+  ai: { label: tr('AI 识别照片') },
 }
 const order = (k: string) => {
   const i = Object.keys(GROUPS).indexOf(k)
@@ -76,14 +76,13 @@ export function jobLabel(job: ActiveJobs) {
   return `${g.label} ${job.done.toLocaleString()} / ${(job.done + job.remaining).toLocaleString()}`
 }
 
-// JobRow 是一组任务：名字、做完几张 / 这一批一共几张、进度条；下面小字是做了哪些事和预计还要多久（暂停时写为什么）
-// JobRow 是一组任务：名字、做完几张 / 一共几张、进度条，下面一行短话——左边是正在做什么或者为什么停着，右边是还要多久。
-// urgent：停着要人去处理（模型没下载），橙色；不然是等着就行（刚传完照片……），灰色
+// JobRow 是一组任务：名字、做完几张 / 一共几张、进度条。下面那行只在有话要说时出现：
+// 要人去处理时（模型没下载）左边写橙色的提示，在做的时候右边写还要多久；在等（刚传完、正在上传……）不写，进度条不动就是在等
 export function JobRow({ job, pausedFor, urgent }: { job: ActiveJobs; pausedFor: string; urgent?: boolean }) {
-  const g = GROUPS[job.key] ?? { label: job.key, doing: '' }
+  const g = GROUPS[job.key] ?? { label: job.key }
   const total = job.done + job.remaining
   const ratio = total ? job.done / total : 0
-  const text = urgent ? tr('请先在设置中下载模型') : pausedFor || g.doing
+  const left = !pausedFor && job.eta !== null ? eta(job.eta) : ''
   return (
     <li>
       <div className="flex items-baseline gap-2 text-body">
@@ -98,10 +97,12 @@ export function JobRow({ job, pausedFor, urgent }: { job: ActiveJobs; pausedFor:
           style={{ width: `${Math.max(2, ratio * 100)}%` }}
         />
       </div>
-      <div className="mt-1.5 flex items-baseline gap-2 text-caption">
-        <span className={cx('min-w-0 flex-1 truncate', urgent ? 'text-warn' : 'text-muted')}>{text}</span>
-        {!pausedFor && job.eta !== null && <span className="shrink-0 text-muted tabular-nums">{eta(job.eta)}</span>}
-      </div>
+      {(urgent || left) && (
+        <div className="mt-1.5 flex items-baseline gap-2 text-caption">
+          <span className="min-w-0 flex-1 truncate text-warn">{urgent && tr('请先在设置中下载模型')}</span>
+          {left && <span className="shrink-0 text-muted tabular-nums">{left}</span>}
+        </div>
+      )}
       {job.failed > 0 && <p className="mt-1 text-caption text-danger">{tr('{n} 项没处理成功', { n: job.failed })}</p>}
     </li>
   )

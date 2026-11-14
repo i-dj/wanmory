@@ -36,7 +36,7 @@ import (
 const (
 	maxDistance  = 0.55 // 两张好脸的余弦距离小于这个算像（相似度 > 0.45）
 	weakDistance = 0.45 // 模糊、侧脸要更像才归进去
-	minFaces     = 3    // 至少这么多张像的好脸才新建一个人物，偶尔出现一次的路人不建
+	minFaces     = 2    // 至少在这么多张照片里出现（像的好脸）才新建一个人物，只出现一次的路人不建
 	neighbors    = 24   // 每张脸找多少个最像的
 
 	// 好脸的标准（按 1440 像素的预览图）
@@ -225,6 +225,70 @@ func (s *Service) save(ctx context.Context, assetID uuid.UUID, model string, pre
 		return err
 	}
 	return tx.Commit()
+}
+
+// Regroup 把还没归到任何人的脸重新归一遍：建人物的门槛改过（例如从 3 张照片改成 2 张）以后，
+// 以前没够数的脸不用重新跑 AI 就能归成人物。启动时在后台跑一次；一张一张来，每张一个事务、拿着归类锁，
+// 不挡住新照片的识别。没归上的照旧留着
+func (s *Service) Regroup(ctx context.Context) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, asset_id, model_id, embedding::text, good FROM faces
+		WHERE person_id IS NULL AND good AND model_id = $1
+		ORDER BY created_at`, s.Model())
+	if err != nil {
+		log.Printf("faces: 重新归类读取失败: %v", err)
+		return
+	}
+	type face struct {
+		id, asset  uuid.UUID
+		model, vec string
+		good       bool
+	}
+	var list []face
+	for rows.Next() {
+		var f face
+		if err := rows.Scan(&f.id, &f.asset, &f.model, &f.vec, &f.good); err != nil {
+			rows.Close()
+			log.Printf("faces: 重新归类读取失败: %v", err)
+			return
+		}
+		list = append(list, f)
+	}
+	rows.Close()
+	before := 0
+	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM people`).Scan(&before)
+	for _, f := range list {
+		if ctx.Err() != nil {
+			return
+		}
+		err := func() error {
+			tx, err := s.db.BeginTx(ctx, nil)
+			if err != nil {
+				return err
+			}
+			defer tx.Rollback()
+			if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock($1)`, clusterLockKey); err != nil {
+				return err
+			}
+			// 拿到锁的时候可能已经被别的脸带着归进去了
+			var still bool
+			if err := tx.QueryRowContext(ctx, `SELECT person_id IS NULL FROM faces WHERE id = $1`, f.id).Scan(&still); err != nil || !still {
+				return err
+			}
+			if err := s.cluster(ctx, tx, f.model, f.id, f.asset, f.vec, f.good); err != nil {
+				return err
+			}
+			return tx.Commit()
+		}()
+		if err != nil && ctx.Err() == nil {
+			log.Printf("faces: 重新归类 %s 失败: %v", f.id, err)
+		}
+	}
+	after := 0
+	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM people`).Scan(&after)
+	if after > before {
+		log.Printf("faces: 重新归类了 %d 张没归人物的脸，新认出 %d 个人", len(list), after-before)
+	}
 }
 
 // cluster 给一张新的脸找人物（见包注释）

@@ -115,16 +115,17 @@ export function AccessAddressDialog({
             ? tx('修改端口：请修改启动相册程序时的环境变量 {env}（例如 :9000），然后重启相册程序。', {
                 env: <code className="font-mono text-fg">WANMORY_ADDR</code>,
               })
-            : tx(
-                net?.install_dir
-                  ? '修改端口：请修改安装目录 {dir} 里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。'
-                  : '修改端口：请修改安装目录里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。',
-                {
+            : (() => {
+                // 两句各自写全（不要先选好句子再传给 tx）：翻译检查脚本只认 tx('…') 里直接写的原文
+                const parts = {
                   dir: <code className="font-mono text-fg">{net?.install_dir}</code>,
                   file: <code className="font-mono text-fg">.env</code>,
                   field: <code className="font-mono text-fg">WANMORY_PORT</code>,
-                },
-              )}
+                }
+                return net?.install_dir
+                  ? tx('修改端口：请修改安装目录 {dir} 里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。', parts)
+                  : tx('修改端口：请修改安装目录里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。', parts)
+              })()}
         </p>
 
         <DialogError>{error}</DialogError>

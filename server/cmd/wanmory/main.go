@@ -184,6 +184,7 @@ func run(ctx context.Context) error {
 		log.Printf("faces: 给 %d 张已有照片排上了人脸识别", n)
 	}
 	go faceService.Watch(ctx)
+	go faceService.Regroup(ctx) // 还没归人物的脸按现在的门槛（2 张照片）重新归一遍
 
 	// 照片拍摄地点的城市名：后台查好存进库里；设置里关了在线地图就不查
 	geoService := geo.NewService(conn, func(ctx context.Context) bool {

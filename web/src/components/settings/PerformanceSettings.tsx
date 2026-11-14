@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Segmented from '@/components/ui/Segmented'
 import Select from '@/components/ui/Select'
+import { serverText } from '@/i18n/server'
 import {
   type AIStatus,
   type PerfSchedule,
@@ -102,7 +103,7 @@ export default function PerformanceSettings() {
       footer={
         <span className="flex items-center gap-2">
           <span className={cx('size-2 shrink-0 rounded-full', perf.ai_running ? 'bg-ok' : 'bg-warn')} />
-          {perf.ai_running ? tr('AI 可运行') : tr('AI 已暂停：{ai_paused}', { ai_paused: perf.ai_paused })}
+          {perf.ai_running ? tr('AI 可运行') : tr('AI 已暂停：{ai_paused}', { ai_paused: serverText(perf.ai_paused) })}
           {error && <span className="text-danger">· {error}</span>}
         </span>
       }

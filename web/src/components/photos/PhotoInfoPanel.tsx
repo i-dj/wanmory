@@ -56,7 +56,7 @@ export default function PhotoInfoPanel({
   onRemoveFromAlbum: (album: Album) => Promise<void>
   onClose: () => void
 }) {
-  const details = useDetails(asset, albums)
+  const { details, fresh } = useDetails(asset, albums)
   const mapsOn = useMapsEnabled() === true
   const [editing, setEditing] = useState<'date' | 'location' | null>(null)
   const save = async (patch: InfoPatch) => onChanged(await updateAsset(asset.id, patch))
@@ -82,7 +82,9 @@ export default function PhotoInfoPanel({
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-6">
         <Description key={asset.id} asset={asset} onSave={save} />
         <Rating asset={asset} onChanged={onChanged} />
-        {!!details?.people.length && <PeopleCard asset={asset} people={details.people} onOpen={onOpenPerson} />}
+        {details && (details.people.length > 0 || details.face_status === 'pending') && (
+          <PeopleCard asset={asset} details={details} onOpen={onOpenPerson} />
+        )}
         {inAlbums.length > 0 && (
           <AlbumsCard albums={inAlbums} onOpen={onOpenAlbum} onRemove={(album) => onRemoveFromAlbum(album)} />
         )}
@@ -99,7 +101,7 @@ export default function PhotoInfoPanel({
       {editing === 'date' && (
         <AdjustDateDialog
           asset={asset}
-          original={details?.original ?? null}
+          original={fresh ? (details?.original ?? null) : null}
           onSave={save}
           onClose={() => setEditing(null)}
         />
@@ -256,40 +258,53 @@ function Pill({ children }: { children: ReactNode }) {
 // AlbumsCard 是照片所在的相册，点一下打开；手动放进去的可以从相册移除（鼠标移上去出现按钮），
 // 按条件自动同步的智能相册不能手动移除
 // PeopleCard 是照片里起了名字的人：小头像、名字，设了生日的写上拍照时多大。点一下看这个人的照片
+// PeopleCard 是「人物」：照片里认出来的每个人一行（小头像、名字，有生日时写拍照时几岁），点进那个人的页面；
+// 还没起名字的写「未命名」，点进去可以起名字。没认出是谁的脸不显示。
+// 还没做人脸识别（排队中、AI 停着）时写「等待 AI 识别人脸」；做完了一个人都没认出来，整张卡片不显示
 function PeopleCard({
   asset,
-  people,
+  details,
   onOpen,
 }: {
   asset: Asset
-  people: AssetDetails['people']
+  details: AssetDetails
   onOpen: (id: string) => void
 }) {
-  // 没有拍摄时间的（截图、别人发来的）只有文件修改时间，算出来的年龄不准，不写
+  // 有拍摄时间写拍照时几岁；没有拍摄时间的（截图、别人发来的）只有文件修改时间，按它算会算错，改写现在几岁
   const taken = asset.taken_at ? new Date(asset.taken_at) : null
+  const people = details.people
   return (
     <Card>
-      <p className="px-4 pt-3 pb-1 text-caption font-medium text-muted">{t('人物')}</p>
-      <ul className="pb-1.5">
-        {people.map((p) => {
-          const age = p.birthday && taken ? ageWhen(p.birthday, taken) : ''
-          return (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => onOpen(p.id)}
-                className="flex w-full items-center gap-3 px-4 py-1.5 text-left hover:bg-fg/5"
-              >
-                <img src={faceThumbUrl(p.face)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
-                <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                {age && <span className="shrink-0 text-caption text-muted tabular-nums">{age}</span>}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      {people.length === 0 ? (
+        <p className="px-4 py-3 text-body text-muted">{t('等待 AI 识别人脸')}</p>
+      ) : (
+        <ul className="py-1.5">
+          {people.map((p) => {
+            const age = !p.name || !p.birthday ? '' : taken ? ageWhen(p.birthday, taken) : nowAge(p.birthday)
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(p.id)}
+                  className="flex w-full items-center gap-3 px-4 py-1.5 text-left hover:bg-fg/5"
+                >
+                  <img src={faceThumbUrl(p.face)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+                  <span className={cx('min-w-0 flex-1 truncate', !p.name && 'text-muted')}>{p.name || t('未命名')}</span>
+                  {age && <span className="shrink-0 text-caption text-muted tabular-nums">{age}</span>}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </Card>
   )
+}
+
+// nowAge：「现在 44岁」，照片没有拍摄时间时用
+function nowAge(birthday: string) {
+  const age = ageWhen(birthday, new Date())
+  return age ? t('现在 {age}', { age }) : ''
 }
 
 function AlbumsCard({
@@ -440,17 +455,36 @@ function formatBadge(mime: string): string {
   return (sub === 'quicktime' ? 'mov' : sub.replace(/^x-/, '')).toUpperCase()
 }
 
-// useDetails 取照片在哪些相册里、文件里原始的时间和位置。照片变了（改了信息）、相册变了（刚放进相册）都重新取
+// useDetails 取照片在哪些相册里、文件里原始的时间和位置、照片里有谁。照片变了（改了信息）、相册变了（刚放进相册）都重新取。
+// 左右翻照片时，新的还没取回来之前先显示上一张的（不先清空）：不然「人物」那块消失一下又出现，下面的内容跟着上下跳；
+// 看过的照片记在 detailsCache 里，翻回去直接有
+const detailsCache = new Map<string, AssetDetails>()
+// lastShown 是最近一次显示的：信息栏换一张照片会整个重建（key 是照片 ID），新建的先拿它垫着
+let lastShown: { id: string; details: AssetDetails } | null = null
+
 function useDetails(asset: Asset, albums: Album[]) {
-  const [state, setState] = useState<{ asset: Asset; details: AssetDetails } | null>(null)
+  const [state, setState] = useState<{ id: string; details: AssetDetails } | null>(() => {
+    const cached = detailsCache.get(asset.id)
+    return cached ? { id: asset.id, details: cached } : lastShown
+  })
+  useEffect(() => {
+    if (state) lastShown = state
+  }, [state])
   useEffect(() => {
     let alive = true
+    const cached = detailsCache.get(asset.id)
+    if (cached) setState({ id: asset.id, details: cached })
     assetDetails(asset.id)
-      .then((details) => alive && setState({ asset, details }))
+      .then((details) => {
+        detailsCache.set(asset.id, details)
+        if (detailsCache.size > 300) detailsCache.delete(detailsCache.keys().next().value!)
+        if (alive) setState({ id: asset.id, details })
+      })
       .catch((e) => console.error('照片信息加载失败', e))
     return () => {
       alive = false
     }
   }, [asset, albums])
-  return state?.asset.id === asset.id ? state.details : null
+  // details 可能还是上一张的（只给「人物」这类显示用）；fresh 是不是这一张的，原始时间、位置这些要对得上的只在 fresh 时用
+  return { details: state?.details ?? null, fresh: state?.id === asset.id }
 }

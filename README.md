@@ -7,7 +7,7 @@ Wanmory 万象是一个运行在家庭服务器上的 AI 家庭媒体中心，�
 - **本地优先**：照片和数据默认只存在用户自己的设备上，不依赖任何云服务
 - **开箱即用**：默认配置就是原型阶段实测效果最好的模型组合，用户不需要做任何选择
 - **模型可替换**：每一类 AI 任务都可以单独换模型，按硬件选择高精度、均衡或轻量档位
-- **算力可远程**：NAS 算力不够时，可以把 AI 任务交给家里的 Mac、带显卡的电脑或自建服务器
+- **算力可远程**：NAS 算力不够时，可以把 AI 任务交给一台 Mac、带显卡的电脑或自建服务器
 
 ## 系统架构
 
@@ -30,7 +30,7 @@ flowchart LR
 | AI 服务 | Python + FastAPI + ONNX Runtime（另有 PyTorch 用于 CLIP） |
 | 前端 | React + TypeScript + Vite，打包成静态文件 |
 | 数据库 | PostgreSQL + pgvector，任务队列用表实现，不需要 Redis |
-| 部署 | Docker Compose；开发用 Mac + OrbStack，生产用家里的 NAS。Mac 上的 AI 服务在本机直接运行，不放进容器（容器在 macOS 上用不到 Apple GPU） |
+| 部署 | Docker Compose；开发用 Mac + OrbStack，生产用 NAS。Mac 上的 AI 服务在本机直接运行，不放进容器（容器在 macOS 上用不到 Apple GPU） |
 
 ## AI 能力与默认模型
 
@@ -121,7 +121,7 @@ CREATE TABLE settings (
 | 场景 | 做法 |
 | --- | --- |
 | 只有一台 NAS | 只用默认的 `local`，选 `balanced` 或 `lite` 档位 |
-| NAS + 家里的 Mac | Mac 上直接运行 AI 服务（`uv run`，不用容器），或者作为远程工作节点，把照片描述、语义向量交给它。Docker/OrbStack 容器在 macOS 上用不到 Apple GPU，CoreML、MPS 和 Apple Vision 都没有，只能跑 CPU |
+| NAS + 一台 Mac | Mac 上直接运行 AI 服务（`uv run`，不用容器），或者作为远程工作节点，把照片描述、语义向量交给它。Docker/OrbStack 容器在 macOS 上用不到 Apple GPU，CoreML、MPS 和 Apple Vision 都没有，只能跑 CPU |
 | NAS + 带显卡的电脑 | 显卡机器跑 CUDA 版镜像，负责照片变视频、字幕等重任务 |
 | 外面的服务器 | 只通过 Tailscale 或 HTTPS 连接，必须设置 `token` |
 
@@ -134,7 +134,7 @@ CREATE TABLE settings (
 适合不一直开机的电脑，比如 Mac 或游戏本：开机时帮忙算，关机了 NAS 自己慢慢算。
 
 1. 用户在设置页生成一个工作节点令牌
-2. 在远程电脑上运行 `wanmory-ml worker --server https://家里的地址 --token ...`
+2. 在远程电脑上运行 `wanmory-ml worker --server https://相册的地址 --token ...`
 3. 节点向后端领取它支持的任务，下载预览图，算完把结果传回
 4. 每个领取的任务有租期（默认 10 分钟），节点掉线后任务自动退回队列
 

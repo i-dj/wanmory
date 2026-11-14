@@ -186,12 +186,12 @@ type PersonIn struct {
 	Face     uuid.UUID `json:"face"`
 }
 
-// PeopleIn 是照片里起了名字的人，按在照片里从左到右排
+// PeopleIn 是照片里认出来的人（起了名字的和还没起名字的都算），按在照片里从左到右排；名字是空的就是还没起名字
 func (s *Store) PeopleIn(ctx context.Context, id uuid.UUID) ([]PersonIn, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT DISTINCT ON (p.id) p.id, p.name, to_char(p.birthday, 'YYYY-MM-DD'), f.id, f.box_x
 		FROM faces f JOIN people p ON p.id = f.person_id
-		WHERE f.asset_id = $1 AND p.name <> ''
+		WHERE f.asset_id = $1
 		ORDER BY p.id, f.box_w DESC`, id)
 	if err != nil {
 		return nil, err
@@ -218,6 +218,41 @@ func (s *Store) PeopleIn(ctx context.Context, id uuid.UUID) ([]PersonIn, error) 
 		out[i] = r.PersonIn
 	}
 	return out, nil
+}
+
+// FacesIn 是照片里人脸识别的情况：没归到任何人的脸（太小、太糊，或者只出现过一次），从左到右；
+// 以及这张照片的人脸识别做了没有：done 做完了，pending 还在排队（或者 AI 停着），none 不用做（视频以外没排上的）
+func (s *Store) FacesIn(ctx context.Context, id uuid.UUID) (unknown []uuid.UUID, status string, err error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id FROM faces WHERE asset_id = $1 AND person_id IS NULL ORDER BY box_x`, id)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var f uuid.UUID
+		if err := rows.Scan(&f); err != nil {
+			return nil, "", err
+		}
+		unknown = append(unknown, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, "", err
+	}
+	var job sql.NullString
+	err = s.db.QueryRowContext(ctx, `
+		SELECT status FROM jobs WHERE asset_id = $1 AND type = 'face' ORDER BY id DESC LIMIT 1`, id).Scan(&job)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		status, err = "none", nil
+	case err != nil:
+		return nil, "", err
+	case job.String == "done" || job.String == "failed":
+		status = "done"
+	default:
+		status = "pending"
+	}
+	return unknown, status, nil
 }
 
 // AlbumsOf 是这张照片在哪些相册里：手动放进去的，加上条件符合的自动同步智能相册
@@ -288,7 +323,15 @@ func (s *Service) details(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, err)
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"albums": albums, "original": orig, "people": people})
+	unknown, faceStatus, err := s.store.FacesIn(r.Context(), id)
+	if err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"albums": albums, "original": orig, "people": people,
+		"unknown_faces": unknown, "face_status": faceStatus,
+	})
 }
 
 // infoRequest 是 PATCH /api/assets/{id} 里信息栏的那部分。location 为 null 表示去掉位置，不带表示不改。
