@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { ArrowUpRight, ChevronRight, Wrench, Sparkles } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import { Container, Footer, GITHUB, Nav } from './components/Layout'
 import { isMinor, lineOf, releases as source, type Release } from './changelog'
 import { Rich, fill, useI18n, usePage } from './i18n'
@@ -292,6 +293,7 @@ export default function ReleasesPage() {
         </section>
       </main>
       <Footer />
+      <Analytics />
     </>
   )
 }

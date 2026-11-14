@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BookOpen, ChevronDown, CircleHelp, MessagesSquare, Send } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import { Container, Footer, Nav } from './components/Layout'
 import { SITE_URL, fill, prefix, useI18n, usePage } from './i18n'
 import type { FaqDict } from './i18n/locales/zh/faq'
@@ -116,6 +117,7 @@ export default function FaqPage() {
         </section>
       </main>
       <Footer />
+      <Analytics />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </>
   )

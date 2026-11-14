@@ -9,6 +9,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import Dimensions from './components/Dimensions'
 import { Button, Container, CopyButton, Footer, Nav, SectionHead } from './components/Layout'
 import InstallTerminal, { INSTALL_CMD } from './components/InstallTerminal'
@@ -31,6 +32,7 @@ export default function App() {
         <Deploy />
       </main>
       <Footer />
+      <Analytics />
     </>
   )
 }

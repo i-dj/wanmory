@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowRight, Database, Lock, ScanFace, Search, Sparkles, Workflow } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import { Container, Footer, Nav } from './components/Layout'
 import { fitSize } from './components/textWidth'
 import { fill, usePage } from './i18n'
@@ -27,6 +28,7 @@ export default function ArchitecturePage() {
         <PrivacySection />
       </main>
       <Footer />
+      <Analytics />
     </>
   )
 }
