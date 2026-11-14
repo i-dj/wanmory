@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowUpRight, Bug, CircleCheck, CircleHelp, ExternalLink, Lightbulb, LoaderCircle, Search, Send } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import { Container, Footer, GITHUB, Nav } from './components/Layout'
 import { LOCALE_INFO, fill, useI18n, usePage } from './i18n'
 import type { FeedbackDict } from './i18n/locales/zh/feedback'
@@ -390,6 +391,7 @@ export default function FeedbackPage() {
         </section>
       </main>
       <Footer />
+      <Analytics />
     </>
   )
 }

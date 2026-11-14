@@ -12,6 +12,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import { CopyButton, Footer, GITHUB, Nav } from './components/Layout'
 import { Rich, useI18n, usePage } from './i18n'
 import type { DocsBlock, DocsDict } from './i18n/locales/zh/docs'
@@ -121,6 +122,7 @@ export default function DocsPage() {
         </div>
       </div>
       <Footer />
+      <Analytics />
     </>
   )
 }
