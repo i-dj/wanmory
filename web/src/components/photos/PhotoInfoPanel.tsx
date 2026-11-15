@@ -14,7 +14,7 @@ import {
   thumbnailUrl,
   updateAsset,
 } from '@/lib/api'
-import { ageWhen } from '@/lib/age'
+import { ageWhen, yearsAgoLabel } from '@/lib/age'
 import { cx } from '@/lib/cx'
 import {
   cameraName,
@@ -261,17 +261,11 @@ function Pill({ children }: { children: ReactNode }) {
 // PeopleCard 是「人物」：照片里认出来的每个人一行（小头像、名字，有生日时写拍照时几岁），点进那个人的页面；
 // 还没起名字的写「未命名」，点进去可以起名字。没认出是谁的脸不显示。
 // 还没做人脸识别（排队中、AI 停着）时写「等待 AI 识别人脸」；做完了一个人都没认出来，整张卡片不显示
-function PeopleCard({
-  asset,
-  details,
-  onOpen,
-}: {
-  asset: Asset
-  details: AssetDetails
-  onOpen: (id: string) => void
-}) {
-  // 有拍摄时间写拍照时几岁；没有拍摄时间的（截图、别人发来的）只有文件修改时间，按它算会算错，改写现在几岁
+function PeopleCard({ asset, details, onOpen }: { asset: Asset; details: AssetDetails; onOpen: (id: string) => void }) {
+  // 每人后面写这张照片里他几岁（设了生日的）：按拍摄时间算，没有拍摄时间就按文件时间；
+  // 没设生日的写这张照片是几年前拍的（要有拍摄时间、至少一年前）；都判断不了就不写
   const taken = asset.taken_at ? new Date(asset.taken_at) : null
+  const when = taken ?? new Date(asset.sort_time)
   const people = details.people
   return (
     <Card>
@@ -280,7 +274,7 @@ function PeopleCard({
       ) : (
         <ul className="py-1.5">
           {people.map((p) => {
-            const age = !p.name || !p.birthday ? '' : taken ? ageWhen(p.birthday, taken) : nowAge(p.birthday)
+            const age = p.birthday ? ageWhen(p.birthday, when) : taken ? yearsAgo(taken) : ''
             return (
               <li key={p.id}>
                 <button
@@ -289,7 +283,9 @@ function PeopleCard({
                   className="flex w-full items-center gap-3 px-4 py-1.5 text-left hover:bg-fg/5"
                 >
                   <img src={faceThumbUrl(p.face)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
-                  <span className={cx('min-w-0 flex-1 truncate', !p.name && 'text-muted')}>{p.name || t('未命名')}</span>
+                  <span className={cx('min-w-0 flex-1 truncate', !p.name && 'text-muted')}>
+                    {p.name || t('未命名')}
+                  </span>
                   {age && <span className="shrink-0 text-caption text-muted tabular-nums">{age}</span>}
                 </button>
               </li>
@@ -301,10 +297,12 @@ function PeopleCard({
   )
 }
 
-// nowAge：「现在 44岁」，照片没有拍摄时间时用
-function nowAge(birthday: string) {
-  const age = ageWhen(birthday, new Date())
-  return age ? t('现在 {age}', { age }) : ''
+// yearsAgo：照片是几年前拍的，「两年前」「12 years ago」；不到一年不写
+function yearsAgo(taken: Date) {
+  const now = new Date()
+  let n = now.getFullYear() - taken.getFullYear()
+  if (now.getMonth() < taken.getMonth() || (now.getMonth() === taken.getMonth() && now.getDate() < taken.getDate())) n--
+  return n >= 1 ? yearsAgoLabel(n) : ''
 }
 
 function AlbumsCard({

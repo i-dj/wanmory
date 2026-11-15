@@ -52,21 +52,26 @@ func (h *Handler) active(w http.ResponseWriter, r *http.Request) {
 		var remainingJobs, doneJobs, photos, recentDone int
 		var recentSpan *float64
 		err := h.db.QueryRowContext(r.Context(), `
-			WITH act AS (
+			WITH j AS (
+				-- 只算还在图库里的照片：放进「最近删除」的不做（见 worker 的 SkipDeleted），也不算进进度
+				SELECT jobs.asset_id, jobs.status, jobs.created_at, jobs.finished_at FROM jobs
+				JOIN assets a ON a.id = jobs.asset_id AND a.deleted_at IS NULL
+				WHERE jobs.type = ANY($1)
+			), act AS (
 				SELECT least(min(created_at), now() - interval '10 minutes') AS since, count(*) AS jobs
-				FROM jobs WHERE type = ANY($1) AND status IN ('pending', 'running')
+				FROM j WHERE status IN ('pending', 'running')
 			), recent AS (
 				SELECT count(*) AS n, extract(epoch FROM now() - min(finished_at)) AS span
-				FROM jobs WHERE type = ANY($1) AND status = 'done' AND finished_at > now() - interval '10 minutes'
+				FROM j WHERE status = 'done' AND finished_at > now() - interval '10 minutes'
 			)
 			SELECT act.jobs, d.jobs,
-			       (SELECT count(DISTINCT asset_id) FROM jobs
-			        WHERE type = ANY($1) AND (status IN ('pending', 'running') OR finished_at >= act.since)),
+			       (SELECT count(DISTINCT asset_id) FROM j
+			        WHERE status IN ('pending', 'running') OR finished_at >= act.since),
 			       d.failed, recent.n, recent.span
 			FROM act, recent, LATERAL (
 				SELECT count(*) FILTER (WHERE status IN ('done', 'failed')) AS jobs,
 				       count(*) FILTER (WHERE status = 'failed') AS failed
-				FROM jobs WHERE type = ANY($1) AND status IN ('done', 'failed') AND finished_at >= act.since
+				FROM j WHERE status IN ('done', 'failed') AND finished_at >= act.since
 			) d`, g.Types,
 		).Scan(&remainingJobs, &doneJobs, &photos, &a.Failed, &recentDone, &recentSpan)
 		if err != nil {

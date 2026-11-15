@@ -10,13 +10,16 @@ export interface UploadItem {
   seq: number // 加入队列的顺序，按它从小到大上传
   file: File
   album?: string // 传完放进这个相册
+  favorite?: boolean // 传完标上收藏（在「收藏」里传的）
+  rating?: number // 传完标上几星（在「几星」里传的）
+  tag?: string // 传完归进这个分类（在「风景」「美食」这些分类里传的）
   progress: number
   state: UploadState
   error?: string
   retryable?: boolean
 }
 
-export interface UploadSnapshot {
+interface UploadSnapshot {
   items: UploadItem[]
   // busy：有文件在排队或上传，或者刚传完、正在等页面拿到最新的照片数量。
   // 进度条靠它判断这一批是否结束；暂停的文件不算 busy。
@@ -55,13 +58,19 @@ export class UploadQueue {
 
   getSnapshot = () => this.snapshot
 
-  // add 把文件加进队列；album 不为空时传完放进这个相册
-  add(files: Iterable<File>, { album }: { album?: string } = {}) {
+  // add 把文件加进队列；album 不为空时传完放进这个相册，favorite、rating 传完标上收藏、星级
+  add(
+    files: Iterable<File>,
+    { album, favorite, rating, tag }: { album?: string; favorite?: boolean; rating?: number; tag?: string } = {},
+  ) {
     const items: UploadItem[] = Array.from(files, (file) => ({
       key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
       seq: this.nextSeq++,
       file,
       album,
+      favorite,
+      rating,
+      tag,
       progress: 0,
       state: 'waiting',
     }))
@@ -142,6 +151,9 @@ export class UploadQueue {
     }
     const handle = startUpload(item.file, {
       album: item.album,
+      favorite: item.favorite,
+      rating: item.rating,
+      tag: item.tag,
       onProgress: (p) => this.queueProgress(item.key, p),
       onDone: (result) => {
         const current = this.find(item.key)

@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: 'Mã nguồn mở · Thư viện ảnh có AI tự lưu trữ',
     title: 'Wanmory · ',
     titleAccent: 'Lưu giữ hơi ấm của thời gian',
     lead1: 'Gom những bức ảnh rời rạc về một chỗ, sắp xếp theo người, thời gian và địa điểm. Nối lại kỷ niệm với những nơi bạn từng đến, sống lại ngày này của những năm trước và thấy cuộc sống lớn lên, đổi thay theo năm tháng.',
     deploy: 'Cài đặt ngay (Docker, xong trong 5 phút)',
     demo: 'Bản demo trực tuyến',
+    demoDialog: {
+      title: "Giới thiệu bản demo trực tuyến",
+      subtitle: "Vài lưu ý để trải nghiệm mượt mà hơn",
+      credentials: "Tài khoản demo",
+      copy: "Sao chép tên đăng nhập và mật khẩu",
+      username: "Tên đăng nhập",
+      password: "Mật khẩu",
+      limitsTitle: "Giới hạn và lưu ý",
+      // **…** 里的字加粗
+      limits: ["Tài khoản demo **không thể thay đổi cài đặt hệ thống và quản trị**.", "Tài khoản demo **chỉ xóa được ảnh, video tải lên trong 30 phút gần nhất**.", "Bản demo chạy trên **Raspberry Pi** qua Cloudflare Tunnel. Sức mạnh xử lý và băng thông có hạn nên lần đầu tạo ảnh xem trước có thể hơi chậm."],
+      close: "Đóng",
+      enter: "Mở bản demo",
+    },
   },
   features: [
     {

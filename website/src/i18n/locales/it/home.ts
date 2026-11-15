@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: 'Open source · Fototeca con IA self-hosted',
     title: 'Wanmory · ',
     titleAccent: 'Il calore del tempo, inciso',
     lead1: 'Riunisci le foto sparse, ordinate per persona, data e luogo. Ritrova i ricordi e i posti in cui sei stato, rivivi questo stesso giorno negli anni passati e guarda come la vita è cresciuta e cambiata nel tempo.',
     deploy: 'Installa ora (Docker, pronto in 5 minuti)',
     demo: 'Demo online',
+    demoDialog: {
+      title: "Informazioni sulla demo online",
+      subtitle: "Alcune note per un’esperienza più fluida",
+      credentials: "Account demo",
+      copy: "Copia utente e password",
+      username: "Utente",
+      password: "Password",
+      limitsTitle: "Limiti e note",
+      // **…** 里的字加粗
+      limits: ["L’account demo **non può modificare le impostazioni di sistema o di amministrazione**.", "L’account demo **può eliminare solo i contenuti caricati negli ultimi 30 minuti**.", "La demo gira su un **Raspberry Pi** tramite un tunnel Cloudflare. Potenza e banda sono limitate, quindi le prime anteprime possono essere lente."],
+      close: "Chiudi",
+      enter: "Apri la demo",
+    },
   },
   features: [
     {

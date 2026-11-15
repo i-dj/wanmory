@@ -165,13 +165,20 @@ export default function PhotosPage({
   // 数据：照片列表、上传、统计
   const timeline = useTimeline(filter)
   const refreshRef = useRef<() => Promise<void>>(async () => {})
-  const uploads = useUploadQueue(() => refreshRef.current())
+  // 在「风景」这些分类里传完：照片已经归进这个分类，但分类是服务器筛的，增量刷新不会把新照片放进网格，整页重新拿一次
+  const tagRef = useRef(filter.tag)
+  tagRef.current = filter.tag
+  const reloadRef = useRef<() => Promise<void>>(async () => {})
+  const uploads = useUploadQueue(() =>
+    tagRef.current ? Promise.all([reloadRef.current(), refreshRef.current()]).then(() => {}) : refreshRef.current(),
+  )
   const status = useLibraryStatus({ filter, busy: uploads.busy, refreshChanges: timeline.refreshChanges, onStats })
   useEffect(() => {
     refreshRef.current = status.refresh
   }, [status.refresh])
   // 智能相册的条件改了：照片和概要重新加载（第一次渲染时不用）
   const { reload } = timeline
+  reloadRef.current = reload
   const firstVersion = useRef(albumVersion)
   useEffect(() => {
     if (albumVersion === firstVersion.current) return
@@ -237,9 +244,19 @@ export default function PhotosPage({
   // 在相册里上传（按钮或拖进窗口）的，传完直接放进这个相册
   const synced = !!album && isSynced(album) // 按条件自动同步的智能相册，不能手动加减照片
   const uploadAlbum = album && !synced ? album.id : undefined
+  // 在「收藏」「几星」「风景」这些分类里上传的，传完标上收藏、星级，归进这个分类，留在这一页里看得到
+  const uploadFavorite = route.view.filter.favorite === true
+  const uploadRating = route.view.filter.rating
+  const uploadTag = route.view.filter.tag
   const addFiles = useCallback(
-    (files: FileList | File[]) => uploads.queue.add(Array.from(files), { album: uploadAlbum }),
-    [uploads.queue, uploadAlbum],
+    (files: FileList | File[]) =>
+      uploads.queue.add(Array.from(files), {
+        album: uploadAlbum,
+        favorite: uploadFavorite,
+        rating: uploadRating,
+        tag: uploadTag,
+      }),
+    [uploads.queue, uploadAlbum, uploadFavorite, uploadRating, uploadTag],
   )
   useEffect(() => {
     uploadRef.current = addFiles

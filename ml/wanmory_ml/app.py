@@ -11,7 +11,8 @@
   PUT  /config   {"device": "cpu"} 改用什么算，已经加载的模型卸掉、下次按新的设置加载；
                  {"threads": 2} 用 CPU 算时每个模型几个线程（0 是自动），已经加载的模型卸掉；
                  {"parallel": 1} 同时算几张照片（0 是自动）
-  POST /predict  image：图片文件；tasks：JSON，例如 {"face": {"model": "antelopev2", "min_score": 0.5}, "clip": {}, "ocr": {}}。
+  POST /predict  image：图片文件；tasks：JSON，
+                 例如 {"face": {"model": "antelopev2", "min_score": 0.5}, "clip": {}, "ocr": {}}。
                  只算文字向量时不传图片：{"clip.text": {"texts": ["海边日落", "生日蛋糕"]}}
 
 设置了环境变量 WANMORY_ML_TOKEN 时，除 /health 外的请求都要带 Authorization: Bearer <令牌>。
@@ -29,12 +30,20 @@ import time
 
 import cv2
 import numpy as np
-from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import (
+    Body,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    UploadFile,
+)
 
-from . import __version__
+from . import __version__, runtime
 from . import models as model_files
-from . import runtime
-from .face import FaceModel, all_providers, providers
+from .face import FaceModel
 
 log = logging.getLogger(__name__)
 
@@ -222,7 +231,7 @@ def check_token(authorization: str = Header(default="")) -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "version": __version__, "providers": providers()}
+    return {"status": "ok", "version": __version__, "providers": runtime.providers()}
 
 
 @app.get("/models", dependencies=[Depends(check_token)])
@@ -290,7 +299,7 @@ def gpu_info() -> dict:
     """这台机器有什么显卡：onnx 是人脸用的 ONNX Runtime 加速，torch 是语义搜索用的 PyTorch 设备（cuda / mps）"""
     global _gpu_cache
     if _gpu_cache is None:
-        onnx = [p for p in all_providers() if p != "CPUExecutionProvider"]
+        onnx = [p for p in runtime.all_providers() if p != "CPUExecutionProvider"]
         torch_dev = None
         if model_files.has_torch():  # 没装 PyTorch（ONNX 版）时不导入，导入很慢
             from .clip import gpu_device
@@ -421,6 +430,4 @@ def analyze(img: np.ndarray, wanted: dict, filename: str | None, result: dict) -
         start = time.perf_counter()
         result["ocr"] = ocr_model().read(img)
         result["model_ids"]["ocr"] = MODEL_ID
-        log.info(
-            "ocr %s：%d 字，%.0f ms", filename, len(result["ocr"]["text"]), (time.perf_counter() - start) * 1000
-        )
+        log.info("ocr %s：%d 字，%.0f ms", filename, len(result["ocr"]["text"]), (time.perf_counter() - start) * 1000)

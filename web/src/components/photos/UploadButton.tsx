@@ -18,7 +18,13 @@ export function isMedia(f: File) {
 }
 
 // FolderInput 是选文件夹用的隐藏输入框：选一个文件夹，里面一层层所有的文件都会拿到，只留照片和视频交给 onFiles
-export function FolderInput({ ref, onFiles }: { ref: RefObject<HTMLInputElement | null>; onFiles: (files: File[]) => void }) {
+export function FolderInput({
+  ref,
+  onFiles,
+}: {
+  ref: RefObject<HTMLInputElement | null>
+  onFiles: (files: File[]) => void
+}) {
   // webkitdirectory 不是 React 认识的属性，挂上以后再设
   useEffect(() => {
     ref.current?.setAttribute('webkitdirectory', '')

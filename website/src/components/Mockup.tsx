@@ -51,7 +51,7 @@ const memories = [434, 184, 62]
 const october = [381, 29, 231, 412, 483, 484, 247, 162]
 const september = [218, 471, 424, 206, 17, 28, 66, 77]
 
-export type View = 'library' | 'albums' | 'people' | 'places'
+type View = 'library' | 'albums' | 'people' | 'places'
 
 const views: View[] = ['library', 'albums', 'people', 'places']
 

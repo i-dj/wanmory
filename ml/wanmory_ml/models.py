@@ -18,8 +18,8 @@ import threading
 import time
 import urllib.request
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ def storage() -> dict:
     except OSError:
         pass
     return {"dir": str(MODEL_DIR), "mounted": mounted}
+
 
 # InsightFace 的模型包。许可：仅限非商业用途（见 README 的「模型许可」）
 INSIGHTFACE_PACKS = {
@@ -205,7 +206,8 @@ def _download(url: str, dest: Path, on_progress: Callable[[int, int], None], sta
 
 
 # 语义搜索的 ONNX 版（见 clip_onnx.py，scripts/export_clip_onnx.py 导出）放在 <模型目录>/<模型>-onnx/，
-# meta.json 里列着其他文件和它们的大小、SHA-256。从 Hugging Face 上的 ONNX_REPO 下载（<模型>/meta.json，再按 files 一个个下）。
+# meta.json 里列着其他文件和它们的大小、SHA-256。
+# 从 Hugging Face 上的 ONNX_REPO 下载（<模型>/meta.json，再按 files 一个个下）。
 # huggingface.co 和国内镜像 hf-mirror.com 自动选：两个同时试，连得上的里面用快的（见 endpoint()）。
 # WANMORY_ONNX_URL 可以换成别的地址（<地址>/<模型>/<文件>），例如自己局域网里放的
 ONNX_REPO = os.environ.get("WANMORY_ONNX_REPO", "i-dj/chinese-clip-onnx")
@@ -256,7 +258,9 @@ def endpoint() -> str:
         ok = {b: t for b, t in results.items() if t is not None}
         chosen = min(ok, key=ok.__getitem__) if ok else HF_ENDPOINTS[0]
         _endpoint_cache = (time.monotonic(), chosen)
-        log.info("模型从 %s 下载（测速：%s）", chosen, {b: (f"{t:.1f}s" if t else "连不上") for b, t in results.items()})
+        log.info(
+            "模型从 %s 下载（测速：%s）", chosen, {b: (f"{t:.1f}s" if t else "连不上") for b, t in results.items()}
+        )
         return chosen
 
 

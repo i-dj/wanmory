@@ -25,7 +25,9 @@ import {
   UsersRound,
   UtensilsCrossed,
   Video,
-  X, FolderUp } from 'lucide-react'
+  X,
+  FolderUp,
+} from 'lucide-react'
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import type { AssetStats } from '@/lib/api'
 import { cx } from '@/lib/cx'
@@ -103,7 +105,7 @@ export default function Sidebar({
 }: {
   path: string
   stats: AssetStats | null
-  onUpload: (files: FileList | File[]) => void // 「上传照片 / 视频」选好了文件
+  onUpload: (files: FileList | File[]) => void // 「上传影像」选好了文件
   navigate: (to: string) => void
 }) {
   const { guest, signIn } = useCurrentUser()
@@ -244,7 +246,7 @@ export default function Sidebar({
               <X className="size-5" />
             </button>
           </div>
-          {/* 宽屏上顶部：标志和名字，旁边收起按钮，下面一个大的「上传照片 / 视频」（窄屏上标志和名字在顶上那一条里）。
+          {/* 宽屏上顶部：标志和名字，旁边收起按钮，下面一个大的「上传影像」（窄屏上标志和名字在顶上那一条里）。
             收起时只有标志（点了展开），后台任务图标挪到底部头像上面 */}
           <div className="hidden h-20 shrink-0 items-center gap-3 pr-3 pl-3.5 md:flex">
             {collapsed ? (
@@ -265,9 +267,7 @@ export default function Sidebar({
                   <div className={cx('text-[19px] font-bold', brandTracking())}>{t('万象')}</div>
                   <VersionLine guest={guest} onUpdate={() => go(`${SETTINGS_PATH}#update`)} />
                 </div>
-                <div className="ml-auto flex items-center">
-                        {collapse}
-                </div>
+                <div className="ml-auto flex items-center">{collapse}</div>
               </>
             )}
           </div>
@@ -562,11 +562,11 @@ function RatingRow({
   )
 }
 
-// BIG_BUTTON 是菜单顶上那个大按钮的样子（上传照片 / 视频，访客看到的是登录）
+// BIG_BUTTON 是菜单顶上那个大按钮的样子（上传影像，访客看到的是登录）
 const BIG_BUTTON =
   'flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-fg text-body font-semibold text-page shadow-[0_6px_16px_rgba(30,24,20,0.18)] transition hover:bg-fg/85 active:scale-[0.98]'
 
-// SidebarSignIn 是访客看到的大按钮「登录」，在「上传照片 / 视频」的位置
+// SidebarSignIn 是访客看到的大按钮「登录」，在「上传影像」的位置
 function SidebarSignIn({ onClick }: { onClick: () => void }) {
   const rail = useContext(Rail)
   return (
@@ -579,7 +579,7 @@ function SidebarSignIn({ onClick }: { onClick: () => void }) {
   )
 }
 
-// SidebarUpload 是菜单顶上的大按钮「上传照片 / 视频」：点了打开选择文件的窗口（照片、视频、HEIC、DNG 都能选，可以多选）。
+// SidebarUpload 是菜单顶上的大按钮「上传影像」：点了打开选择文件的窗口（照片、视频、HEIC、DNG 都能选，可以多选）。
 // 右边一截是文件夹图标：选一个文件夹，里面所有的照片、视频（子文件夹里的也算）一起传。
 // 深色底白字（深色模式反过来），带一层柔和的投影，是整个菜单里最显眼的一个；鼠标放上去颜色稍微变浅一点，按下去稍微缩一下
 function SidebarUpload({ onFiles }: { onFiles: (files: FileList | File[]) => void }) {
@@ -589,15 +589,15 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList | File[]) => voi
   return (
     <>
       <div className={cx(BIG_BUTTON, 'overflow-hidden p-0 hover:bg-fg active:scale-100')}>
-        <Tooltip label={rail ? t('上传照片 / 视频') : ''} side="right">
+        <Tooltip label={rail ? t('上传影像') : ''} side="right">
           <button
             type="button"
             onClick={() => openFilePicker(input.current)}
-            aria-label={t('上传照片 / 视频')}
-            className="flex h-full min-w-0 flex-1 items-center justify-center gap-2 transition hover:bg-page/10 active:scale-[0.98]"
+            aria-label={t('上传影像')}
+            className="flex h-full min-w-0 flex-1 items-center justify-center gap-2 transition-colors hover:bg-page/10 active:bg-page/15"
           >
             <Upload className="size-4" strokeWidth={2.2} />
-            {!rail && t('上传照片 / 视频')}
+            {!rail && t('上传影像')}
           </button>
         </Tooltip>
         {!rail && (
@@ -606,7 +606,7 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList | File[]) => voi
               type="button"
               onClick={() => openFilePicker(folder.current)}
               aria-label={t('上传文件夹')}
-              className="flex h-full w-10 shrink-0 items-center justify-center border-l border-page/20 transition hover:bg-page/10 active:scale-[0.96]"
+              className="flex h-full w-10 shrink-0 items-center justify-center border-l border-page/20 transition-colors hover:bg-page/10 active:bg-page/15"
             >
               <FolderUp className="size-4" strokeWidth={2.2} />
             </button>

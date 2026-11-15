@@ -35,6 +35,7 @@ type Worker struct {
 	ready       []func() bool
 	limit       func() int
 	active      atomic.Int32
+	skipDeleted bool // 不领「最近删除」里照片的任务（AI 识别用：删了的照片不白算，恢复后接着做）
 }
 
 // NewWorker 创建 worker。name 写进 jobs.locked_by，同一个名字只能有一个进程在用；
@@ -58,6 +59,12 @@ func (w *Worker) Register(jobType string, h HandlerFunc) {
 // 不会把任务一个个领出来失败、白白用掉重试次数。可以加多个，全都是 true 才领。必须在 Run 之前调用。
 func (w *Worker) SetReady(ready func() bool) {
 	w.ready = append(w.ready, ready)
+}
+
+// SkipDeleted：放进「最近删除」的照片，它们的任务先不领，留在队列里；照片恢复了就接着做，永久删除时任务跟着删掉。
+// AI 识别用：一下子删掉几千张时，不会接着把它们算完、挡在新传的照片前面。必须在 Run 之前调用
+func (w *Worker) SkipDeleted() {
+	w.skipDeleted = true
 }
 
 // SetLimit 让同时处理的任务数可以在运行中调整（设置页上改）：limit 返回 1 到 concurrency 之间的数，
@@ -135,12 +142,13 @@ func (w *Worker) claim(ctx context.Context, types []string) (*Job, error) {
 		WHERE id = (
 			SELECT id FROM jobs
 			WHERE status = 'pending' AND run_after <= now() AND type = ANY($3)
+			  AND NOT ($4 AND EXISTS (SELECT 1 FROM assets a WHERE a.id = jobs.asset_id AND a.deleted_at IS NOT NULL))
 			ORDER BY priority DESC, run_after
 			FOR UPDATE SKIP LOCKED
 			LIMIT 1
 		)
 		RETURNING id, type, asset_id, payload, attempts, max_attempts`,
-		w.name, w.lease.Seconds(), types,
+		w.name, w.lease.Seconds(), types, w.skipDeleted,
 	).Scan(&j.ID, &j.Type, &j.AssetID, &payload, &j.Attempts, &j.MaxAttempts)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil

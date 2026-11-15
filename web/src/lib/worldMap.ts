@@ -82,7 +82,7 @@ export function contains(country: Feature<MultiPolygon>, lat: number, lon: numbe
 }
 
 // inShape：点在不在这个（多）多边形里（射线法，洞也算）
-export function inShape(shape: GeoJSON.Polygon | MultiPolygon, lat: number, lon: number): boolean {
+function inShape(shape: GeoJSON.Polygon | MultiPolygon, lat: number, lon: number): boolean {
   const polys = shape.type === 'Polygon' ? [shape.coordinates] : shape.coordinates
   return polys.some((poly) => poly.reduce((inside, ring) => inside !== inRing(ring, lon, lat), false))
 }

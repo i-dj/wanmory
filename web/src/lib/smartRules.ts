@@ -3,9 +3,9 @@
 import type { SmartRule } from './api'
 import { t } from '@/i18n'
 
-export type FieldKind = 'date' | 'text' | 'number' | 'rating' | 'photo' | 'flash' | 'album'
+type FieldKind = 'date' | 'text' | 'number' | 'rating' | 'photo' | 'flash' | 'album'
 
-export interface FieldDef {
+interface FieldDef {
   key: string
   label: string
   kind: FieldKind

@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: 'Código aberto · Biblioteca de fotos com IA auto-hospedada',
     title: 'Wanmory · ',
     titleAccent: 'Guarde o calor do tempo',
     lead1: 'Reúna suas fotos espalhadas, organizadas por pessoa, data e lugar. Reencontre suas lembranças e os lugares por onde passou, reviva este mesmo dia em anos anteriores e veja como a vida cresceu e mudou com o tempo.',
     deploy: 'Instalar agora (Docker, pronto em 5 minutos)',
     demo: 'Demonstração on-line',
+    demoDialog: {
+      title: "Sobre a demonstração on-line",
+      subtitle: "Algumas observações para uma experiência mais tranquila",
+      credentials: "Conta de demonstração",
+      copy: "Copiar usuário e senha",
+      username: "Usuário",
+      password: "Senha",
+      limitsTitle: "Limites e observações",
+      // **…** 里的字加粗
+      limits: ["A conta de demonstração **não pode alterar configurações do sistema nem de administrador**.", "A conta de demonstração **só pode excluir mídias enviadas nos últimos 30 minutos**.", "A demonstração roda em um **Raspberry Pi** por meio de um túnel Cloudflare. O processamento e a banda são limitados, então as primeiras prévias podem demorar."],
+      close: "Fechar",
+      enter: "Abrir a demonstração",
+    },
   },
   features: [
     {

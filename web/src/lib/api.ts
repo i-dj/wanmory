@@ -84,7 +84,7 @@ async function getJSON<T>(url: string): Promise<T> {
 
 // 照片按时间线倒序分页。cursor 为空时从最新的开始；next_cursor 为 null 表示没有更多了。
 // server_time 用作下一次 assetChanges 的 since。
-export interface AssetPage {
+interface AssetPage {
   items: Asset[]
   next_cursor: string | null
   server_time: string
@@ -230,7 +230,7 @@ export const assetDates = (filter: Filter, unit: DateUnit) =>
   )
 
 // 某个时间之后新增或变化过的照片（入库、读完元数据、生成缩略图）。more 为 true 表示变化太多没返回完。
-export interface AssetChanges {
+interface AssetChanges {
   items: Asset[]
   server_time: string
   more: boolean
@@ -304,7 +304,17 @@ export function startUpload(
     album,
     onProgress,
     onDone,
-  }: { album?: string; onProgress: (ratio: number) => void; onDone: (result: UploadResult) => void },
+    favorite,
+    rating,
+    tag,
+  }: {
+    album?: string
+    favorite?: boolean
+    rating?: number
+    tag?: string
+    onProgress: (ratio: number) => void
+    onDone: (result: UploadResult) => void
+  },
 ): UploadHandle {
   let stopped = false
   // 卡住检测：正在发数据、却这么久一点进度都没有（Wi-Fi 断了一下、路由器丢了连接，浏览器的请求不报错也不结束，
@@ -331,6 +341,9 @@ export function startUpload(
       filetype: file.type,
       lastModified: String(file.lastModified),
       ...(album ? { album } : {}),
+      ...(favorite ? { favorite: '1' } : {}),
+      ...(rating ? { rating: String(rating) } : {}),
+      ...(tag ? { tag } : {}),
     },
     onProgress: (sent, total) => {
       lastProgress = Date.now()
@@ -459,7 +472,7 @@ export interface User {
 export const authState = () => getJSON<{ setup_needed: boolean; user: User | null; guest: boolean }>('/api/auth/state')
 // remember：「记住登录状态」，不记住时关了浏览器就退出
 // 开着两步验证时第一步只回答 totp_required 和一张票，接着用 loginTOTP 带着票和验证码登录
-export type LoginResult = { user: User } | { totp_required: true; ticket: string }
+type LoginResult = { user: User } | { totp_required: true; ticket: string }
 export const login = (name: string, password: string, remember = true) =>
   send<LoginResult>('POST', '/api/auth/login', { name, password, remember })
 export const loginTOTP = (ticket: string, code: string) =>
@@ -946,6 +959,7 @@ export interface PerfSettings {
   night_end: number
   workers: number // 0 是自动
   delay: number // 照片传完后再等几分钟才开始 AI，0 是 30 秒
+  paused: boolean // 手动暂停了 AI 识别
 }
 export interface PerfStatus {
   settings: PerfSettings

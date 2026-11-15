@@ -14,7 +14,7 @@ export interface AgeGroup {
 }
 
 // parseDate 把 2024-05-01 读成本地时间的那一天 0 点
-export function parseDate(s: string): Date {
+function parseDate(s: string): Date {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
@@ -40,7 +40,7 @@ function spanOf(months: number): number {
 }
 
 // ageLabel 是从满 start 个月开始的那一段的名字
-export function ageLabel(start: number, span: number): string {
+function ageLabel(start: number, span: number): string {
   if (start === 0 && span === 1) return tr('刚出生')
   if (start < 12) return tr('{start}个月', { start })
   const years = Math.floor(start / 12)

@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: '오픈 소스 · 셀프 호스팅 AI 사진 보관함',
     title: 'Wanmory · ',
     titleAccent: '시간의 온기를 새기다',
     lead1: '흩어진 사진을 한데 모아 인물, 날짜, 장소별로 소중히 정리합니다. 추억과 발자취를 잇고, 그날의 오늘을 다시 만나며, 세월 속의 성장과 변화를 지켜보세요.',
     deploy: '바로 배포하기 (Docker로 5분)',
     demo: '온라인 데모',
+    demoDialog: {
+      title: "온라인 데모 안내",
+      subtitle: "원활한 체험을 위해 아래 안내를 읽어 주세요",
+      credentials: "데모 계정",
+      copy: "아이디·비밀번호 복사",
+      username: "아이디",
+      password: "비밀번호",
+      limitsTitle: "체험 제한 및 안내",
+      // **…** 里的字加粗
+      limits: ["데모 계정은 **시스템 설정과 관리자 설정을 변경할 수 없습니다**.", "데모 계정은 **30분 이내에 업로드한 사진·동영상만 삭제할 수 있습니다**.", "데모는 Cloudflare 터널을 통해 **라즈베리 파이(Raspberry Pi)**에서 실행됩니다. 연산 성능과 네트워크 대역폭이 제한되어 첫 미리보기 생성이 다소 느릴 수 있습니다."],
+      close: "닫기",
+      enter: "데모 시작하기",
+    },
   },
   features: [
     { title: '사진은 비공개로, 안심하고 보관', desc: '사진, 썸네일, 데이터베이스가 모두 내 기기에 남습니다. 클라우드도 구독도 필요 없이 추억은 직접 지킬 수 있습니다.' },

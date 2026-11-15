@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -33,7 +34,7 @@ func Migrate(ctx context.Context, conn *sql.DB) error {
 	}
 	results, err := provider.Up(ctx)
 	for _, r := range results {
-		fmt.Printf("migration %s (%s)\n", r.Source.Path, r.Duration)
+		log.Printf("db: migration %s (%s)", r.Source.Path, r.Duration)
 	}
 	return err
 }

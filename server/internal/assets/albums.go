@@ -304,6 +304,9 @@ func (s *Store) resolve(ctx context.Context, f *Filter) error {
 		}
 		ids, err := s.searcher(ctx, f.Query)
 		if errors.Is(err, ai.ErrUnavailable) {
+			if strings.Contains(err.Error(), "还没下载") { // AI 服务说模型没下载（ml/wanmory_ml/app.py 的 503）
+				return ErrSearchNeedsModels
+			}
 			return fmt.Errorf("%w（%v）", ErrSearchUnavailable, err)
 		}
 		if err != nil {

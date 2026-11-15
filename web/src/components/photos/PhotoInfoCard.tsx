@@ -49,7 +49,7 @@ export default function PhotoInfoCard({ asset, anchor }: { asset: Asset; anchor:
 
 // PhotoDetails 是照片信息的内容：文件名、拍摄时间、相机、镜头、参数、位置、文件大小。
 // 网格里的信息卡和大图查看器右边的信息栏都用它。
-export function PhotoDetails({ asset }: { asset: Asset }) {
+function PhotoDetails({ asset }: { asset: Asset }) {
   const c = asset.camera
   const camera = c && cameraName(c)
   const lens = c && lensName(c)

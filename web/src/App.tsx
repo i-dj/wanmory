@@ -3,6 +3,8 @@ import AlbumDialog from '@/components/albums/AlbumDialog'
 import Sidebar, { ACCOUNT_PATH, SETTINGS_PATH } from '@/components/layout/Sidebar'
 import { useAlbums } from '@/hooks/useAlbums'
 import { usePeople } from '@/hooks/usePeople'
+import { useFileDrop } from '@/hooks/useFileDrop'
+import DropOverlay from '@/components/photos/DropOverlay'
 import { usePath } from '@/hooks/usePath'
 import { markPageEnter } from '@/lib/pageEnter'
 import {
@@ -80,6 +82,11 @@ export default function App() {
     if (guestBlocked) navigate(LIBRARY.path)
   }, [guestBlocked, navigate])
   const onSettings = page !== 'photos'
+  // 在相册列表、人物、足迹这些页拖文件进来：传到图库，并跳回图库看进度（照片页自己接拖放；相册封面上松开的进那个相册）
+  const pageDrop = useFileDrop(onSettings && page !== 'settings' && page !== 'account' && !guest, (files) => {
+    uploadRef.current?.(files)
+    navigate(LIBRARY.path)
+  })
   usePageEnter(mainRef, path)
 
   // 统计每次刷新时（上传、改了照片之后）顺便刷新相册的数量和封面
@@ -144,6 +151,8 @@ export default function App() {
             if (page !== 'photos') navigate(LIBRARY.path) // 在人物、相册列表这些页上传：回到图库，看得到上传进度
           }}
         />
+        {/* 相册列表上不盖整页提示：要看得到拖到了哪个相册的封面上 */}
+        {pageDrop && page !== 'albums' && <DropOverlay />}
         <main ref={mainRef} className="min-w-0 flex-1 px-4 pb-16 md:px-8">
           {/* 照片页一直挂着，只是在设置页、人物页时隐藏：上传队列在里面，切过去也不会中断上传 */}
           <div hidden={onSettings || waiting}>

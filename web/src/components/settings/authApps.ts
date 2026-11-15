@@ -4,13 +4,13 @@ import { t } from '@/i18n'
 // Microsoft Authenticator（蓝色的锁，中间一个人）是照着它们的 App 图标简化画的。
 // 商标归各自的公司所有，这里只用来说明这些 App 能用
 
-export interface IconPart {
+interface IconPart {
   d: string
   fill: string
   transform?: string
 }
 
-export interface AuthApp {
+interface AuthApp {
   name: string // 鼠标停上去显示的全名
   short: string // 图标下面的名字
   parts: IconPart[]

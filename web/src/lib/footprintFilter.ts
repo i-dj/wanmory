@@ -3,7 +3,7 @@ import type { MediaKind, Point } from './api'
 
 // 足迹的筛选（类型、成员）：足迹页和从足迹点进去的城市、地图范围的照片列表共用一份，
 // 在足迹里选了「只看 liao 的」，点进一个城市也只看她的；回到足迹还是选着的。只记在这次打开的页面里
-export interface FootprintFilter {
+interface FootprintFilter {
   kinds: MediaKind[]
   uploaders: string[]
 }

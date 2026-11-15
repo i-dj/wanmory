@@ -153,7 +153,9 @@ export default function PerformanceSettings() {
         {s.schedule !== 'always' && (
           <SettingRow
             title={tr('传完后等多久再开始')}
-            description={tr('照片传完后，AI 先等一会儿再开始，免得一批接一批上传时插进来抢资源。想等到夜里再处理，选上面的「夜间」。')}
+            description={tr(
+              '照片传完后，AI 先等一会儿再开始，免得一批接一批上传时插进来抢资源。想等到夜里再处理，选上面的「夜间」。',
+            )}
           >
             <Select
               label={tr('传完后等多久再开始')}

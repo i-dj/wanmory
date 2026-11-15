@@ -12,13 +12,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from pathlib import Path
 
 import cv2
 import numpy as np
-import onnxruntime as ort
 
 from .models import insightface_pack
+from .runtime import onnx_session
 
 log = logging.getLogger(__name__)
 
@@ -42,30 +41,6 @@ class Face:
     yaw: float
 
 
-def all_providers() -> list[str]:
-    """这台机器能用的硬件加速，按优先级：CUDA、CoreML（Mac）、OpenVINO（Intel 核显），最后是 CPU。"""
-    available = ort.get_available_providers()
-    order = ["CUDAExecutionProvider", "CoreMLExecutionProvider", "OpenVINOExecutionProvider", "CPUExecutionProvider"]
-    return [p for p in order if p in available]
-
-
-def providers() -> list[str]:
-    """现在要用的：设置里选了只用 CPU 时只有 CPU（见 runtime.py）"""
-    from .runtime import cpu_only
-
-    return ["CPUExecutionProvider"] if cpu_only() else all_providers()
-
-
-def _session(path: Path) -> ort.InferenceSession:
-    from .runtime import session_options
-
-    try:
-        return ort.InferenceSession(str(path), session_options(), providers=providers())
-    except Exception as e:  # 个别加速后端不支持某些算子时，退回 CPU
-        log.warning("用 %s 加载 %s 失败（%s），改用 CPU", providers(), path.name, e)
-        return ort.InferenceSession(str(path), session_options(), providers=["CPUExecutionProvider"])
-
-
 class FaceModel:
     """一个模型包（例如 antelopev2）里的检测和特征模型。"""
 
@@ -74,8 +49,8 @@ class FaceModel:
         directory = insightface_pack(pack)
         det = next(p for p in directory.glob("*.onnx") if p.name.startswith(("scrfd", "det_")))
         rec = next(p for p in directory.glob("*.onnx") if p.name.startswith(("glint", "w600k")))
-        self.det = _session(det)
-        self.rec = _session(rec)
+        self.det = onnx_session(det)
+        self.rec = onnx_session(rec)
         self.det_input = self.det.get_inputs()[0].name
         self.rec_input = self.rec.get_inputs()[0].name
         self.det_outputs = [o.name for o in self.det.get_outputs()]
@@ -85,13 +60,19 @@ class FaceModel:
         self.strides = [8, 16, 32]
         self.anchors = 2
         self._centers: dict[tuple[int, int, int], np.ndarray] = {}
-        log.info("人脸模型 %s 已加载：检测 %s，特征 %s（%d 维），加速 %s",
-                 pack, det.name, rec.name, self.dim, self.det.get_providers())
+        log.info(
+            "人脸模型 %s 已加载：检测 %s，特征 %s（%d 维），加速 %s",
+            pack,
+            det.name,
+            rec.name,
+            self.dim,
+            self.det.get_providers(),
+        )
 
     def analyze(self, image: np.ndarray, min_score: float = 0.5) -> list[Face]:
         boxes, kpss = self._detect(image, min_score)
         faces = []
-        for box, kps in zip(boxes, kpss):
+        for box, kps in zip(boxes, kpss, strict=True):
             aligned = _align(image, kps)
             faces.append(
                 Face(

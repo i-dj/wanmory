@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: 'Open source · Self-hosted AI photo library',
     title: 'Wanmory · ',
     titleAccent: 'Where Time Stays Warm',
     lead1: 'Bring your scattered photos together, organized by person, date, and location. Reconnect with memories and the places you’ve been, rediscover moments from this day in past years, and see how life has grown and changed over time.',
     deploy: 'Deploy now (Docker, up in 5 minutes)',
     demo: 'Live demo',
+    demoDialog: {
+      title: "About the live demo",
+      subtitle: "A few notes for a smoother experience",
+      credentials: "Demo account",
+      copy: "Copy username & password",
+      username: "Username",
+      password: "Password",
+      limitsTitle: "Limits & notes",
+      // **…** 里的字加粗
+      limits: ["The demo account **cannot change system or admin settings**.", "The demo account **can only delete media uploaded in the last 30 minutes**.", "The demo runs on a **Raspberry Pi** through a Cloudflare Tunnel. Compute and bandwidth are limited, so first-time previews may load slowly."],
+      close: "Close",
+      enter: "Open the demo",
+    },
   },
   features: [
     {
@@ -128,7 +140,7 @@ const home: HomeDict = {
     september: 'September 2026',
     photos: '{n} photos',
     sidebar: {
-      upload: 'Upload photos / videos',
+      upload: 'Upload media',
       categories: 'Categories',
       organize: 'Organize',
       favorites: 'Favorites',

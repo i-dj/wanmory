@@ -19,7 +19,7 @@ export interface PlaceGroup {
 }
 
 // distanceKm 是地球表面两点的距离
-export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const rad = Math.PI / 180
   const dLat = (lat2 - lat1) * rad
   const dLon = (lon2 - lon1) * rad
@@ -194,7 +194,7 @@ export function mergeCities(cities: City[], names: Record<string, string>): City
 }
 
 // CityFilter 是点开一个城市时按什么筛：离 own 里最近的那个中心不超过 km 公里，而且比 others 里的中心都近
-export interface CityFilter {
+interface CityFilter {
   own: [number, number][]
   others: [number, number][]
   km: number

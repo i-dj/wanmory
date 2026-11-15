@@ -14,6 +14,8 @@ import Dimensions from './components/Dimensions'
 import { Button, Container, CopyButton, Footer, Nav, SectionHead } from './components/Layout'
 import InstallTerminal, { INSTALL_CMD } from './components/InstallTerminal'
 import Mockup from './components/Mockup'
+import DemoDialog from './components/DemoDialog'
+import { useState } from 'react'
 import { usePage, useI18n } from './i18n'
 import type { HomeDict } from './i18n/locales/zh/home'
 
@@ -41,16 +43,12 @@ export default function App() {
 
 function Hero() {
   const t = usePage<HomeDict>().hero
+  const [demoOpen, setDemoOpen] = useState(false)
   return (
-    <section id="top" className="relative overflow-hidden pt-8 pb-20 sm:pt-10 sm:pb-28">
+    <section id="top" className="relative overflow-hidden pt-14 pb-20 sm:pt-20 sm:pb-28">
       <div className="pointer-events-none absolute top-0 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]" />
       <Container className="relative">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-line bg-white/[0.03] px-4 py-1.5 text-xs">
-            <span className="flex items-center gap-1.5 font-medium text-ok">
-              <span className="size-1.5 rounded-full bg-ok" /> {t.badge}
-            </span>
-          </div>
           <h1 className="text-4xl font-bold tracking-tight text-fg sm:text-6xl">
             {t.title}
             <span className="text-accent">{t.titleAccent}</span>
@@ -62,15 +60,25 @@ function Hero() {
             <Button href="#deploy" primary icon={<Rocket className="size-4" />}>
               {t.deploy}
             </Button>
-            <Button href={DEMO} icon={<Play className="size-4" />}>
+            {/* 先弹出演示须知（账号密码、限制），再从里面进演示站 */}
+            <a
+              href={DEMO}
+              onClick={(e) => {
+                e.preventDefault()
+                setDemoOpen(true)
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-soft transition hover:border-line-strong hover:text-fg"
+            >
+              <Play className="size-4" />
               {t.demo}
-            </Button>
+            </a>
           </div>
         </div>
       </Container>
       <Container className="relative mt-14 sm:mt-16">
         <Mockup />
       </Container>
+      {demoOpen && <DemoDialog url={DEMO} onClose={() => setDemoOpen(false)} />}
     </section>
   )
 }

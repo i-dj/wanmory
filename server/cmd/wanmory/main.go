@@ -129,6 +129,7 @@ func run(ctx context.Context) error {
 	faceService := faces.NewService(conn, aiClient, models.Face, cfg.ThumbsDir())
 	aiWorker := jobs.NewWorker(conn, aiWorkerName, ai.MaxConcurrency)
 	aiWorker.SetLimit(aiAdmin.Concurrency)
+	aiWorker.SkipDeleted()                 // 「最近删除」里的照片先不做 AI 识别，恢复了再做
 	aiWorker.SetReady(aiAdmin.Ready)       // 档位是自动时，等定下用哪档再开始
 	aiWorker.SetReady(perfService.AllowAI) // 空闲时 / 夜里才跑（见设置 → 性能）
 	perfService.SetBlocker(func() string {

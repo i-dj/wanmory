@@ -5,12 +5,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: '開源 · 自架的 AI 相簿',
     title: '萬象 · ',
     titleAccent: '銘刻時間的溫度',
     lead1: '整理零散的照片，按人物、時間與地點分類珍藏，串聯回憶與足跡，重溫那年今天，看見歲月中的成長與變化。',
     deploy: '一鍵部署（Docker 5 分鐘開啟）',
     demo: '線上 Demo 展示',
+    demoDialog: {
+      title: "線上 Demo 展示體驗說明",
+      subtitle: "請閱讀以下展示須知，體驗會更順暢",
+      credentials: "展示帳號",
+      copy: "複製帳號密碼",
+      username: "使用者名稱",
+      password: "密碼",
+      limitsTitle: "體驗限制與須知",
+      // **…** 里的字加粗
+      limits: ["展示帳號**無法修改系統設定與管理員設定**。", "展示帳號**僅支援刪除 30 分鐘內上傳的影像**。", "展示系統透過 Cloudflare 通道部署在**樹莓派 (Raspberry Pi)** 裝置上，硬體算力與網路頻寬有限，首次產生預覽可能稍慢，敬請見諒。"],
+      close: "關閉",
+      enter: "立即進入展示",
+    },
   },
   features: [
     { title: '照片私有，安心珍藏', desc: '照片、縮圖和資料庫都留在自己的裝置上。不依賴雲端服務，無需訂閱，回憶由你保管。' },
@@ -113,7 +125,7 @@ const home: HomeDict = {
     september: '2026年9月',
     photos: '{n} 張',
     sidebar: {
-      upload: '上傳照片 / 影片',
+      upload: '上傳影像',
       categories: '分類',
       organize: '整理',
       favorites: '收藏',

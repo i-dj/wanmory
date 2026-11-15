@@ -16,6 +16,10 @@ import (
 
 // storeError：搜索要用的 AI 服务没准备好时回 503 和原因，网页上直接显示；其他是内部错误
 func storeError(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrSearchNeedsModels) {
+		httpx.Error(w, http.StatusServiceUnavailable, ErrSearchNeedsModels.Error())
+		return
+	}
 	if errors.Is(err, ErrSearchUnavailable) {
 		httpx.Error(w, http.StatusServiceUnavailable, ErrSearchUnavailable.Error())
 		return

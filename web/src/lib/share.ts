@@ -31,7 +31,7 @@ function uniqueNames(list: { url: string; name: string }[]) {
   })
 }
 
-export const canShareFiles = () =>
+const canShareFiles = () =>
   typeof navigator.canShare === 'function' &&
   navigator.canShare({ files: [new File([''], 'a.jpg', { type: 'image/jpeg' })] })
 

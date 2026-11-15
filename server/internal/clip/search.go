@@ -3,11 +3,13 @@ package clip
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/wanmory/wanmory/server/internal/ai"
 	"github.com/wanmory/wanmory/server/internal/geo"
 )
 
@@ -55,7 +57,11 @@ func (s *Service) Search(ctx context.Context, text string) ([]uuid.UUID, error) 
 	// 字或者地点对上了，这个词多半就是在找它们，按意思搜的部分要求更严
 	byMeaning, err := s.searchMeaning(ctx, text, len(byText) > 0 || len(byPlace) > 0)
 	if err != nil {
-		return nil, err
+		// 按意思搜要 AI 服务（模型没下载、还在加载、连不上）：字或者地点已经搜到了就先给这些，不整个报错
+		if !errors.Is(err, ai.ErrUnavailable) || len(byText)+len(byPlace) == 0 {
+			return nil, err
+		}
+		byMeaning = nil
 	}
 	seen := map[uuid.UUID]bool{}
 	var ids []uuid.UUID
@@ -93,7 +99,7 @@ func (s *Service) searchTag(ctx context.Context, text string) ([]uuid.UUID, erro
 		return nil, nil
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id FROM assets WHERE deleted_at IS NULL AND $1 = ANY(tags)
+		SELECT id FROM assets WHERE deleted_at IS NULL AND ($1 = ANY(tags) OR $1 = ANY(manual_tags))
 		ORDER BY COALESCE(taken_at, file_mtime) DESC LIMIT $2`, key, maxTextMatches)
 	if err != nil {
 		return nil, err

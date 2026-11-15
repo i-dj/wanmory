@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { listSettings } from './api'
 import { locale, t } from '@/i18n'
 
-export const SETTING_MAPS = 'maps.online'
+const SETTING_MAPS = 'maps.online'
 export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const TILE_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
 const NOMINATIM = 'https://nominatim.openstreetmap.org'
@@ -22,7 +22,7 @@ const LANG = (() => {
 let enabled: Promise<boolean> | null = null
 
 // mapsEnabled 读一次设置，之后用缓存；读不到时当作关闭，不往外发请求
-export function mapsEnabled(): Promise<boolean> {
+function mapsEnabled(): Promise<boolean> {
   enabled ??= listSettings()
     .then((items) => items.find((i) => i.key === SETTING_MAPS)?.value !== 'off')
     .catch(() => false)

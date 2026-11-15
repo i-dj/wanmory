@@ -195,9 +195,11 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 	st := Status{AI: s.ai.URL(), Healthy: s.healthy.Load(), Model: s.Model()}
 	err := s.db.QueryRowContext(r.Context(), `
 		SELECT
-		  (SELECT count(*) FROM jobs WHERE type = $1 AND status IN ('pending', 'running')),
-		  (SELECT count(*) FROM jobs WHERE type = $1 AND status = 'failed'),
-		  (SELECT count(*) FROM assets WHERE face_model = $2),
+		  (SELECT count(*) FROM jobs j JOIN assets a ON a.id = j.asset_id AND a.deleted_at IS NULL
+		   WHERE j.type = $1 AND j.status IN ('pending', 'running')),
+		  (SELECT count(*) FROM jobs j JOIN assets a ON a.id = j.asset_id AND a.deleted_at IS NULL
+		   WHERE j.type = $1 AND j.status = 'failed'),
+		  (SELECT count(*) FROM assets WHERE face_model = $2 AND deleted_at IS NULL),
 		  (SELECT count(*) FROM faces),
 		  (SELECT count(*) FROM people)`, assets.JobFace, s.Model(),
 	).Scan(&st.Pending, &st.Failed, &st.Done, &st.Faces, &st.People)

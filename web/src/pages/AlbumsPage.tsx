@@ -7,14 +7,17 @@ import AlbumMenu from '@/components/albums/AlbumMenu'
 import CoverPicker from '@/components/albums/CoverPicker'
 import PrivacyDialog from '@/components/albums/PrivacyDialog'
 import { Button } from '@/components/ui/Modal'
-import { type Album, assetThumbUrl } from '@/lib/api'
+import { type Album, assetThumbUrl, isSynced } from '@/lib/api'
+import { filesFromDrop } from '@/hooks/useFileDrop'
+import { uploadQueue } from '@/lib/uploads'
 import { useCurrentUser } from '@/lib/session'
 import { albumPath } from '@/lib/views'
 import { t } from '@/i18n'
 
 // AlbumsPage 是「相册」：所有相册一张张方形封面卡片，名字和张数写在封面下方。
 // 点卡片打开相册；鼠标移上去右上角出现「…」，在卡片上右键也是同一个菜单（修改封面、重命名 / 智能相册的条件、删除）。
-// 私有相册封面左上角一把锁；别人建的共享相册，张数后面写建的人的名字。右上角「新建相册」
+// 私有相册封面左上角一把锁；别人建的共享相册，张数后面写建的人的名字。右上角「新建相册」。
+// 把照片、视频（或者整个文件夹）拖到某个相册的封面上松开，就传进这个相册；按条件自动同步的智能相册不能拖
 export default function AlbumsPage({
   albums,
   navigate,
@@ -34,6 +37,8 @@ export default function AlbumsPage({
   const [picking, setPicking] = useState<Album | null>(null) // 正在给哪个相册选封面
   const [privacy, setPrivacy] = useState<Album | null>(null) // 正在改哪个相册的「谁能看」
   const { user, guest } = useCurrentUser() // 访客：不能新建、改相册
+  const [dropOn, setDropOn] = useState<string | null>(null) // 文件正拖在哪个相册的封面上
+  const hasFiles = (e: React.DragEvent) => e.dataTransfer.types.includes('Files')
   return (
     <section>
       <PageHeader
@@ -64,6 +69,25 @@ export default function AlbumsPage({
         {albums?.map((album) => (
           <li
             key={album.id}
+            onDragOver={(e) => {
+              if (guest || isSynced(album) || !hasFiles(e)) return
+              e.preventDefault()
+              e.stopPropagation()
+              e.dataTransfer.dropEffect = 'copy'
+              if (dropOn !== album.id) setDropOn(album.id)
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropOn((d) => (d === album.id ? null : d))
+            }}
+            onDrop={(e) => {
+              if (guest || isSynced(album) || !hasFiles(e)) return
+              e.preventDefault()
+              e.stopPropagation() // 不让整页的拖放再传一遍（那里会传到图库）
+              setDropOn(null)
+              void filesFromDrop(e.dataTransfer).then((files) => {
+                if (files.length) uploadQueue.add(files, { album: album.id })
+              })
+            }}
             onContextMenu={(e) => {
               if (guest) return
               e.preventDefault()
@@ -92,6 +116,12 @@ export default function AlbumsPage({
                   />
                 ) : (
                   <ImageIcon className="m-auto size-full p-10 text-muted" strokeWidth={1.2} />
+                )}
+                {/* 拖着文件停在这个封面上：盖一层提示，松开就传进这个相册 */}
+                {dropOn === album.id && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-[16px] border-2 border-dashed border-accent bg-page/75 px-3 text-center text-body font-medium">
+                    {t('松开放进「{name}」', { name: album.name })}
+                  </span>
                 )}
                 {/* 私有相册：封面左上角一把锁 */}
                 {album.private && (

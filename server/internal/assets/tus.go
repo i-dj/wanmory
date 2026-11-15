@@ -191,6 +191,30 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 		log.Printf("assets: 记录 %s 的上传者失败: %v", meta["filename"], err)
 	}
 
+	// 在「收藏」「几星」里上传（或拖进来）的：传完顺手标上收藏、星级（已经存在的照片也标）
+	var patch Patch
+	if meta["favorite"] == "1" {
+		yes := true
+		patch.Favorite = &yes
+	}
+	if r, err := strconv.Atoi(meta["rating"]); err == nil && r >= 1 && r <= 5 {
+		patch.Rating = &r
+	}
+	if patch != (Patch{}) {
+		if _, err := s.store.UpdateMany(ctx, auth.UserID(hook.Context), false, []uuid.UUID{a.ID}, patch); err != nil {
+			log.Printf("assets: 给 %s 标收藏、星级失败: %v", meta["filename"], err)
+		}
+	}
+
+	// 在「风景」「美食」这些分类里上传（拖进来）的：记进手动分类，不用等 AI，也不会被 AI 重新分类冲掉
+	if tag := meta["tag"]; tag != "" && s.knownCategory(tag) {
+		if _, err := s.db.ExecContext(ctx, `
+			UPDATE assets SET manual_tags = array_append(manual_tags, $2), updated_at = now()
+			WHERE id = $1 AND NOT ($2 = ANY(manual_tags))`, a.ID, tag); err != nil {
+			log.Printf("assets: 把 %s 归进分类 %s 失败: %v", meta["filename"], tag, err)
+		}
+	}
+
 	// 在相册里点「从电脑添加」上传的，顺手放进那个相册（已经存在的照片也放）
 	if album, err := uuid.Parse(meta["album"]); err == nil {
 		if err := s.store.CheckAlbum(ctx, auth.UserID(hook.Context), false, album, false); err != nil {
@@ -229,6 +253,16 @@ func logUploadTiming(name string, size int64, started, saveStart time.Time, hash
 	recv := saveStart.Sub(started)
 	log.Printf("上传 %s：%.0f MB，接收 %s（%.1f MB/s），入库 %s（%s）",
 		name, float64(size)/1e6, recv.Round(100*time.Millisecond), float64(size)/1e6/max(recv.Seconds(), 0.001), save, how)
+}
+
+// knownCategory：是自动分类里的一个（screenshot、food、scenery……，见 SetSearch），随便写的不认
+func (s *Service) knownCategory(key string) bool {
+	for _, c := range s.categories {
+		if c.Key == key {
+			return true
+		}
+	}
+	return false
 }
 
 // markFinished 写下入库结果，并把数据文件换成同样大小的空洞文件（稀疏文件，不占磁盘）：

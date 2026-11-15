@@ -36,7 +36,7 @@ import { useCurrentUser } from '@/lib/session'
 import DeleteConfirm from './DeleteConfirm'
 import { t } from '@/i18n'
 
-export type Scope = 'normal' | 'hidden' | 'deleted'
+type Scope = 'normal' | 'hidden' | 'deleted'
 
 // SelectionActions 是选中照片后工具栏上出现的按钮：删除、收藏、星级、放进相册，其余的（下载、批量调整
 // 日期和时间、批量修改位置、隐藏、从相册移除）收在「更多」里。「最近删除」里是恢复、下载和永久删除。大图查看器的顶栏也用它，操作的是当前那一张。

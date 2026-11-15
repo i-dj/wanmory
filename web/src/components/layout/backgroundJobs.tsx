@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { type ActiveJobs, type PerfStatus, activeJobs, perfStatus } from '@/lib/api'
+import { Pause, Play } from 'lucide-react'
+import Tooltip from '@/components/ui/Tooltip'
+import { type ActiveJobs, type PerfStatus, activeJobs, perfStatus, setPerf as savePerf } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { t as tr } from '@/i18n'
 import { serverText } from '@/i18n/server'
@@ -45,8 +47,9 @@ export function useBackgroundJobs(watching: boolean) {
         try {
           const list = await activeJobs()
           if (stop) return
-          // 只算还没做完的（做完了、剩 0 张的不算）
-          setJobs(list.filter((j) => j.remaining > 0).sort((a, b) => order(a.key) - order(b.key)))
+          // 只算还没做完的（做完了、剩 0 张的不算）。导入（读信息、生成缩略图）不显示：每张传完几秒就做完，
+          // 上传那一栏已经说了进度，再列一行只是一闪一闪的数字
+          setJobs(list.filter((j) => j.remaining > 0 && j.key !== 'import').sort((a, b) => order(a.key) - order(b.key)))
           // 有 AI 任务时顺便看 AI 停着没有
           if (list.some((j) => j.key === 'ai')) setPerf(await perfStatus())
         } catch {
@@ -67,7 +70,16 @@ export function useBackgroundJobs(watching: boolean) {
   const aiPaused = hasAI && perf && !perf.ai_running ? serverText(perf.ai_paused) : ''
   // 模型没下载：要人去处理，不是等一会儿就好（刚传完、正在生成缩略图、等到夜里这些是等着就行）
   const aiNeedsModels = !!aiPaused && perf!.ai_paused === MODELS_MISSING
-  return { jobs, aiPaused, aiNeedsModels }
+  // 手动暂停了（任务面板里的暂停按钮）；toggleAI 暂停 / 继续，只有管理员能改
+  const aiUserPaused = !!perf?.settings.paused
+  const toggleAI = async () => {
+    try {
+      setPerf(await savePerf({ paused: !aiUserPaused }))
+    } catch (e) {
+      console.error('暂停 / 继续 AI 识别失败', e)
+    }
+  }
+  return { jobs, aiPaused, aiNeedsModels, aiUserPaused, toggleAI }
 }
 
 // jobLabel 是胶囊上的一句话：「AI 识别 3 / 674」
@@ -78,18 +90,47 @@ export function jobLabel(job: ActiveJobs) {
 
 // JobRow 是一组任务：名字、做完几张 / 一共几张、进度条。下面那行只在有话要说时出现：
 // 要人去处理时（模型没下载）左边写橙色的提示，在做的时候右边写还要多久；在等（刚传完、正在上传……）不写，进度条不动就是在等
-export function JobRow({ job, pausedFor, urgent }: { job: ActiveJobs; pausedFor: string; urgent?: boolean }) {
+// onToggle 给了时（AI 那一行、管理员）名字后面有暂停 / 继续按钮，paused 是现在手动暂停着
+export function JobRow({
+  job,
+  pausedFor,
+  urgent,
+  paused,
+  onToggle,
+}: {
+  job: ActiveJobs
+  pausedFor: string
+  urgent?: boolean
+  paused?: boolean
+  onToggle?: () => void
+}) {
   const g = GROUPS[job.key] ?? { label: job.key }
   const total = job.done + job.remaining
   const ratio = total ? job.done / total : 0
   const left = !pausedFor && job.eta !== null ? eta(job.eta) : ''
   return (
     <li>
-      <div className="flex items-baseline gap-2 text-body">
+      <div className="flex items-center gap-2 text-body">
         <span className="min-w-0 flex-1 truncate">{g.label}</span>
         <span className="shrink-0 text-caption text-muted tabular-nums">
           {tr('{done} / {n} 张', { done: job.done.toLocaleString(), n: total })}
         </span>
+        {onToggle && (
+          <Tooltip label={paused ? tr('继续 AI 识别') : tr('暂停 AI 识别')}>
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={paused ? tr('继续 AI 识别') : tr('暂停 AI 识别')}
+              className="-my-1 -mr-1 grid size-7 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-fg/10 hover:text-fg"
+            >
+              {paused ? (
+                <Play className="size-3.5" strokeWidth={2.2} />
+              ) : (
+                <Pause className="size-3.5" strokeWidth={2.2} />
+              )}
+            </button>
+          </Tooltip>
+        )}
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
         <div

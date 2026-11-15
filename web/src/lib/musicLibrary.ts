@@ -16,7 +16,7 @@ export const MOOD_LABELS: Record<Mood, string> = {
   joyful: tr('欢快'),
 }
 
-export interface Track {
+interface Track {
   id: string
   title: string
   mood: Mood

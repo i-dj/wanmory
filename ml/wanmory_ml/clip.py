@@ -21,7 +21,6 @@ from .models import CLIP_REPOS, hf_model
 log = logging.getLogger(__name__)
 
 
-
 def gpu_device() -> str | None:
     """这台机器上 PyTorch 能用的显卡：NVIDIA 是 cuda，Apple 芯片是 mps，都没有是 None"""
     if torch.cuda.is_available():

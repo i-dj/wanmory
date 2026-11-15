@@ -4,7 +4,7 @@ import { t } from '@/i18n'
 
 export type AlertTone = 'danger' | 'warn' | 'info'
 
-export interface AlertRequest {
+interface AlertRequest {
   tone: AlertTone
   title: string
   message?: string

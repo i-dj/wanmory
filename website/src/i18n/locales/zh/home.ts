@@ -3,12 +3,24 @@
 
 const home = {
   hero: {
-    badge: '开源 · 自托管的 AI 相册',
     title: '万象 · ',
     titleAccent: '铭刻时间的温度',
     lead1: '整理零散的照片，按人物、时间与地点分类珍藏，串联回忆与足迹，重温那年今天，看见岁月中的成长与变化。',
     deploy: '一键部署（Docker 5 分钟开启）',
     demo: '在线 Demo 演示',
+    demoDialog: {
+      title: "在线 Demo 演示体验说明",
+      subtitle: "请阅读以下演示须知，体验会更顺畅",
+      credentials: "演示账号",
+      copy: "复制账号密码",
+      username: "用户名",
+      password: "密码",
+      limitsTitle: "体验限制与须知",
+      // **…** 里的字加粗
+      limits: ["演示账号**无法修改系统配置与管理员设置**。", "演示账号**仅支持删除 30 分钟以内上传的影像**。", "演示系统通过 Cloudflare 隧道部署在**树莓派 (Raspberry Pi)** 设备上，硬件算力与网络带宽有限，首次生成预览可能略慢，敬请谅解。"],
+      close: "关闭",
+      enter: "立即进入演示",
+    },
   },
   features: [
     { title: '照片私有，安心珍藏', desc: '照片、缩略图和数据库都留在自己的设备上。不依赖云服务，无需订阅，回忆由你保管。' },
@@ -111,7 +123,7 @@ const home = {
     september: '2026年9月',
     photos: '{n} 张',
     sidebar: {
-      upload: '上传照片 / 视频',
+      upload: '上传影像',
       categories: '分类',
       organize: '整理',
       favorites: '收藏',

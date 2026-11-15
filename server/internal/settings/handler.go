@@ -11,8 +11,6 @@ import (
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
-// TODO: 加上登录后，只有管理员能修改设置，并记录 updated_by。
-
 type Handler struct {
 	store    *Store
 	registry *Registry

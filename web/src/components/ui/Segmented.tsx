@@ -1,6 +1,6 @@
 import { cx } from '@/lib/cx'
 
-export interface Segment<T extends string> {
+interface Segment<T extends string> {
   value: T
   label: string
   href?: string // 给了就是链接（可以右键在新标签页打开），点击时仍然调用 onChange

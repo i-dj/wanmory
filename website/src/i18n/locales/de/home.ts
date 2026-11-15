@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: 'Open Source · Selbst gehostete KI-Fotobibliothek',
     title: 'Wanmory · ',
     titleAccent: 'Die Wärme der Zeit bewahren',
     lead1: 'Bringen Sie Ihre verstreuten Fotos zusammen, geordnet nach Person, Datum und Ort. Verbinden Sie Erinnerungen mit den Orten, an denen Sie waren, erleben Sie diesen Tag aus vergangenen Jahren neu und sehen Sie, wie das Leben gewachsen ist und sich verändert hat.',
     deploy: 'Jetzt installieren (Docker, in 5 Minuten)',
     demo: 'Online-Demo',
+    demoDialog: {
+      title: "Hinweise zur Online-Demo",
+      subtitle: "Ein paar Hinweise für ein reibungsloses Erlebnis",
+      credentials: "Demo-Zugang",
+      copy: "Benutzername & Passwort kopieren",
+      username: "Benutzername",
+      password: "Passwort",
+      limitsTitle: "Einschränkungen & Hinweise",
+      // **…** 里的字加粗
+      limits: ["Der Demo-Zugang **kann keine System- oder Admin-Einstellungen ändern**.", "Der Demo-Zugang **kann nur Medien löschen, die vor weniger als 30 Minuten hochgeladen wurden**.", "Die Demo läuft über einen Cloudflare-Tunnel auf einem **Raspberry Pi**. Rechenleistung und Bandbreite sind begrenzt, erste Vorschauen können daher etwas dauern."],
+      close: "Schließen",
+      enter: "Demo öffnen",
+    },
   },
   features: [
     {

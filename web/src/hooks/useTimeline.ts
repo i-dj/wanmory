@@ -11,7 +11,7 @@ const RECENT_WINDOW_MS = 30 * 24 * 3600 * 1000 // 和后端的 RecentWindow 一�
 
 // comparator 和后端排序一致：按排序时间新的在前，时间相同按 ID 倒序。
 // 「最近添加」用上传时间，「最近删除」用删除时间，其他用拍摄时间（没有就用文件修改时间）。
-export function comparator(filter: Filter) {
+function comparator(filter: Filter) {
   // 和服务器的排序一致：排序菜单选了就按它，不然按分类自己的时间；默认从新到旧
   const by = filter.sort ?? (filter.view === 'recent' ? 'added' : filter.view === 'deleted' ? 'deleted' : 'taken')
   const key = (a: Asset) =>
@@ -30,7 +30,7 @@ export function comparator(filter: Filter) {
 
 // matches 判断照片属不属于这个分类，例如取消收藏后要从「收藏」里拿掉。
 // 在不在相册里看不出来，由服务器筛好（看相册时增量刷新只拿相册里的），这里不管。
-export function matches(filter: Filter, a: Asset): boolean {
+function matches(filter: Filter, a: Asset): boolean {
   // 隐藏、删除了的只在「已隐藏」「最近删除」里，其他分类都不显示
   if (filter.view === 'deleted') {
     if (!a.deleted_at) return false
@@ -54,7 +54,7 @@ export function matches(filter: Filter, a: Asset): boolean {
 
 // mergeChanges 把变化过的照片合并进已加载的列表，按分类的顺序重新排好。
 // 不再属于这个分类的拿掉；还有后面几页没加载时，排在已加载部分之后的先不放进来，滚到那里加载时自然会出现。
-export function mergeChanges(list: Asset[], changed: Asset[], hasMore: boolean, filter: Filter): Asset[] {
+function mergeChanges(list: Asset[], changed: Asset[], hasMore: boolean, filter: Filter): Asset[] {
   if (changed.length === 0) return list
   const compare = comparator(filter)
   const boundary = hasMore ? list[list.length - 1] : undefined

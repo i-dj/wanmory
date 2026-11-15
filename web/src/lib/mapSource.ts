@@ -11,17 +11,16 @@ import { listSettings } from './api'
 import { TILE_ATTRIBUTION, TILE_URL } from './geo'
 import { t } from '@/i18n'
 
-export type MapSource = 'auto' | 'amap' | 'osm'
-export const SETTING_MAP_SOURCE = 'maps.source'
+type MapSource = 'auto' | 'amap' | 'osm'
+const SETTING_MAP_SOURCE = 'maps.source'
 
-export const AMAP_ROAD_URL =
-  'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
-export const AMAP_ATTRIBUTION = t('© 高德地图')
+const AMAP_ROAD_URL = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
+const AMAP_ATTRIBUTION = t('© 高德地图')
 
 let source: Promise<MapSource> | null = null
 
 // mapSource 读一次设置，之后用缓存；读不到时用自动
-export function mapSource(): Promise<MapSource> {
+function mapSource(): Promise<MapSource> {
   source ??= listSettings()
     .then((items) => {
       const v = items.find((i) => i.key === SETTING_MAP_SOURCE)?.value
@@ -37,7 +36,7 @@ export function forgetMapSource() {
 }
 
 // useAmap：这个地方该不该用高德
-export function amapAt(src: MapSource, lat: number, lon: number): boolean {
+function amapAt(src: MapSource, lat: number, lon: number): boolean {
   return src === 'amap' || (src === 'auto' && inChina(lat, lon))
 }
 
@@ -62,14 +61,14 @@ const EXCLUDE: [number, number, number, number][] = [
 ]
 const inBox = ([n, w, s, e]: [number, number, number, number], lat: number, lon: number) =>
   lat <= n && lat >= s && lon >= w && lon <= e
-export function inChina(lat: number, lon: number): boolean {
+function inChina(lat: number, lon: number): boolean {
   return INCLUDE.some((b) => inBox(b, lat, lon)) && !EXCLUDE.some((b) => inBox(b, lat, lon))
 }
 
 // wgsToGcj：WGS-84 换成 GCJ-02（公开的标准算法）。不在中国大陆时原样返回
 const A = 6378245.0
 const EE = 0.00669342162296594323
-export function wgsToGcj(lat: number, lon: number): [number, number] {
+function wgsToGcj(lat: number, lon: number): [number, number] {
   if (!inChina(lat, lon)) return [lat, lon]
   const x = lon - 105
   const y = lat - 35

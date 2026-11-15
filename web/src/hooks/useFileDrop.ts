@@ -32,18 +32,8 @@ export function useFileDrop(enabled: boolean, onFiles: (files: File[]) => void) 
       e.preventDefault()
       depth = 0
       setDragging(false)
-      const dt = e.dataTransfer
-      if (!dt) return
-      // 拖进来的条目要在 drop 这一刻取出来，之后 dataTransfer 就空了
-      const entries = Array.from(dt.items)
-        .map((item) => item.webkitGetAsEntry?.())
-        .filter((x): x is FileSystemEntry => !!x)
-      if (!entries.some((x) => x.isDirectory)) {
-        const files = Array.from(dt.files).filter(isMedia)
-        if (files.length) callback.current(files)
-        return
-      }
-      void collect(entries).then((files) => {
+      if (!e.dataTransfer) return
+      void filesFromDrop(e.dataTransfer).then((files) => {
         if (files.length) callback.current(files)
       })
     }
@@ -57,6 +47,16 @@ export function useFileDrop(enabled: boolean, onFiles: (files: File[]) => void) 
   }, [enabled])
 
   return dragging
+}
+
+// filesFromDrop 取出拖进来的照片和视频：文件夹一层层往里找。要在 drop 事件当下调用（之后 dataTransfer 就空了），
+// 相册卡片这些地方自己接拖放时也用它
+export function filesFromDrop(dt: DataTransfer): Promise<File[]> {
+  const entries = Array.from(dt.items)
+    .map((item) => item.webkitGetAsEntry?.())
+    .filter((x): x is FileSystemEntry => !!x)
+  if (!entries.some((x) => x.isDirectory)) return Promise.resolve(Array.from(dt.files).filter(isMedia))
+  return collect(entries)
 }
 
 // collect 把拖进来的文件和文件夹展开成文件列表：文件夹一层层往里找，只留照片和视频

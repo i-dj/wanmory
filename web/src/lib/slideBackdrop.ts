@@ -159,7 +159,7 @@ type RGB = [number, number, number]
 
 // dominantColors 取照片里三种主要的颜色：把照片缩到 40 像素，颜色按每通道 16 级分桶，
 // 出现得多、颜色鲜艳的优先，后面两种要和前面的差得够远；最后统一调暗、降一点饱和度，当背景不抢眼
-export function dominantColors(image: HTMLImageElement): [RGB, RGB, RGB] {
+function dominantColors(image: HTMLImageElement): [RGB, RGB, RGB] {
   const size = 40
   const c = canvas(size, size)
   const cctx = c.getContext('2d', { willReadFrequently: true })

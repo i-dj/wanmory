@@ -27,13 +27,14 @@ function Capsule() {
   const [open, setOpen] = useState(false)
   const hasUploads = items.length > 0
   // 有上传时也勤着问：上传完的照片马上有了导入、AI 任务，清掉「上传完成」时胶囊直接接着说，不会先消失一下
-  const { jobs, aiPaused, aiNeedsModels } = useBackgroundJobs(open || hasUploads)
+  const { jobs, aiPaused, aiNeedsModels, aiUserPaused, toggleAI } = useBackgroundJobs(open || hasUploads)
+  const { user } = useCurrentUser()
   const summary = useUploadSummary(items)
   const visible = hasUploads || jobs.length > 0
 
   const button = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
-  const position = useAnchorPosition(button, open, { minWidth: 420, need: 240, align: 'end' })
+  const position = useAnchorPosition(button, open, { minWidth: hasUploads ? 420 : 320, need: 240, align: 'end' })
 
   // 点胶囊和面板以外的地方（确认框除外）、按 Esc 收起
   useEffect(() => {
@@ -100,7 +101,13 @@ function Capsule() {
       <LoaderCircle className="size-4.5 animate-spin text-accent" strokeWidth={2} />
     )
     // 停着的原因：模型没下载要人去处理；刚传完、正在生成缩略图、等到夜里这些等着就行
-    text = paused ? (aiNeedsModels ? tr('AI 模型未下载') : tr('等待 AI 识别')) : jobLabel(job)
+    text = paused
+      ? aiNeedsModels
+        ? tr('AI 模型未下载')
+        : aiUserPaused
+          ? tr('AI 识别已暂停')
+          : tr('等待 AI 识别')
+      : jobLabel(job)
   } else {
     icon = <CircleCheck className="size-4.5 text-ok" strokeWidth={2} />
     text = tr('暂无后台任务')
@@ -129,8 +136,8 @@ function Capsule() {
             ref={panel}
             role="dialog"
             aria-label={tr('上传和后台任务')}
-            className="popover-card glass-menu fixed z-50 w-[420px] max-w-[calc(100vw-16px)] overflow-x-hidden overflow-y-auto rounded-2xl p-4"
-            style={position}
+            className="popover-card glass-menu fixed z-50 max-w-[calc(100vw-16px)] overflow-x-hidden overflow-y-auto rounded-2xl p-4"
+            style={{ ...position, width: hasUploads ? 420 : 320 }}
           >
             {hasUploads && (
               <UploadSection
@@ -153,6 +160,8 @@ function Capsule() {
                         job={j}
                         pausedFor={j.key === 'ai' ? aiPaused : ''}
                         urgent={j.key === 'ai' && aiNeedsModels}
+                        paused={aiUserPaused}
+                        onToggle={j.key === 'ai' && user.is_admin ? () => void toggleAI() : undefined}
                       />
                     ))}
                   </ul>

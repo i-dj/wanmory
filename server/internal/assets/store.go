@@ -31,6 +31,9 @@ type Searcher func(ctx context.Context, text string) ([]uuid.UUID, error)
 // ErrSearchUnavailable 是要按意思搜，但 AI 服务连不上，或者模型还在下载、加载
 var ErrSearchUnavailable = errors.New("智能搜索要用 AI 服务，现在连不上或者模型还在加载，稍后再试")
 
+// ErrSearchNeedsModels 是要按意思搜，但这一档的 AI 模型还没下载（内置的 AI 服务不自动下载）
+var ErrSearchNeedsModels = errors.New("按意思搜索要先在「系统设置 → AI 设置」里下载 AI 模型")
+
 func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
@@ -462,7 +465,8 @@ func (f Filter) where(args *[]any) string {
 	}
 	if f.Tag != "" {
 		*args = append(*args, f.Tag)
-		cond := fmt.Sprintf(`$%d = ANY(tags)`, len(*args))
+		// AI 算的分类，或者用户在这个分类里上传、手动归进来的（manual_tags）
+		cond := fmt.Sprintf(`($%[1]d = ANY(tags) OR $%[1]d = ANY(manual_tags))`, len(*args))
 		if f.Tag == "screenshot" { // 文件名、iPhone 的标记认得出来的截图，不用等 AI
 			cond = `(` + cond + ` OR ` + photoFlags["screenshot"] + `)`
 		}

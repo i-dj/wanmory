@@ -6,7 +6,7 @@ import { LANG_KEY, LOCALE_INFO, LOCALES, PAGES, SITE_URL as SITE, localize, useI
 // 首页和功能架构页共用的东西：顶部导航、页脚、版心、区块标题、按钮、复制按钮
 
 export const GITHUB = 'https://github.com/i-dj/wanmory'
-export const GITEE = 'https://gitee.com/i-dj/wanmory' // 国内镜像仓库
+const GITEE = 'https://gitee.com/i-dj/wanmory' // 国内镜像仓库
 // 官网正式域名：canonical、Open Graph、站点地图都用它（定义在 src/i18n/config.ts）
 export const SITE_URL = SITE
 
@@ -17,7 +17,7 @@ export function Container({ children, className = '' }: { children: ReactNode; c
   return <div className={`mx-auto w-full max-w-[1400px] px-4 sm:px-6 ${className}`}>{children}</div>
 }
 
-export function Eyebrow({ children, green }: { children: ReactNode; green?: boolean }) {
+function Eyebrow({ children, green }: { children: ReactNode; green?: boolean }) {
   return (
     <div className={`mb-3 text-xs font-semibold tracking-[0.2em] ${green ? 'text-ok' : 'text-accent'}`}>
       • {children} •
@@ -93,12 +93,7 @@ export function Nav({ current }: { current?: string }) {
         <a href={href('/')} className="flex shrink-0 items-center gap-3 text-fg" aria-label={c.homeLabel}>
           <Logo className="size-9 md:size-10" />
           <div className="leading-tight">
-            <div className="flex items-center gap-2 text-lg font-bold whitespace-nowrap md:text-xl">
-              {c.brand}
-              <span className="rounded bg-accent-soft px-1.5 py-px text-[10px] font-semibold tracking-wider whitespace-nowrap text-accent md:hidden lg:inline md:text-[11px]">
-                OPEN EDITION
-              </span>
-            </div>
+            <div className="text-lg font-bold whitespace-nowrap md:text-xl">{c.brand}</div>
             <div className="hidden text-[11px] tracking-widest whitespace-nowrap text-faint sm:block md:hidden lg:block">{c.tagline}</div>
           </div>
         </a>

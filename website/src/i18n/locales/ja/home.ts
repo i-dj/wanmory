@@ -4,12 +4,24 @@ import type { HomeDict } from '../zh/home'
 
 const home: HomeDict = {
   hero: {
-    badge: 'オープンソース · セルフホスト型 AI フォトライブラリ',
     title: 'Wanmory · ',
     titleAccent: '時のぬくもりを刻む',
     lead1: '散らばった写真をひとつにまとめ、人物・日付・場所ごとに大切に整理。思い出と旅の足跡をつなぎ、「あの日の今日」をもう一度味わい、歳月の中の成長と変化を見つめられます。',
     deploy: 'すぐに導入（Docker で 5 分）',
     demo: 'オンラインデモ',
+    demoDialog: {
+      title: "オンラインデモについて",
+      subtitle: "快適にお試しいただくための注意事項です",
+      credentials: "デモアカウント",
+      copy: "ユーザー名とパスワードをコピー",
+      username: "ユーザー名",
+      password: "パスワード",
+      limitsTitle: "制限と注意事項",
+      // **…** 里的字加粗
+      limits: ["デモアカウントでは**システム設定や管理者設定を変更できません**。", "デモアカウントで**削除できるのは 30 分以内にアップロードした写真・動画のみ**です。", "デモは Cloudflare Tunnel 経由で**Raspberry Pi** 上で動いています。処理能力と回線に限りがあるため、初回のプレビュー生成に時間がかかることがあります。"],
+      close: "閉じる",
+      enter: "デモを開く",
+    },
   },
   features: [
     {

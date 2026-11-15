@@ -30,9 +30,9 @@ const saving = (u: UploadItem) => u.state === 'uploading' && u.progress >= 1
 const active = (u: UploadItem) => u.state === 'waiting' || u.state === 'uploading'
 const sentBytes = (u: UploadItem) => u.file.size * (u.state === 'done' || u.state === 'duplicate' ? 1 : u.progress)
 
-export type UploadPhase = 'running' | 'paused' | 'failed' | 'done'
+type UploadPhase = 'running' | 'paused' | 'failed' | 'done'
 
-export interface UploadSummary {
+interface UploadSummary {
   phase: UploadPhase
   ratio: number
   title: string
@@ -169,11 +169,7 @@ export function UploadSection({
           {(retryable || unfinished > 0) && (
             <div className="-mx-4 flex items-center justify-between gap-3 border-t border-line px-4 pt-2.5">
               {unfinished > 0 ? (
-                <button
-                  type="button"
-                  onClick={cancelAll}
-                  className="text-caption text-muted hover:text-danger"
-                >
+                <button type="button" onClick={cancelAll} className="text-caption text-muted hover:text-danger">
                   {tr('全部取消')}
                 </button>
               ) : (
@@ -194,7 +190,7 @@ export function UploadSection({
 }
 
 // PhaseIcon：左上角的圆形状态图标
-export function PhaseIcon({ phase, small }: { phase: UploadPhase; small?: boolean }) {
+function PhaseIcon({ phase, small }: { phase: UploadPhase; small?: boolean }) {
   const styles: Record<UploadPhase, string> = {
     running: 'bg-accent/15 text-accent',
     paused: 'bg-muted/15 text-muted',
@@ -204,7 +200,11 @@ export function PhaseIcon({ phase, small }: { phase: UploadPhase; small?: boolea
   const Icon = { running: CloudUpload, paused: CirclePause, failed: CircleAlert, done: CircleCheck }[phase]
   return (
     <span
-      className={cx('flex shrink-0 items-center justify-center rounded-full', small ? 'size-6' : 'size-10', styles[phase])}
+      className={cx(
+        'flex shrink-0 items-center justify-center rounded-full',
+        small ? 'size-6' : 'size-10',
+        styles[phase],
+      )}
     >
       <Icon className={cx(small ? 'size-3.5' : 'size-5', phase === 'running' && 'animate-pulse')} strokeWidth={2} />
     </span>

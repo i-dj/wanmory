@@ -48,6 +48,7 @@ type Settings struct {
 	NightEnd   int    `json:"night_end"`   // 几点结束；比开始小表示跨过零点
 	Workers    int    `json:"workers"`     // 同时处理几个任务，0 是自动
 	Delay      int    `json:"delay"`       // 照片传完后再等几分钟才开始 AI（0 是 30 秒）：一批接一批地传时，AI 不会在两批之间插进来
+	Paused     bool   `json:"paused"`      // 手动暂停 AI 识别（右上角任务面板里的暂停按钮），再点继续才接着做
 }
 
 // Delays 是「传完后再等多久」能选的分钟数（0 是默认的 30 秒）
@@ -250,6 +251,9 @@ func (s *Service) aiState() (bool, string) {
 			return false, reason
 		}
 	}
+	if cur.Paused {
+		return false, "已手动暂停"
+	}
 	if cur.Schedule == "always" {
 		return true, ""
 	}
@@ -343,6 +347,7 @@ func (s *Service) put(w http.ResponseWriter, r *http.Request) {
 		NightEnd   *int    `json:"night_end"`
 		Workers    *int    `json:"workers"`
 		Delay      *int    `json:"delay"`
+		Paused     *bool   `json:"paused"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
@@ -377,6 +382,9 @@ func (s *Service) put(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		next.Workers = *req.Workers
+	}
+	if req.Paused != nil {
+		next.Paused = *req.Paused
 	}
 	if req.Delay != nil {
 		if !slices.Contains(Delays, *req.Delay) {

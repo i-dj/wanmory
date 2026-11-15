@@ -16,17 +16,17 @@ import vi from './locales/vi/common'
 // 每个页面、每种语言的 <head>：标题、描述、canonical、hreflang、Open Graph、结构化数据。
 // 构建时由预渲染脚本写进 HTML，开发时由 vite.config.ts 里的插件注入
 
-export const COMMON: Record<Locale, CommonDict> = { en, zh, 'zh-tw': zhTw, ja, ko, de, fr, es, pt, ru, it, vi }
+const COMMON: Record<Locale, CommonDict> = { en, zh, 'zh-tw': zhTw, ja, ko, de, fr, es, pt, ru, it, vi }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 // JSON 放进 <script> 里，避免内容里出现 </script>
 const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`
 
-export const pageUrl = (l: Locale, page: PageKey) => `${SITE_URL}${prefix(l)}${PAGES[page]}`
+const pageUrl = (l: Locale, page: PageKey) => `${SITE_URL}${prefix(l)}${PAGES[page]}`
 
 // 英语页面（根路径）上的一小段脚本：用户手动选过别的语言，或者没选过、浏览器首选的是别的支持的语言，就跳到那个语言的同一页。
 // 浏览器首选英语、或者没有匹配的语言时留在英语。搜索引擎的爬虫按英语处理，不会被跳走
-export function redirectScript() {
+function redirectScript() {
   const others = LOCALES.filter((l) => l !== DEFAULT_LOCALE)
   return `<script>(function(){try{var L=${JSON.stringify(others)},t=null,p=null;try{p=localStorage.getItem(${JSON.stringify(LANG_KEY)})}catch(e){}if(p){t=p}else{var a=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||''];for(var i=0;i<a.length&&!t;i++){var x=String(a[i]).toLowerCase();if(x.indexOf('zh')===0){t=/-(tw|hk|mo)|hant/.test(x)?'zh-tw':'zh'}else{var b=x.split('-')[0];t=b==='en'?'en':(L.indexOf(b)>=0?b:null)}}}if(t&&L.indexOf(t)>=0){location.replace('/'+t+location.pathname+location.search+location.hash)}}catch(e){}})()</script>`
 }

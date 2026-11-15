@@ -123,8 +123,14 @@ export function AccessAddressDialog({
                   field: <code className="font-mono text-fg">WANMORY_PORT</code>,
                 }
                 return net?.install_dir
-                  ? tx('修改端口：请修改安装目录 {dir} 里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。', parts)
-                  : tx('修改端口：请修改安装目录里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。', parts)
+                  ? tx(
+                      '修改端口：请修改安装目录 {dir} 里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。',
+                      parts,
+                    )
+                  : tx(
+                      '修改端口：请修改安装目录里配置文件 {file} 的 {field}，然后重启服务（在安装目录运行 docker compose up -d）。',
+                      parts,
+                    )
               })()}
         </p>
 

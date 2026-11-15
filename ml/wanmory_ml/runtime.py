@@ -88,7 +88,7 @@ MAX_PARALLEL = 3
 GB = 1 << 30
 
 # 有没有能用的显卡，app.py 启动后接上（要看 PyTorch、ONNX Runtime 的加速后端，放在那边）
-gpu_usable = lambda: False  # noqa: E731
+gpu_usable = lambda: False  # noqa: E731 —— app.py 启动后换成真正的检测
 
 
 def parallel_pref() -> int:
@@ -144,6 +144,32 @@ def unload_after() -> int:
         except ValueError:
             pass
     return 300 if small_memory() else 1800
+
+
+def all_providers() -> list[str]:
+    """这台机器能用的硬件加速，按优先级：CUDA、CoreML（Mac）、OpenVINO（Intel 核显），最后是 CPU。"""
+    import onnxruntime as ort
+
+    available = ort.get_available_providers()
+    order = ["CUDAExecutionProvider", "CoreMLExecutionProvider", "OpenVINOExecutionProvider", "CPUExecutionProvider"]
+    return [p for p in order if p in available]
+
+
+def providers() -> list[str]:
+    """现在要用的：设置里选了只用 CPU 时只有 CPU"""
+    return ["CPUExecutionProvider"] if cpu_only() else all_providers()
+
+
+def onnx_session(path: Path, skip: tuple[str, ...] = ()):
+    """加载一个 ONNX 模型，用 providers() 里的加速（去掉 skip 里的）；加速后端吃不下这个模型时退回 CPU。"""
+    import onnxruntime as ort
+
+    use = [p for p in providers() if p not in skip]
+    try:
+        return ort.InferenceSession(str(path), session_options(), providers=use)
+    except Exception as e:  # noqa: BLE001 —— 各家加速后端出错时抛的异常类型不一样，统一退回 CPU
+        log.warning("用 %s 加载 %s 失败（%s），改用 CPU", use, path.name, e)
+        return ort.InferenceSession(str(path), session_options(), providers=["CPUExecutionProvider"])
 
 
 def session_options():

@@ -34,3 +34,13 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["wanmory_ml"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE", "RUF"]
+# B008：FastAPI 的 File()、Form() 就是要写在参数默认值里
+# RUF001-003：中文注释、文案里的全角标点是故意的
+ignore = ["B008", "RUF001", "RUF002", "RUF003"]

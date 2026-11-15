@@ -25,7 +25,7 @@ import torch
 from transformers import ChineseCLIPModel, ChineseCLIPProcessor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from wanmory_ml.models import CLIP_REPOS, MODEL_DIR, hf_model  # noqa: E402
+from wanmory_ml.models import CLIP_REPOS, MODEL_DIR, hf_model
 
 TEXT_LEN = 52  # 和 clip.py 一样，搜索词、分类描述都很短
 
@@ -64,16 +64,26 @@ def export(name: str, out_dir: Path) -> None:
     texts = processor(text=["海边日落", "一只猫"], padding="max_length", max_length=TEXT_LEN, return_tensors="pt")
     with torch.inference_mode():
         torch.onnx.export(
-            Visual(model), (pixels,), str(out_dir / "visual.onnx"), input_names=["pixel_values"],
-            output_names=["embedding"], dynamic_axes={"pixel_values": {0: "batch"}, "embedding": {0: "batch"}},
-            opset_version=17, dynamo=False, external_data=True,
+            Visual(model),
+            (pixels,),
+            str(out_dir / "visual.onnx"),
+            input_names=["pixel_values"],
+            output_names=["embedding"],
+            dynamic_axes={"pixel_values": {0: "batch"}, "embedding": {0: "batch"}},
+            opset_version=17,
+            dynamo=False,
+            external_data=True,
         )
         torch.onnx.export(
-            Text(model), (texts["input_ids"], texts["attention_mask"], texts["token_type_ids"]),
-            str(out_dir / "text.onnx"), input_names=["input_ids", "attention_mask", "token_type_ids"],
+            Text(model),
+            (texts["input_ids"], texts["attention_mask"], texts["token_type_ids"]),
+            str(out_dir / "text.onnx"),
+            input_names=["input_ids", "attention_mask", "token_type_ids"],
             output_names=["embedding"],
             dynamic_axes={k: {0: "batch"} for k in ("input_ids", "attention_mask", "token_type_ids", "embedding")},
-            opset_version=17, dynamo=False, external_data=True,
+            opset_version=17,
+            dynamo=False,
+            external_data=True,
         )
     pack(out_dir)
     shutil.copy(src / "vocab.txt", out_dir / "vocab.txt")
@@ -105,7 +115,9 @@ def pack(out_dir: Path) -> None:
     for name in ("visual.onnx", "text.onnx"):
         model = onnx.load(str(out_dir / name), load_external_data=True)
         # 权重一律放进一个 .data 文件（protobuf 一个文件最多 2 GB，大模型的图只能这么存）
-        convert_model_to_external_data(model, all_tensors_to_one_file=True, location=f"{name}.data", size_threshold=1024)
+        convert_model_to_external_data(
+            model, all_tensors_to_one_file=True, location=f"{name}.data", size_threshold=1024
+        )
         onnx.save_model(model, str(tmp / name))
     for p in out_dir.iterdir():
         if p.is_file() and p.name not in ("meta.json", "vocab.txt"):
@@ -127,7 +139,9 @@ def reference(model, processor) -> dict:
     with torch.inference_mode():
         return {
             "pixels": pixels,
-            "padded": {k: padded[k].numpy().astype(np.int64) for k in ("input_ids", "attention_mask", "token_type_ids")},
+            "padded": {
+                k: padded[k].numpy().astype(np.int64) for k in ("input_ids", "attention_mask", "token_type_ids")
+            },
             "image": Visual(model)(torch.from_numpy(pixels)).numpy(),
             "text": Text(model)(padded["input_ids"], padded["attention_mask"], padded["token_type_ids"]).numpy(),
             "short": Text(model)(short["input_ids"], short["attention_mask"], short["token_type_ids"]).numpy(),
@@ -146,9 +160,11 @@ def check(ref: dict, out_dir: Path) -> None:
     txt = ort.InferenceSession(str(out_dir / "text.onnx"), providers=["CPUExecutionProvider"])
     got_img = vis.run(None, {"pixel_values": ref["pixels"]})[0]
     got_txt = txt.run(None, ref["padded"])[0]
-    img = min(cos(a, b) for a, b in zip(ref["image"], got_img))
-    text = min(cos(a, b) for a, b in zip(ref["text"], got_txt))
-    pad = min(cos(a, b) for a, b in zip(ref["short"], got_txt))  # 补齐到 52 和 PyTorch 平时不补齐的也要一样
+    img = min(cos(a, b) for a, b in zip(ref["image"], got_img, strict=True))
+    text = min(cos(a, b) for a, b in zip(ref["text"], got_txt, strict=True))
+    pad = min(
+        cos(a, b) for a, b in zip(ref["short"], got_txt, strict=True)
+    )  # 补齐到 52 和 PyTorch 平时不补齐的也要一样
     print(f"和 PyTorch 比的相似度：图片 {img:.6f}，文字 {text:.6f}，补齐和不补齐 {pad:.6f}")
     if min(img, text, pad) < 0.9999:
         raise SystemExit("导出的 ONNX 和 PyTorch 的结果差太多")

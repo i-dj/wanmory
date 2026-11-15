@@ -40,7 +40,7 @@ let plural = new Intl.PluralRules('zh-CN')
 const isLocale = (s: string | null | undefined): s is Locale => !!s && (LOCALES as readonly string[]).includes(s)
 
 // matchLocale：把浏览器给的语言（zh-Hant-HK、pt、en-GB……）对到支持的语言上
-export function matchLocale(tag: string): Locale | null {
+function matchLocale(tag: string): Locale | null {
   const t = tag.toLowerCase()
   if (t.startsWith('zh')) return /hant|tw|hk|mo/.test(t) ? 'zh-TW' : 'zh-CN'
   if (t.startsWith('pt')) return 'pt-BR'
@@ -103,9 +103,6 @@ export function t(src: string, vars?: Record<string, unknown>): string {
     (k === 'n' || k === 'count') && typeof v === 'number' ? v.toLocaleString(current) : String(v)
   return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? show(k, vars[k]) : m)) : s
 }
-
-// has：这句话有没有翻译（服务器回的错误提示先查一下，查不到再原样显示）
-export const has = (src: string) => current === 'zh-CN' || src in dict || src in fallback
 
 // 日期按当前语言写：fmtDay → 2025年7月27日 / July 27, 2025；fmtMonth → 2025年7月 / July 2025；
 // fmtMonthName → 7月 / July；fmtDayOfMonth → 27日 / 27

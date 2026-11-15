@@ -25,7 +25,10 @@ class OcrModel:
 
         n = threads()
         self.engine = RapidOCR(
-            params={"EngineConfig.onnxruntime.intra_op_num_threads": n, "EngineConfig.onnxruntime.inter_op_num_threads": 1}
+            params={
+                "EngineConfig.onnxruntime.intra_op_num_threads": n,
+                "EngineConfig.onnxruntime.inter_op_num_threads": 1,
+            }
         )
         self.lock = threading.Lock()
         log.info("文字识别模型 %s 已加载", MODEL_ID)
@@ -35,7 +38,7 @@ class OcrModel:
         with self.lock:
             result = self.engine(bgr)
         lines = []
-        for text, score in zip(result.txts or (), result.scores or ()):
+        for text, score in zip(result.txts or (), result.scores or (), strict=True):
             text = text.strip()
             if text and score >= MIN_SCORE:
                 lines.append({"text": text, "score": round(float(score), 3)})

@@ -18,7 +18,7 @@ export const CARTOONS = [
   { id: 'penguin', label: t('企鹅') },
   { id: 'owl', label: t('猫头鹰') },
 ] as const
-export type CartoonId = (typeof CARTOONS)[number]['id']
+type CartoonId = (typeof CARTOONS)[number]['id']
 
 const INK = '#2b2522' // 眼睛、鼻子的深色
 

@@ -107,7 +107,7 @@ export const MEDIA_KINDS: { kind: NonNullable<Filter['kind']>; label: string }[]
   { kind: 'gif', label: t('动图') },
 ]
 export const kindLabel = (kind: Filter['kind']) => MEDIA_KINDS.find((k) => k.kind === kind)?.label ?? t('照片')
-export const PHOTO_VIEWS = [LIBRARY, RECENT, FAVORITES, VIDEOS, ...RATINGS, HIDDEN, DELETED, ...CATEGORY_VIEWS]
+const PHOTO_VIEWS = [LIBRARY, RECENT, FAVORITES, VIDEOS, ...RATINGS, HIDDEN, DELETED, ...CATEGORY_VIEWS]
 
 // SearchQuery 是搜索框里的搜索词和筛选条件，可以只有其中几样
 export type SearchQuery = Pick<Filter, 'q' | 'camera' | 'lens' | 'tag' | 'kind' | 'person'>
@@ -120,7 +120,7 @@ export const searchPath = (query: SearchQuery) => {
 }
 
 // describeSearch 把搜索条件写成一行字：「“海边” · 小宝 · iPhone 16 Pro」
-export function describeSearch(query: SearchQuery, people: Person[]): string[] {
+function describeSearch(query: SearchQuery, people: Person[]): string[] {
   const parts: string[] = []
   if (query.q) parts.push(`“${query.q}”`)
   if (query.person) {
@@ -218,7 +218,7 @@ export const albumPath = (id: string) => `/album/${id}`
 export const albumAddPath = (id: string) => `/album/${id}/add` // 从图库挑照片放进相册
 
 // albumView 是一个相册的分类
-export function albumView(album: Album): View {
+function albumView(album: Album): View {
   return {
     path: albumPath(album.id),
     title: album.name,
