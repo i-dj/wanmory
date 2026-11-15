@@ -3,6 +3,16 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Fotos in eine Kategorie wie Landschaft oder Essen ziehen: Nach dem Hochladen landen sie direkt dort, ohne auf die KI-Erkennung zu warten; auf ein Albumcover in der Albenliste gezogen, kommen sie in dieses Album; auf Personen, Spuren und anderen Seiten gehen sie in die Mediathek",
+    "Der Upload-Button links heißt jetzt „Medien hochladen“, daneben ein Button für ganze Ordner; auch ein hineingezogener Ordner funktioniert, Fotos und Videos darin werden herausgesucht",
+    "Personen in den Fotoinfos zeigen nur erkannte Personen, keine unbekannten Gesichter mehr; mit Geburtstag steht das Alter zum Aufnahmezeitpunkt da, sonst „vor N Jahren“; beim Wechseln der Fotos flackert die Infoleiste nicht mehr",
+    "Personen: Schon 2 Fotos derselben Person ergeben eine eigene Gruppe (bisher 3); vorhandene Fotos werden nach dem Update einmal neu gruppiert",
+    "Gelöschte Fotos standen noch in der KI-Warteschlange, die Aufgabenzahl stimmte nicht und neue Fotos mussten hinter ihnen warten; gelöschte Fotos werden jetzt weder gezählt noch analysiert",
+    "Kompakteres Aufgabenfeld oben rechts; Admins können die KI-Analyse direkt dort pausieren und fortsetzen",
+    "Ist der KI-Dienst nicht verfügbar, zeigt die Suche trotzdem Fotos, die über Text und Ort gefunden werden; fehlen die Modelle, weist sie auf den Download hin",
+    "Speicherplatz ist jetzt unter Systemeinstellungen; „An diesem Tag“ passt in eine Reihe ohne seitliches Scrollen; überflüssige Hinweise wie „Vorschaubilder werden erstellt“ entfernt; Kommentare in docker-compose.yml jetzt auf Englisch; die Online-Demo der Website erklärt zuerst Demo-Zugang und Einschränkungen",
+  ],
   'v0.4.7': [
     "Beim Hochladen von Videos und anderen großen Dateien in Safari hing jeder Abschnitt Dutzende Sekunden, im lokalen Netz kamen nur Bruchteile eines MB pro Sekunde an; Safari ist jetzt so schnell wie Chrome (im Test 30 Videos, 1,9 GB, in 25 Sekunden)",
     "Einstellungen → Hintergrundverarbeitung hat jetzt „Wartezeit nach Uploads“: Die KI wartet nach dem Hochladen 30 Sekunden bis 4 Stunden, damit sie zwischen Uploads keine Ressourcen wegnimmt; zusammen mit dem Nachtfenster lässt sie sich bis zur Nacht aufschieben",

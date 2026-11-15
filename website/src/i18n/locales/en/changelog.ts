@@ -3,6 +3,16 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Drop photos into a category such as Scenery or Food and they land in that category right after uploading, without waiting for AI to recognize them; drop onto an album cover in the album list to upload into that album; drop on People, Footprints and other pages to upload to the library",
+    "The upload button on the left is now “Upload media”, with a button next to it for uploading a whole folder; dropping a folder works too, picking out the photos and videos inside",
+    "People in photo info list only recognized people, no longer unknown faces; with a birthday it shows their age when the photo was taken, otherwise “N years ago”; the info panel no longer flickers when switching photos",
+    "People: two photos of the same person are now enough for their own group (it used to take three); existing photos are regrouped once after upgrading",
+    "Deleted photos were still queued for AI analysis, throwing off the task count and making new uploads wait behind them; deleted photos are now neither counted nor analyzed",
+    "More compact task panel at the top right; admins can pause and resume AI analysis right from the panel",
+    "When the AI service is unavailable, search still shows photos found by text and place; without models it tells you to download them",
+    "Storage moved to System settings; “On this day” fits in one row without scrolling sideways; removed redundant notices such as “Generating thumbnails”; docker-compose.yml comments are now in English; the website’s live demo first explains the demo account and its limits",
+  ],
   'v0.4.7': [
     "Uploading videos and other large files in Safari stalled for tens of seconds on every chunk, managing only a fraction of a MB per second on a local network; Safari is now as fast as Chrome (30 videos, 1.9 GB, in 25 seconds in testing)",
     "Settings → Background processing has a new “Wait after uploads”: AI waits 30 seconds to 4 hours after photos finish uploading, so it doesn't compete for resources between batches; combine it with the Night window to wait until night",

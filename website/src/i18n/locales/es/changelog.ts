@@ -3,6 +3,16 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Arrastra fotos a una categoría como Paisajes o Comida y quedan en ella al terminar la subida, sin esperar a que la IA las reconozca; suéltalas sobre la portada de un álbum en la lista de álbumes para subirlas a ese álbum; en Personas, Huellas y otras páginas se suben a la biblioteca",
+    "El botón de subir a la izquierda ahora se llama «Subir contenido», con otro al lado para subir una carpeta entera; también puedes arrastrar una carpeta y se eligen sus fotos y vídeos",
+    "Las personas en la información de la foto muestran solo a las reconocidas, ya no rostros desconocidos; con cumpleaños se muestra la edad en el momento de la foto, si no «hace N años»; el panel ya no parpadea al cambiar de foto",
+    "Personas: con 2 fotos de la misma persona ya se forma su grupo (antes 3); las fotos existentes se reagrupan una vez tras actualizar",
+    "Las fotos eliminadas seguían en la cola de análisis de IA, descuadrando el recuento y haciendo esperar a las nuevas; ahora no se cuentan ni se analizan",
+    "Panel de tareas arriba a la derecha más compacto; los administradores pueden pausar y reanudar el análisis de IA desde ahí",
+    "Si el servicio de IA no está disponible, la búsqueda sigue mostrando las fotos encontradas por texto y lugar; sin modelos, indica que hay que descargarlos",
+    "El almacenamiento pasa a Ajustes del sistema; «Tal día como hoy» cabe en una fila sin desplazamiento lateral; se quitaron avisos innecesarios como «Generando miniaturas»; los comentarios de docker-compose.yml ahora están en inglés; la demo en línea del sitio explica primero la cuenta de demo y sus límites",
+  ],
   'v0.4.7': [
     "Al subir vídeos y otros archivos grandes desde Safari, cada fragmento se atascaba decenas de segundos, con apenas una fracción de MB por segundo en la red local; ahora Safari va tan rápido como Chrome (30 vídeos, 1,9 GB, en 25 segundos en las pruebas)",
     "Ajustes → Procesamiento en segundo plano tiene «Espera tras subir»: la IA espera de 30 segundos a 4 horas después de que terminen las subidas, para no quitar recursos entre tandas; combínala con el horario nocturno para esperar a la noche",

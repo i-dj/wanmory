@@ -2,6 +2,16 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Kéo ảnh vào một danh mục như Phong cảnh hay Ẩm thực, tải xong là ảnh nằm ngay trong danh mục đó, không cần chờ AI nhận ra; thả lên bìa một album trong danh sách album để tải vào album đó; ở Mọi người, Dấu chân và các trang khác thì tải vào thư viện",
+    "Nút tải lên bên trái đổi tên thành «Tải lên ảnh và video», bên cạnh có thêm nút tải lên cả thư mục; kéo thả thư mục cũng được, ảnh và video bên trong sẽ được chọn ra",
+    "Mục người trong thông tin ảnh chỉ liệt kê người đã nhận ra, không còn hiện khuôn mặt chưa nhận ra; có ngày sinh thì ghi tuổi lúc chụp, không có thì ghi «N năm trước»; chuyển ảnh không còn nháy khung thông tin",
+    "Mọi người: chỉ cần 2 ảnh của cùng một người là thành nhóm riêng (trước đây 3); sau khi nâng cấp, ảnh sẵn có được nhóm lại một lần",
+    "Ảnh đã xóa vẫn nằm trong hàng đợi nhận diện AI, khiến số việc không khớp và ảnh mới phải chờ phía sau; giờ ảnh đã xóa không được tính và không nhận diện nữa",
+    "Bảng tác vụ góc trên bên phải gọn hơn; quản trị viên có thể tạm dừng, tiếp tục nhận diện AI ngay trong bảng",
+    "Khi dịch vụ AI không dùng được, tìm kiếm vẫn hiện những ảnh tìm thấy theo chữ và địa điểm; chưa tải mô hình thì nhắc đi tải",
+    "Dung lượng lưu trữ chuyển vào Cài đặt hệ thống; «Ngày này năm xưa» vừa một hàng, không cuộn ngang nữa; bỏ những thông báo thừa như «Đang tạo ảnh thu nhỏ»; chú thích trong docker-compose.yml giờ là tiếng Anh; bản demo trực tuyến trên trang chủ giới thiệu trước tài khoản demo và các giới hạn",
+  ],
   'v0.4.7': [
     "Khi tải video và tệp lớn lên bằng Safari, mỗi phần bị đứng vài chục giây, trong mạng nội bộ chỉ được chưa tới 1 MB mỗi giây; giờ Safari nhanh như Chrome (thử nghiệm 30 video, 1,9 GB, trong 25 giây)",
     "Cài đặt → Xử lý nền có thêm “Chờ sau khi tải lên”: AI chờ 30 giây đến 4 giờ sau khi ảnh tải lên xong rồi mới bắt đầu, không tranh tài nguyên giữa các đợt tải; muốn chờ đến đêm thì kết hợp với khung giờ ban đêm",

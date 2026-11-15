@@ -3,6 +3,16 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Glissez des photos dans une catégorie comme Paysages ou Cuisine : elles y sont rangées dès l’envoi, sans attendre la reconnaissance IA ; déposées sur la couverture d’un album dans la liste des albums, elles vont dans cet album ; sur Personnes, Empreintes et les autres pages, elles vont dans la photothèque",
+    "Le bouton d’envoi à gauche s’appelle désormais « Importer des médias », avec à côté un bouton pour envoyer un dossier entier ; glisser un dossier fonctionne aussi, en ne gardant que les photos et vidéos",
+    "Les personnes dans les infos photo ne listent que les personnes reconnues, plus les visages inconnus ; avec une date de naissance, l’âge à la prise de vue s’affiche, sinon « il y a N ans » ; le panneau ne clignote plus en changeant de photo",
+    "Personnes : 2 photos d’une même personne suffisent désormais pour former son groupe (contre 3) ; les photos existantes sont regroupées une fois après la mise à jour",
+    "Les photos supprimées restaient dans la file d’analyse IA, faussant le nombre de tâches et faisant attendre les nouvelles photos ; elles ne sont plus comptées ni analysées",
+    "Panneau des tâches en haut à droite plus compact ; les administrateurs peuvent y mettre en pause et reprendre l’analyse IA",
+    "Quand le service IA est indisponible, la recherche affiche quand même les photos trouvées par texte et lieu ; sans modèles, elle invite à les télécharger",
+    "L’espace de stockage passe dans Réglages système ; « Ce jour-là » tient sur une ligne sans défilement horizontal ; suppression de messages superflus comme « Génération des miniatures » ; commentaires de docker-compose.yml en anglais ; la démo en ligne du site présente d’abord le compte de démo et ses limites",
+  ],
   'v0.4.7': [
     "En envoyant des vidéos et autres gros fichiers depuis Safari, chaque morceau se bloquait des dizaines de secondes, à une fraction de Mo par seconde sur le réseau local ; Safari est désormais aussi rapide que Chrome (30 vidéos, 1,9 Go, en 25 secondes lors des tests)",
     "Réglages → Traitement en arrière-plan propose « Attente après les envois » : l'IA attend de 30 secondes à 4 heures après la fin des envois, pour ne pas prendre les ressources entre deux lots ; combinez-la avec la plage de nuit pour attendre la nuit",

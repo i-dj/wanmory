@@ -3,6 +3,16 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Trascina le foto in una categoria come Paesaggi o Cibo e finiscono lì appena caricate, senza aspettare il riconoscimento IA; rilasciale sulla copertina di un album nell’elenco album per caricarle in quell’album; su Persone, Impronte e altre pagine vanno nella fototeca",
+    "Il pulsante di caricamento a sinistra ora si chiama «Carica contenuti», con accanto un pulsante per caricare un’intera cartella; puoi anche trascinare una cartella, verranno scelte le foto e i video al suo interno",
+    "Le persone nelle info foto mostrano solo quelle riconosciute, non più i volti sconosciuti; con il compleanno compare l’età al momento dello scatto, altrimenti «N anni fa»; il pannello non lampeggia più cambiando foto",
+    "Persone: bastano ora 2 foto della stessa persona per formare un suo gruppo (prima 3); dopo l’aggiornamento le foto esistenti vengono raggruppate di nuovo una volta",
+    "Le foto eliminate restavano in coda per l’analisi IA, falsando il conteggio e facendo attendere le nuove; ora non vengono né contate né analizzate",
+    "Pannello attività in alto a destra più compatto; gli amministratori possono mettere in pausa e riprendere l’analisi IA direttamente da lì",
+    "Quando il servizio IA non è disponibile, la ricerca mostra comunque le foto trovate per testo e luogo; senza modelli invita a scaricarli",
+    "Lo spazio di archiviazione è passato in Impostazioni di sistema; «Accadde oggi» sta in una riga senza scorrimento orizzontale; rimossi avvisi superflui come «Generazione miniature»; commenti di docker-compose.yml ora in inglese; la demo online del sito spiega prima l’account demo e i suoi limiti",
+  ],
   'v0.4.7': [
     "Caricando video e altri file grandi da Safari, ogni blocco si fermava per decine di secondi, con meno di 1 MB al secondo in rete locale; ora Safari è veloce quanto Chrome (nei test 30 video, 1,9 GB, in 25 secondi)",
     "Impostazioni → Elaborazione in background ha «Attesa dopo i caricamenti»: l'IA aspetta da 30 secondi a 4 ore dopo la fine dei caricamenti, per non sottrarre risorse tra un gruppo e l'altro; abbinala alla fascia notturna per aspettare la notte",

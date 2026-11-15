@@ -3,6 +3,16 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.8': [
+    "Arraste fotos para uma categoria como Paisagens ou Comida e elas ficam nela assim que o envio termina, sem esperar a IA reconhecê-las; solte sobre a capa de um álbum na lista de álbuns para enviar a esse álbum; em Pessoas, Pegadas e outras páginas, o envio vai para a biblioteca",
+    "O botão de envio à esquerda agora se chama “Enviar mídia”, com outro ao lado para enviar uma pasta inteira; arrastar uma pasta também funciona, separando as fotos e vídeos dela",
+    "As pessoas nas informações da foto mostram só quem foi reconhecido, sem rostos desconhecidos; com aniversário aparece a idade na época da foto, senão “há N anos”; o painel não pisca mais ao trocar de foto",
+    "Pessoas: 2 fotos da mesma pessoa já formam um grupo próprio (antes eram 3); as fotos existentes são reagrupadas uma vez após atualizar",
+    "Fotos excluídas continuavam na fila de análise da IA, bagunçando a contagem e fazendo as novas esperarem; agora não são contadas nem analisadas",
+    "Painel de tarefas no canto superior direito mais compacto; administradores podem pausar e retomar a análise da IA por ali",
+    "Quando o serviço de IA está indisponível, a busca ainda mostra as fotos encontradas por texto e local; sem modelos, ela orienta a baixá-los",
+    "Armazenamento foi para Configurações do sistema; “Neste dia” cabe em uma linha sem rolagem lateral; avisos desnecessários como “Gerando miniaturas” foram removidos; comentários do docker-compose.yml agora em inglês; a demonstração on-line do site explica primeiro a conta de demonstração e seus limites",
+  ],
   'v0.4.7': [
     "Ao enviar vídeos e outros arquivos grandes pelo Safari, cada pedaço travava dezenas de segundos, com só uma fração de MB por segundo na rede local; agora o Safari é tão rápido quanto o Chrome (30 vídeos, 1,9 GB, em 25 segundos nos testes)",
     "Configurações → Processamento em segundo plano ganhou “Espera após envios”: a IA espera de 30 segundos a 4 horas depois que os envios terminam, para não disputar recursos entre lotes; combine com o horário noturno para esperar até a noite",
