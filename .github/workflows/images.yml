@@ -1,9 +1,9 @@
-# 构建 Docker 镜像，推到 ghcr.io/<仓库所有者>/（例如 ghcr.io/i-dj/）：
-#   wanmory-server：相册程序（内嵌前端页面）+ ExifTool、libvips、FFmpeg
-#   wanmory-ml：内置 AI 服务（ONNX 版，不带 PyTorch，模型在网页设置里下载）
-# amd64（N100、NAS、PC）和 arm64（树莓派、Apple 芯片上的 Docker）各在自己架构的 GitHub 机器上同时构建，
-# 不用模拟器（模拟的 ARM 慢好几倍）；最后合成一个镜像，拉取时自动选对的架构。
-# 打 v 开头的标签（git tag v0.1.0 && git push --tags）时发布这个版本和 latest；也可以在 Actions 页面手动运行
+# Builds the Docker images and pushes them to ghcr.io/<repository owner>/ (e.g. ghcr.io/i-dj/):
+#   wanmory-server: the server (with the web UI embedded) + ExifTool, libvips, FFmpeg
+#   wanmory-ml: the built-in AI service (ONNX, no PyTorch; models are downloaded from Settings)
+# amd64 (N100, NAS, PC) and arm64 (Raspberry Pi, Docker on Apple silicon) build in parallel on native GitHub runners,
+# without emulation (emulated ARM is several times slower), then merge into one multi-arch image.
+# Pushing a v* tag (git tag v0.1.0 && git push --tags) publishes that version and latest; it can also be run manually from the Actions page
 name: Images
 
 on:
@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 jobs:
-  # 每个镜像、每种架构一个任务，推上去的只有内容的摘要（digest），还没有标签
+  # One job per image and architecture; pushes by digest only, without tags yet
   build:
     strategy:
       fail-fast: false
@@ -34,7 +34,7 @@ jobs:
             runner: ubuntu-24.04
             arch: amd64
           - platform: linux/arm64
-            runner: ubuntu-24.04-arm # 公开仓库免费的 ARM 机器
+            runner: ubuntu-24.04-arm # free ARM runners for public repositories
             arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
@@ -45,8 +45,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: 版本号
-        # 标签 v0.2.2 → 0.2.2，手动运行（不是标签）时是 dev
+      - name: Version
+        # tag v0.2.2 → 0.2.2; manual runs (not a tag) use dev
         run: echo "VERSION=$([[ "$GITHUB_REF" == refs/tags/v* ]] && echo "${GITHUB_REF_NAME#v}" || echo dev)" >> "$GITHUB_ENV"
       - id: build
         uses: docker/build-push-action@v6
@@ -58,7 +58,7 @@ jobs:
           outputs: type=image,name=ghcr.io/${{ github.repository_owner }}/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
-      - name: 记下摘要
+      - name: Export digest
         run: |
           mkdir -p /tmp/digests
           touch "/tmp/digests/${DIGEST#sha256:}"
@@ -70,7 +70,7 @@ jobs:
           path: /tmp/digests/*
           retention-days: 1
 
-  # 两种架构都好了：合成一个镜像，打上版本号和 latest
+  # Both architectures done: merge into one image tagged with the version and latest
   merge:
     needs: build
     runs-on: ubuntu-24.04
@@ -97,15 +97,15 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
-      - name: 合成多架构镜像
+      - name: Create multi-arch manifest
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf 'ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}@sha256:%s ' *)
-      - name: 看一眼
+      - name: Inspect image
         run: docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
 
-  # 镜像都推上去了再发布 GitHub Release（设置 → 系统更新从这里看有没有新版本）：说明是 CHANGELOG.md 里这个版本的那一段
+  # Publish the GitHub Release once the images are pushed (Settings → System update checks it for new versions); the notes are this version's section of CHANGELOG.md
   release:
     needs: merge
     if: startsWith(github.ref, 'refs/tags/v')
@@ -114,16 +114,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: 摘出这个版本的说明
+      - name: Extract release notes
         run: |
           awk -v tag="## ${GITHUB_REF_NAME}" '
             $0 == tag || index($0, tag " ") == 1 { on = 1; next }
             on && /^## / { exit }
             on { print }
           ' CHANGELOG.md > notes.md
-          [ -s notes.md ] || echo "见提交记录。" > notes.md
+          [ -s notes.md ] || echo "See the commit history." > notes.md
           cat notes.md
-      - name: 发布
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
