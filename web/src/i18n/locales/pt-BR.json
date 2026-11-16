@@ -171,6 +171,7 @@
   "{v0} 项成功": "{v0} com sucesso",
   "{v0}使用": "Usado {v0}",
   "{v0}加入": "Entrou em {v0}",
+  "{v0}发布": "Lançada em {v0}",
   "{v0}岁": {
     "one": "{v0} ano",
     "other": "{v0} anos"
@@ -212,7 +213,7 @@
   "上传失败（{status}）": "Falha no envio ({status})",
   "上传完成": "Envio concluído",
   "上传已暂停": "Envio pausado",
-  "上传影像": "Enviar fotos e vídeos",
+  "上传影像": "Enviar mídia",
   "上传文件夹": "Enviar pasta",
   "上传新的照片和视频，传完自动放进相册": "Envie novas fotos e vídeos; eles são adicionados ao álbum ao terminar",
   "上传的照片会保留；隐藏的照片会取消隐藏，回到图库。": "As fotos enviadas são mantidas; as fotos ocultas voltam a aparecer e retornam à biblioteca.",
@@ -307,6 +308,7 @@
   "保留这张": "Manter esta",
   "信息": "Informações",
   "信息（只选一张时）": "Informações (apenas um item)",
+  "修复：": "Correção: ",
   "修改": "Editar",
   "修改 {count} 张照片的位置": {
     "one": "Alterar local de {count} foto",
@@ -434,7 +436,6 @@
   },
   "参数": "Configurações",
   "及其他 TOTP 应用。": "e outros apps TOTP.",
-  "发布": "Lançada",
   "取消": "Cancelar",
   "取消收藏": "Remover dos favoritos",
   "取消还没传完的 {unfinished} 个文件？": {
@@ -471,6 +472,7 @@
   "可以浏览的目录": "Pastas que você pode navegar",
   "可以添加、删除成员，修改系统设置": "Pode adicionar e remover membros e alterar as configurações do sistema",
   "可在「最近删除」中恢复": "Pode ser restaurado da lixeira",
+  "可更新": "Atualizar",
   "合并中…": "Mesclando…",
   "合影": "Juntos",
   "同时处理的任务数应该是 0（自动）到 {n}": "Tarefas simultâneas devem ser de 0 (auto) a {n}",

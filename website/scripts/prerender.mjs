@@ -1,13 +1,13 @@
 // 预渲染：vite build 之后运行。dist 里的六个 HTML 是模板（英语、#root 和 <head> 里是占位），
 // 用 SSR 构建出的 render() 把每个页面 × 每种语言渲染成完整的 HTML：英语写回原位置，其他语言写到 dist/<语言>/ 下。
 // 这样搜索引擎（包括不执行 JavaScript 的爬虫）直接能读到每种语言的完整内容，浏览器里再 hydrate 接管。
-// 最后生成带 hreflang 的 sitemap.xml
+// 最后生成带 hreflang 的 sitemap.xml，和相册系统更新页用的更新说明译文 releases.json
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const { render, renderHead, renderSitemap, LOCALES, PAGES } = await import(`${root}dist-ssr/entry-server.js`)
+const { render, renderHead, renderSitemap, releaseNotes, LOCALES, PAGES } = await import(`${root}dist-ssr/entry-server.js`)
 
 const HTML_LANG = {
   en: 'en', zh: 'zh-CN', 'zh-tw': 'zh-TW', ja: 'ja', ko: 'ko', de: 'de', fr: 'fr', es: 'es', pt: 'pt-BR', ru: 'ru', it: 'it', vi: 'vi',
@@ -53,4 +53,6 @@ for (const [page, path] of Object.entries(PAGES)) {
   console.log(`prerendered ${file} × ${LOCALES.length} languages`)
 }
 writeFileSync(`${root}dist/sitemap.xml`, renderSitemap())
+// 相册的系统更新页显示的更新说明译文（服务端定时来取，见 server/internal/version/update.go）
+writeFileSync(`${root}dist/releases.json`, JSON.stringify(await releaseNotes()))
 rmSync(`${root}dist-ssr`, { recursive: true, force: true })

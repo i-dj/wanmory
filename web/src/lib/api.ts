@@ -1000,11 +1000,13 @@ export interface ActiveJobs {
 }
 export const activeJobs = () => getJSON<ActiveJobs[]>('/api/jobs/active')
 
-// 版本号和系统更新（设置 → 系统更新）：GitHub 上比现在新的版本，新的在前，notes 是那一版的更新说明（Markdown）
+// 版本号和系统更新（设置 → 系统更新）：GitHub 上比现在新的版本，新的在前，notes 是那一版的更新说明（Markdown，中文），
+// translations 是官网上的译文，按语言一条对一条（取不到官网时没有）
 export interface Release {
   version: string
   name: string
   notes: string
+  translations?: Record<string, string[]>
   url: string
   published_at: string
 }

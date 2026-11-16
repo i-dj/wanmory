@@ -171,6 +171,7 @@
   "{v0} 项成功": "{v0} correctos",
   "{v0}使用": "Usado {v0}",
   "{v0}加入": "Se unió el {v0}",
+  "{v0}发布": "Publicada el {v0}",
   "{v0}岁": {
     "one": "{v0} año",
     "other": "{v0} años"
@@ -212,7 +213,7 @@
   "上传失败（{status}）": "Error al subir ({status})",
   "上传完成": "Subida completada",
   "上传已暂停": "Subida en pausa",
-  "上传影像": "Subir fotos y vídeos",
+  "上传影像": "Subir",
   "上传文件夹": "Subir carpeta",
   "上传新的照片和视频，传完自动放进相册": "Sube fotos y vídeos nuevos; se añaden al álbum al terminar",
   "上传的照片会保留；隐藏的照片会取消隐藏，回到图库。": "Sus fotos subidas se conservan; las fotos ocultas vuelven a mostrarse y regresan a la fototeca.",
@@ -307,6 +308,7 @@
   "保留这张": "Conservar esta",
   "信息": "Información",
   "信息（只选一张时）": "Información (solo un elemento)",
+  "修复：": "Corrección: ",
   "修改": "Editar",
   "修改 {count} 张照片的位置": {
     "one": "Cambiar la ubicación de {count} foto",
@@ -434,7 +436,6 @@
   },
   "参数": "Ajustes",
   "及其他 TOTP 应用。": "y otras aplicaciones TOTP.",
-  "发布": "Publicada",
   "取消": "Cancelar",
   "取消收藏": "Quitar de favoritos",
   "取消还没传完的 {unfinished} 个文件？": {
@@ -471,6 +472,7 @@
   "可以浏览的目录": "Carpetas que puedes explorar",
   "可以添加、删除成员，修改系统设置": "Puede añadir y eliminar miembros y cambiar los ajustes del sistema",
   "可在「最近删除」中恢复": "Se puede restaurar desde la papelera",
+  "可更新": "Actualizar",
   "合并中…": "Combinando…",
   "合影": "Juntos",
   "同时处理的任务数应该是 0（自动）到 {n}": "Las tareas simultáneas deben ser de 0 (auto) a {n}",

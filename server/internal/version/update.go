@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -19,18 +21,25 @@ const (
 	minRefresh = time.Minute
 )
 
-// Release 是 GitHub 上发布的一个版本：说明是发布时从 CHANGELOG.md 里摘出来的那一段（Markdown）
+// notesURL 是官网构建时生成的更新说明译文（见 website/scripts/prerender.mjs）：{"v0.4.9": {"en": [...], "ja": [...]}}，
+// 每条和 CHANGELOG.md 里的一条对应。取不到也没关系，网页显示 GitHub Release 里的中文原文
+const notesURL = "https://wanmory.com/releases.json"
+
+// Release 是 GitHub 上发布的一个版本：说明是发布时从 CHANGELOG.md 里摘出来的那一段（Markdown），
+// Translations 是官网上这段说明的译文，按语言（和网页的语言代码一样），一条对一条
 type Release struct {
-	Version     string    `json:"version"`
-	Name        string    `json:"name"`
-	Notes       string    `json:"notes"`
-	URL         string    `json:"url"`
-	PublishedAt time.Time `json:"published_at"`
+	Version      string              `json:"version"`
+	Name         string              `json:"name"`
+	Notes        string              `json:"notes"`
+	Translations map[string][]string `json:"translations,omitempty"`
+	URL          string              `json:"url"`
+	PublishedAt  time.Time           `json:"published_at"`
 }
 
 // Updates 查 GitHub 上有没有比自己新的版本。repo 是 owner/name，空的时候不检查（WANMORY_UPDATE_REPO=""）
 type Updates struct {
 	repo    string
+	notes   string // 更新说明译文的地址，测试时换成本地的
 	client  *http.Client
 	mu      sync.Mutex
 	list    []Release
@@ -39,7 +48,7 @@ type Updates struct {
 }
 
 func NewUpdates(repo string) *Updates {
-	return &Updates{repo: repo, client: &http.Client{Timeout: 10 * time.Second}}
+	return &Updates{repo: repo, notes: notesURL, client: &http.Client{Timeout: 10 * time.Second}}
 }
 
 // Routes：
@@ -98,9 +107,35 @@ func (u *Updates) get(ctx context.Context, refresh bool) ([]Release, time.Time, 
 	u.checked = time.Now()
 	u.err = err
 	if err == nil {
+		if tr, err := u.translations(ctx); err == nil {
+			for i := range list {
+				list[i].Translations = tr["v"+list[i].Version]
+			}
+		} else {
+			log.Printf("检查更新：取不到更新说明的译文，显示中文原文: %v", err)
+		}
 		u.list = list
 	}
 	return u.list, u.checked, err
+}
+
+// translations 从官网取更新说明的译文
+func (u *Updates) translations(ctx context.Context) (map[string]map[string][]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.notes, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "wanmory/"+Version)
+	res, err := u.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("官网回答 %d", res.StatusCode)
+	}
+	var out map[string]map[string][]string
+	return out, json.NewDecoder(io.LimitReader(res.Body, 4<<20)).Decode(&out)
 }
 
 func (u *Updates) fetch(ctx context.Context) ([]Release, error) {

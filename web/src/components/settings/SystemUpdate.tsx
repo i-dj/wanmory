@@ -102,8 +102,7 @@ export default function SystemUpdate() {
         <dd className="tabular-nums">
           {update?.latest ? (
             <>
-              {versionLabel(update.latest.version)} · {date(update.latest.published_at)}
-              {t('发布')}
+              {versionLabel(update.latest.version)} · {t('{v0}发布', { v0: date(update.latest.published_at) })}
             </>
           ) : update?.error ? (
             <span className="text-muted">{t('不知道')}</span>
@@ -177,10 +176,7 @@ export default function SystemUpdate() {
 
 // ReleaseNotes 是一个版本的说明：版本号、日期，下面是 CHANGELOG 里那一段（「- 」开头的是一条，别的是一段话）
 function ReleaseNotes({ release }: { release: Release }) {
-  const lines = release.notes
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
+  const lines = localNotes(release)
   return (
     <div>
       <div className="flex items-center gap-2 text-body">
@@ -211,6 +207,21 @@ function ReleaseNotes({ release }: { release: Release }) {
       </ul>
     </div>
   )
+}
+
+// localNotes 是按现在的语言显示的说明：有官网的译文、而且条数对得上就用译文（「修复：」开头的条目译文里没写，补上），
+// 繁体中文以外的语言没有那种语言的译文时用英文，都没有就显示中文原文
+function localNotes(release: Release): string[] {
+  const lines = release.notes
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const lang = locale()
+  if (lang === 'zh-CN') return lines
+  const tr = release.translations?.[lang] ?? (lang === 'zh-TW' ? undefined : release.translations?.en)
+  const items = lines.filter((l) => /^[-*]\s+/.test(l))
+  if (!tr || tr.length !== items.length || items.length !== lines.length) return lines
+  return items.map((l, i) => `- ${/^[-*]\s+修复：/.test(l) ? t('修复：') : ''}${tr[i]}`)
 }
 
 // plain 去掉简单的 Markdown 记号（**粗体**、`代码`、[文字](链接)），说明里只显示文字

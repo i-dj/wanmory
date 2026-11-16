@@ -168,6 +168,7 @@
   "{v0} 项成功": "{v0} réussi(s)",
   "{v0}使用": "Utilisé {v0}",
   "{v0}加入": "Membre depuis le {v0}",
+  "{v0}发布": "Publiée le {v0}",
   "{v0}岁": {
     "one": "{v0} an",
     "other": "{v0} ans"
@@ -209,7 +210,7 @@
   "上传失败（{status}）": "Échec de l'envoi ({status})",
   "上传完成": "Envoi terminé",
   "上传已暂停": "Envoi en pause",
-  "上传影像": "Envoyer des médias",
+  "上传影像": "Envoyer",
   "上传文件夹": "Envoyer un dossier",
   "上传新的照片和视频，传完自动放进相册": "Envoyez de nouvelles photos et vidéos ; elles sont ajoutées à l'album une fois terminées",
   "上传的照片会保留；隐藏的照片会取消隐藏，回到图库。": "Les photos envoyées sont conservées ; les photos masquées redeviennent visibles et retournent dans la photothèque.",
@@ -304,6 +305,7 @@
   "保留这张": "Garder celle-ci",
   "信息": "Infos",
   "信息（只选一张时）": "Infos (un seul élément)",
+  "修复：": "Correctif : ",
   "修改": "Modifier",
   "修改 {count} 张照片的位置": {
     "one": "Modifier le lieu de {count} photo",
@@ -431,7 +433,6 @@
   },
   "参数": "Réglages",
   "及其他 TOTP 应用。": "et autres applications TOTP.",
-  "发布": "Publiée",
   "取消": "Annuler",
   "取消收藏": "Retirer des favoris",
   "取消还没传完的 {unfinished} 个文件？": {
@@ -468,6 +469,7 @@
   "可以浏览的目录": "Dossiers consultables",
   "可以添加、删除成员，修改系统设置": "Peut ajouter et supprimer des membres et modifier les réglages du système",
   "可在「最近删除」中恢复": "Récupérable depuis la corbeille",
+  "可更新": "Mise à jour",
   "合并中…": "Fusion…",
   "合影": "Ensemble",
   "同时处理的任务数应该是 0（自动）到 {n}": "Le nombre de tâches simultanées doit être de 0 (auto) à {n}",

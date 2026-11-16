@@ -7,6 +7,7 @@ import FaqPage from './FaqPage'
 import ReleasesPage from './ReleasesPage'
 import FeedbackPage from './FeedbackPage'
 import { I18nProvider, LOCALES, PAGES, loadBundle, type Locale, type PageKey } from './i18n'
+import { releases } from './changelog'
 import { renderHead, renderSitemap } from './i18n/head'
 
 // 构建时预渲染用：每个页面 × 每种语言渲染成 HTML 字符串，填进 dist 里对应 HTML（见 scripts/prerender.mjs）
@@ -29,6 +30,23 @@ export async function render(page: PageKey, locale: Locale): Promise<string> {
       </I18nProvider>
     </StrictMode>,
   )
+}
+
+// releaseNotes 是相册「系统设置 → 系统更新」用的更新说明译文（写成 dist/releases.json）：
+// { "v0.4.9": { "en": [...], "ja": [...] } }，语言代码和相册网页的一样；条数和 CHANGELOG.md 对不上的版本不写
+const APP_LOCALE: Partial<Record<Locale, string>> = { pt: 'pt-BR', 'zh-tw': 'zh-TW' }
+
+export async function releaseNotes(): Promise<Record<string, Record<string, string[]>>> {
+  const out: Record<string, Record<string, string[]>> = {}
+  for (const locale of LOCALES) {
+    if (locale === 'zh') continue
+    const { changelog } = await loadBundle(locale, 'releases')
+    for (const r of releases) {
+      const tr = changelog?.[r.version]
+      if (tr?.length === r.notes.length) (out[r.version] ??= {})[APP_LOCALE[locale] ?? locale] = tr
+    }
+  }
+  return out
 }
 
 export { renderHead, renderSitemap, LOCALES, PAGES }

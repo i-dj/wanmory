@@ -594,10 +594,10 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList | File[]) => voi
             type="button"
             onClick={() => openFilePicker(input.current)}
             aria-label={t('上传影像')}
-            className="flex h-full min-w-0 flex-1 items-center justify-center gap-2 transition-colors hover:bg-page/10 active:bg-page/15"
+            className="flex h-full min-w-0 flex-1 items-center justify-center gap-2 px-3 transition-colors hover:bg-page/10 active:bg-page/15"
           >
-            <Upload className="size-4" strokeWidth={2.2} />
-            {!rail && t('上传影像')}
+            <Upload className="size-4 shrink-0" strokeWidth={2.2} />
+            {!rail && <span className="truncate whitespace-nowrap">{t('上传影像')}</span>}
           </button>
         </Tooltip>
         {!rail && (
@@ -725,7 +725,7 @@ function ProfileCard({ path, onAccount, onSettings }: { path: string; onAccount:
   )
 }
 
-// VersionLine 是名字下面那行：版本号；有新版本时后面一个小标签「有新版本」，点了去设置里的系统更新（访客不显示）
+// VersionLine 是名字下面那行：版本号；有新版本时后面一个小标签「可更新」，点了去设置里的系统更新（访客不显示）
 function VersionLine({ guest, onUpdate }: { guest: boolean; onUpdate: () => void }) {
   const version = useVersion()
   const update = useUpdate(!guest)
@@ -736,9 +736,9 @@ function VersionLine({ guest, onUpdate }: { guest: boolean; onUpdate: () => void
         <button
           type="button"
           onClick={onUpdate}
-          className="rounded-full bg-accent/15 px-1.5 text-micro leading-4 font-medium text-accent hover:bg-accent/25"
+          className="shrink-0 rounded-full bg-accent/15 px-1.5 text-micro leading-4 font-medium whitespace-nowrap text-accent hover:bg-accent/25"
         >
-          {t('有新版本')}
+          {t('可更新')}
         </button>
       )}
     </div>

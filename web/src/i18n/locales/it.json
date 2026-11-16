@@ -171,6 +171,7 @@
   "{v0} 项成功": "{v0} riusciti",
   "{v0}使用": "Usato {v0}",
   "{v0}加入": "Iscritto il {v0}",
+  "{v0}发布": "Rilasciata il {v0}",
   "{v0}岁": {
     "one": "{v0} anno",
     "other": "{v0} anni"
@@ -212,7 +213,7 @@
   "上传失败（{status}）": "Caricamento non riuscito ({status})",
   "上传完成": "Caricamento completato",
   "上传已暂停": "Caricamento in pausa",
-  "上传影像": "Carica foto e video",
+  "上传影像": "Carica",
   "上传文件夹": "Carica cartella",
   "上传新的照片和视频，传完自动放进相册": "Carica nuove foto e video; al termine vengono aggiunti all'album",
   "上传的照片会保留；隐藏的照片会取消隐藏，回到图库。": "Le foto caricate vengono conservate; quelle nascoste tornano visibili e rientrano nella libreria.",
@@ -307,6 +308,7 @@
   "保留这张": "Mantieni questa",
   "信息": "Info",
   "信息（只选一张时）": "Info (solo un elemento)",
+  "修复：": "Correzione: ",
   "修改": "Modifica",
   "修改 {count} 张照片的位置": {
     "one": "Cambia il luogo di {count} foto",
@@ -434,7 +436,6 @@
   },
   "参数": "Impostazioni",
   "及其他 TOTP 应用。": "e altre app TOTP.",
-  "发布": "Rilasciata",
   "取消": "Annulla",
   "取消收藏": "Rimuovi dai preferiti",
   "取消还没传完的 {unfinished} 个文件？": {
@@ -471,6 +472,7 @@
   "可以浏览的目录": "Cartelle consultabili",
   "可以添加、删除成员，修改系统设置": "Può aggiungere ed eliminare membri e modificare le impostazioni di sistema",
   "可在「最近删除」中恢复": "Si può ripristinare dal cestino",
+  "可更新": "Aggiorna",
   "合并中…": "Unione…",
   "合影": "Insieme",
   "同时处理的任务数应该是 0（自动）到 {n}": "Le attività simultanee devono essere da 0 (auto) a {n}",

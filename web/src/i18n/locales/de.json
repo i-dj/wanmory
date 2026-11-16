@@ -171,6 +171,7 @@
   "{v0} 项成功": "{v0} erfolgreich",
   "{v0}使用": "Verwendet {v0}",
   "{v0}加入": "Beigetreten am {v0}",
+  "{v0}发布": "Veröffentlicht am {v0}",
   "{v0}岁": {
     "one": "{v0} Jahr alt",
     "other": "{v0} Jahre alt"
@@ -212,7 +213,7 @@
   "上传失败（{status}）": "Hochladen fehlgeschlagen ({status})",
   "上传完成": "Hochladen abgeschlossen",
   "上传已暂停": "Upload pausiert",
-  "上传影像": "Medien hochladen",
+  "上传影像": "Hochladen",
   "上传文件夹": "Ordner hochladen",
   "上传新的照片和视频，传完自动放进相册": "Neue Fotos und Videos hochladen; danach landen sie automatisch im Album",
   "上传的照片会保留；隐藏的照片会取消隐藏，回到图库。": "Hochgeladene Fotos bleiben erhalten; ausgeblendete Fotos werden wieder eingeblendet und kehren in die Mediathek zurück.",
@@ -307,6 +308,7 @@
   "保留这张": "Dieses behalten",
   "信息": "Info",
   "信息（只选一张时）": "Info (nur bei einem Objekt)",
+  "修复：": "Behoben: ",
   "修改": "Ändern",
   "修改 {count} 张照片的位置": {
     "one": "Ort von {count} Foto ändern",
@@ -434,7 +436,6 @@
   },
   "参数": "Einstellungen",
   "及其他 TOTP 应用。": "und andere TOTP-Apps.",
-  "发布": "Veröffentlicht",
   "取消": "Abbrechen",
   "取消收藏": "Aus Favoriten entfernen",
   "取消还没传完的 {unfinished} 个文件？": {
@@ -471,6 +472,7 @@
   "可以浏览的目录": "Durchsuchbare Ordner",
   "可以添加、删除成员，修改系统设置": "Kann Mitglieder hinzufügen und entfernen sowie Systemeinstellungen ändern",
   "可在「最近删除」中恢复": "Kann aus dem Papierkorb wiederhergestellt werden",
+  "可更新": "Update",
   "合并中…": "Wird zusammengeführt…",
   "合影": "Gemeinsam",
   "同时处理的任务数应该是 0（自动）到 {n}": "Gleichzeitige Aufgaben: 0 (automatisch) bis {n}",

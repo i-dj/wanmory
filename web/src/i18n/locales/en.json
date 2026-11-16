@@ -199,6 +199,7 @@
   "{v0} 项成功": "{v0} succeeded",
   "{v0}使用": "Used {v0}",
   "{v0}加入": "Joined {v0}",
+  "{v0}发布": "Released {v0}",
   "{v0}岁": {
     "one": "{v0} year old",
     "other": "{v0} years old"
@@ -335,6 +336,7 @@
   "保留这张": "Keep this one",
   "信息": "Info",
   "信息（只选一张时）": "Info (one item only)",
+  "修复：": "Fix: ",
   "修改": "Edit",
   "修改 {count} 张照片的位置": {
     "one": "Change location of {count} photo",
@@ -465,7 +467,6 @@
   },
   "参数": "Settings",
   "及其他 TOTP 应用。": "and other TOTP apps.",
-  "发布": "Released",
   "取消": "Cancel",
   "取消收藏": "Unfavorite",
   "取消还没传完的 {unfinished} 个文件？": {
@@ -502,6 +503,7 @@
   "可以浏览的目录": "Folders you can browse",
   "可以添加、删除成员，修改系统设置": "Can add and remove members and change system settings",
   "可在「最近删除」中恢复": "Can be restored from Recently deleted",
+  "可更新": "Update",
   "合并中…": "Merging…",
   "合影": "Together",
   "同时处理的任务数应该是 0（自动）到 {n}": "Concurrent tasks must be 0 (auto) to {n}",
