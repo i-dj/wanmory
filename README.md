@@ -6,7 +6,7 @@ Wanmory is an open-source, self-hosted AI photo library. Run it with Docker on a
 
 [Website](https://wanmory.com) · [Documentation](https://wanmory.com/docs/) · [Live demo](https://demo.wanmory.com) · [Releases](https://github.com/i-dj/wanmory/releases)
 
-![Wanmory](website/public/og.jpg)
+![Wanmory — library view with AI picks](docs/screenshot-en.jpg)
 
 ## Features
 

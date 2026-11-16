@@ -6,7 +6,7 @@
 
 [官网](https://wanmory.com/zh/) · [部署与文档](https://wanmory.com/zh/docs/) · [在线演示](https://demo.wanmory.com) · [版本发布](https://github.com/i-dj/wanmory/releases)
 
-![万象](website/public/og.jpg)
+![万象：图库和 AI 精选](docs/screenshot-zh.jpg)
 
 ## 功能
 
