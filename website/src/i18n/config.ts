@@ -33,6 +33,9 @@ export const PAGES = {
 export type PageKey = keyof typeof PAGES
 
 export const SITE_URL = 'https://wanmory.com'
+// 源码仓库：GitHub，以及国内镜像 Gitee（导航、页脚、结构化数据都用）
+export const GITHUB = 'https://github.com/i-dj/wanmory'
+export const GITEE = 'https://gitee.com/i-dj/wanmory'
 
 export const prefix = (l: Locale) => (l === DEFAULT_LOCALE ? '' : `/${l}`)
 

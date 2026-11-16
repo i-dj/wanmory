@@ -44,11 +44,9 @@ const common: CommonDict = {
   },
   meta: {
     home: {
-      title: 'Wanmory | Open-Source AI Photo Management for Your NAS',
-      description:
-        'Manage your photos on your own NAS or home server with Wanmory. Open-source, self-hosted photo management with face recognition, AI search, and On This Day memories.',
-      keywords:
-        'private photo library,self-hosted photos,NAS photo app,AI photo management,open-source photo library,face recognition,semantic photo search,Docker',
+      title: "Wanmory | Open-Source AI Photo Library for NAS & Docker",
+      description: "Wanmory is an open-source, self-hosted AI photo library you deploy with Docker on a NAS, Raspberry Pi or home server. Face recognition, natural-language search, On This Day and family sharing — a private alternative to Google Photos and iCloud.",
+      keywords: "AI photo library,self-hosted photo library,Docker photo app,NAS photo app,open-source photo management,private photo backup,family photo sharing,face recognition,semantic photo search,Raspberry Pi photo server,Google Photos alternative,iCloud Photos alternative,Immich alternative,PhotoPrism alternative,Synology Photos alternative",
       crumb: 'Home',
       appDescription:
         'An open-source, self-hosted private AI photo library with face clustering, natural-language search, AI highlights, a travel map, and burst cleanup.',
@@ -71,7 +69,7 @@ const common: CommonDict = {
       title: 'Wanmory FAQ | NAS Requirements, Privacy & Local AI',
       description:
         'Find answers about Wanmory hardware requirements, NAS compatibility, photo privacy, offline AI, remote inference, family accounts, backups, and upgrades.',
-      keywords: 'private photo library FAQ,NAS photos,photo privacy,offline AI photos,face recognition,multi-user photo library',
+      keywords: 'private photo library FAQ,NAS photos,photo privacy,offline AI photos,face recognition,multi-user photo library,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: 'FAQ',
     },
     releases: {

@@ -44,11 +44,9 @@ const common: CommonDict = {
   },
   meta: {
     home: {
-      title: 'Wanmory | Quản lý ảnh bằng AI mã nguồn mở cho NAS của bạn',
-      description:
-        'Quản lý ảnh ngay trên NAS hoặc máy chủ gia đình của bạn với Wanmory. Phần mềm quản lý ảnh mã nguồn mở, tự lưu trữ, có nhận diện khuôn mặt, tìm kiếm bằng AI và kỷ niệm «Ngày này năm xưa».',
-      keywords:
-        'thư viện ảnh riêng tư,tự lưu trữ ảnh,ảnh trên NAS,quản lý ảnh bằng AI,thư viện ảnh mã nguồn mở,nhận diện khuôn mặt,tìm ảnh theo ngữ nghĩa,Docker',
+      title: "Wanmory | Thư viện ảnh AI mã nguồn mở cho NAS và Docker",
+      description: "Wanmory là thư viện ảnh AI mã nguồn mở, tự lưu trữ, cài bằng Docker lên NAS, Raspberry Pi hay máy chủ tại nhà. Nhận diện khuôn mặt, tìm kiếm bằng ngôn ngữ tự nhiên, «Ngày này năm xưa» và chia sẻ trong gia đình — lựa chọn riêng tư thay cho Google Photos và iCloud.",
+      keywords: "quản lý ảnh AI,thư viện ảnh tự lưu trữ,ứng dụng ảnh Docker,ứng dụng ảnh NAS,quản lý ảnh mã nguồn mở,sao lưu ảnh riêng tư,chia sẻ ảnh gia đình,nhận diện khuôn mặt,tìm ảnh bằng ngôn ngữ tự nhiên,máy chủ ảnh Raspberry Pi,thay thế Google Photos,thay thế iCloud Photos,thay thế Immich,thay thế PhotoPrism,thay thế Synology Photos",
       crumb: 'Trang chủ',
       appDescription:
         'Thư viện ảnh riêng tư có AI, mã nguồn mở và tự lưu trữ, hỗ trợ gom nhóm khuôn mặt, tìm kiếm bằng ngôn ngữ tự nhiên, ảnh AI chọn lọc, bản đồ hành trình và dọn ảnh chụp liên tiếp.',
@@ -71,7 +69,7 @@ const common: CommonDict = {
       title: 'Câu hỏi thường gặp về Wanmory | Yêu cầu NAS, quyền riêng tư, AI cục bộ',
       description:
         'Giải đáp về yêu cầu phần cứng, khả năng tương thích NAS, quyền riêng tư của ảnh, AI ngoại tuyến, suy luận từ xa, tài khoản gia đình, sao lưu và nâng cấp Wanmory.',
-      keywords: 'câu hỏi thư viện ảnh riêng tư,ảnh trên NAS,quyền riêng tư ảnh,AI ảnh ngoại tuyến,nhận diện khuôn mặt,thư viện ảnh nhiều người dùng',
+      keywords: 'câu hỏi thư viện ảnh riêng tư,ảnh trên NAS,quyền riêng tư ảnh,AI ảnh ngoại tuyến,nhận diện khuôn mặt,thư viện ảnh nhiều người dùng,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: 'Câu hỏi thường gặp',
     },
     releases: {

@@ -44,11 +44,9 @@ const common: CommonDict = {
   },
   meta: {
     home: {
-      title: 'Wanmory | Gestione foto con IA open source per il tuo NAS',
-      description:
-        'Gestisci le tue foto sul tuo NAS o server domestico con Wanmory. Gestione foto open source e self-hosted, con riconoscimento facciale, ricerca con IA e ricordi di «Accadde oggi».',
-      keywords:
-        'fototeca privata,foto self-hosted,foto su NAS,gestione foto con IA,fototeca open source,riconoscimento facciale,ricerca semantica delle foto,Docker',
+      title: "Wanmory | Fototeca con IA open source per NAS e Docker",
+      description: "Wanmory è una fototeca con IA open source e self-hosted da installare con Docker su NAS, Raspberry Pi o server di casa. Riconoscimento facciale, ricerca in linguaggio naturale, «Accadde oggi» e condivisione in famiglia: l’alternativa privata a Google Foto e iCloud.",
+      keywords: "gestione foto con IA,fototeca self-hosted,app foto Docker,app foto NAS,gestione foto open source,backup foto privato,condividere foto in famiglia,riconoscimento facciale,ricerca semantica foto,server foto Raspberry Pi,alternativa a Google Foto,alternativa a iCloud Foto,alternativa a Immich,alternativa a PhotoPrism,alternativa a Synology Photos",
       crumb: 'Home',
       appDescription:
         'Una fototeca privata con IA, open source e self-hosted, con raggruppamento dei volti, ricerca in linguaggio naturale, selezioni dell’IA, mappa dei viaggi e riordino delle raffiche.',
@@ -71,7 +69,7 @@ const common: CommonDict = {
       title: 'Domande frequenti su Wanmory | Requisiti NAS, privacy e IA locale',
       description:
         'Risposte su requisiti hardware, compatibilità con i NAS, privacy delle foto, IA offline, inferenza remota, account di famiglia, backup e aggiornamenti di Wanmory.',
-      keywords: 'domande fototeca privata,foto su NAS,privacy delle foto,IA per foto offline,riconoscimento facciale,fototeca multiutente',
+      keywords: 'domande fototeca privata,foto su NAS,privacy delle foto,IA per foto offline,riconoscimento facciale,fototeca multiutente,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: 'Domande frequenti',
     },
     releases: {

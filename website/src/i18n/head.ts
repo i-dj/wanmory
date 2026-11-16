@@ -1,4 +1,6 @@
-import { DEFAULT_LOCALE, LANG_KEY, LOCALE_INFO, LOCALES, PAGES, SITE_URL, prefix, type Locale, type PageKey } from './config'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { DEFAULT_LOCALE, GITEE, GITHUB, LANG_KEY, LOCALE_INFO, LOCALES, PAGES, SITE_URL, prefix, type Locale, type PageKey } from './config'
 import type { CommonDict } from './locales/zh/common'
 import en from './locales/en/common'
 import zh from './locales/zh/common'
@@ -21,6 +23,18 @@ const COMMON: Record<Locale, CommonDict> = { en, zh, 'zh-tw': zhTw, ja, ko, de, 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 // JSON 放进 <script> 里，避免内容里出现 </script>
 const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`
+
+// latestRelease 读仓库根目录 CHANGELOG.md 最上面的版本（结构化数据里的 softwareVersion）。
+// 这个文件只在 Node 里跑（开发时 vite.config.ts、构建时预渲染），工作目录都是 website/；读不到就不写版本
+function latestRelease(): { version: string; date: string } | null {
+  try {
+    const m = readFileSync(resolve(process.cwd(), '../CHANGELOG.md'), 'utf8').match(/^## v(\d+\.\d+\.\d+) — (\d{4}-\d{2}-\d{2})/m)
+    return m ? { version: m[1], date: m[2] } : null
+  } catch {
+    return null
+  }
+}
+const release = latestRelease()
 
 const pageUrl = (l: Locale, page: PageKey) => `${SITE_URL}${prefix(l)}${PAGES[page]}`
 
@@ -78,6 +92,14 @@ export function renderHead(page: PageKey, l: Locale): string {
             inLanguage: lang,
             license: 'https://www.gnu.org/licenses/agpl-3.0.html',
             offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+            // 最新版本号取自 CHANGELOG.md；源码仓库、截图、安装文档让搜索引擎认得出这是同一个开源项目
+            ...(release && { softwareVersion: release.version, datePublished: release.date }),
+            isAccessibleForFree: true,
+            screenshot: og,
+            downloadUrl: pageUrl(l, 'docs'),
+            installUrl: pageUrl(l, 'docs'),
+            softwareRequirements: 'Docker',
+            sameAs: [GITHUB, GITEE],
           },
         ],
       }),

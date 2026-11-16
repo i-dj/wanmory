@@ -44,11 +44,9 @@ const common: CommonDict = {
   },
   meta: {
     home: {
-      title: 'Wanmory | Gestion de photos par IA, open source, pour votre NAS',
-      description:
-        'Gérez vos photos sur votre propre NAS ou serveur domestique avec Wanmory. Une gestion de photos open source et auto-hébergée, avec reconnaissance faciale, recherche par IA et souvenirs « Ce jour-là ».',
-      keywords:
-        'photothèque privée,photos auto-hébergées,photos sur NAS,gestion de photos IA,photothèque open source,reconnaissance faciale,recherche sémantique de photos,Docker',
+      title: "Wanmory | Photothèque IA open source pour NAS et Docker",
+      description: "Wanmory est une photothèque IA open source et auto-hébergée, à installer avec Docker sur un NAS, un Raspberry Pi ou un serveur domestique. Reconnaissance faciale, recherche en langage naturel, « Ce jour-là » et partage familial : l’alternative privée à Google Photos et iCloud.",
+      keywords: "gestion de photos IA,photothèque auto-hébergée,application photo Docker,application photo NAS,gestion de photos open source,sauvegarde photo privée,partage de photos en famille,reconnaissance faciale,recherche de photos sémantique,serveur photo Raspberry Pi,alternative à Google Photos,alternative à iCloud Photos,alternative à Immich,alternative à PhotoPrism,alternative à Synology Photos",
       crumb: 'Accueil',
       appDescription:
         'Une photothèque IA privée, open source et auto-hébergée avec regroupement des visages, recherche en langage naturel, sélections IA, carte des voyages et tri des rafales.',
@@ -71,7 +69,7 @@ const common: CommonDict = {
       title: 'FAQ Wanmory | Matériel NAS, confidentialité et IA locale',
       description:
         'Réponses sur le matériel requis, la compatibilité NAS, la confidentialité des photos, l’IA hors ligne, l’inférence distante, les comptes familiaux, les sauvegardes et les mises à jour de Wanmory.',
-      keywords: 'FAQ photothèque privée,photos NAS,confidentialité des photos,IA photos hors ligne,reconnaissance faciale,photothèque multi-utilisateur',
+      keywords: 'FAQ photothèque privée,photos NAS,confidentialité des photos,IA photos hors ligne,reconnaissance faciale,photothèque multi-utilisateur,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: 'FAQ',
     },
     releases: {

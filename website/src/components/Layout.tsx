@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Check, ChevronDown, Copy, Github, Globe, HardDrive, Menu, ShieldCheck, X } from 'lucide-react'
 import Logo from './Logo'
 import { LANG_KEY, LOCALE_INFO, LOCALES, PAGES, SITE_URL as SITE, localize, useI18n } from '../i18n'
+import { GITEE, GITHUB } from '../i18n/config'
 
 // 首页和功能架构页共用的东西：顶部导航、页脚、版心、区块标题、按钮、复制按钮
 
-export const GITHUB = 'https://github.com/i-dj/wanmory'
-const GITEE = 'https://gitee.com/i-dj/wanmory' // 国内镜像仓库
+export { GITHUB } from '../i18n/config'
 // 官网正式域名：canonical、Open Graph、站点地图都用它（定义在 src/i18n/config.ts）
 export const SITE_URL = SITE
 

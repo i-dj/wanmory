@@ -44,10 +44,9 @@ const common = {
   // 每个页面 <head> 里的标题、描述、关键词；crumb 是面包屑导航里的页面名
   meta: {
     home: {
-      title: '万象 Wanmory | 开源 AI 相册，部署在你自己的 NAS 上',
-      description:
-        '用万象在自己的 NAS 或家用服务器上管理照片。开源、自托管的照片管理，支持人脸识别、AI 搜索和那年今天，照片无需上传云端。',
-      keywords: '私有相册,自托管相册,NAS 相册,AI 相册,开源相册,人脸识别,以文搜图,照片管理,Docker',
+      title: "万象 Wanmory | 开源 AI 相册 · Docker 部署的 NAS 私有相册",
+      description: "万象是开源、自托管的 AI 相册，用 Docker 一键部署到 NAS、树莓派或家用服务器。人脸识别、中文自然语言搜索、那年今天、家庭共享，照片不上云，是 Google 相册、iCloud 照片的私有替代。",
+      keywords: "AI相册,Docker相册,NAS相册,私有相册,自托管相册,开源相册,家庭相册,照片管理,照片备份,人脸识别,以文搜图,树莓派相册,群晖相册,Google相册替代,iCloud照片替代,Immich替代,PhotoPrism替代,群晖Photos替代,一刻相册替代",
       crumb: '首页',
       appDescription: '开源、自托管的私有 AI 相册，支持人脸聚类、中文自然语言搜索、AI 精选、足迹地图与连拍整理。',
     },
@@ -69,7 +68,7 @@ const common = {
       title: '万象常见问题 | NAS 硬件要求、隐私与本地 AI',
       description:
         '关于万象的常见问题：硬件要求、NAS 兼容性、照片隐私、离线 AI、远程推理、家庭多账号、备份与升级。',
-      keywords: '私有相册常见问题,NAS 相册,照片隐私,AI 相册离线,人脸识别,多用户相册',
+      keywords: '私有相册常见问题,NAS 相册,照片隐私,AI 相册离线,人脸识别,多用户相册,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: '常见问题',
     },
     releases: {

@@ -44,10 +44,9 @@ const common: CommonDict = {
   },
   meta: {
     home: {
-      title: 'Wanmory | NAS で使えるオープンソースの AI 写真管理',
-      description:
-        '自宅の NAS やホームサーバーで写真を管理できる Wanmory。顔認識、AI 検索、「あの日の今日」に対応した、オープンソースのセルフホスト型写真管理です。',
-      keywords: 'プライベートフォトライブラリ,セルフホスト 写真,NAS 写真管理,AI 写真管理,オープンソース 写真,顔認識,自然言語 画像検索,Docker',
+      title: "Wanmory | NAS・Docker で動くオープンソースの AI フォトライブラリ",
+      description: "Wanmory は NAS、Raspberry Pi、自宅サーバーに Docker で導入できる、オープンソースのセルフホスト型 AI フォトライブラリ。顔認識、自然言語検索、「あの日の今日」、家族共有に対応し、写真はクラウドに上げません。Google フォトや iCloud 写真の代わりに。",
+      keywords: "AI 写真管理,セルフホスト 写真,Docker 写真管理,NAS 写真管理,オープンソース フォトライブラリ,写真 バックアップ,家族 写真共有,顔認識,自然言語 画像検索,Raspberry Pi 写真サーバー,Google フォト 代替,iCloud 写真 代替,Immich 代替,PhotoPrism 代替,Synology Photos 代替",
       crumb: 'ホーム',
       appDescription: 'オープンソースでセルフホスト型のプライベート AI フォトライブラリ。顔のクラスタリング、自然言語検索、AI ピックアップ、旅の地図、連写の整理に対応。',
     },
@@ -69,7 +68,7 @@ const common: CommonDict = {
       title: 'Wanmory よくある質問 | NAS の要件・プライバシー・ローカル AI',
       description:
         'Wanmory のハードウェア要件、NAS との互換性、写真のプライバシー、オフライン AI、リモート推論、家族のアカウント、バックアップ、アップグレードについての回答。',
-      keywords: 'プライベートフォトライブラリ FAQ,NAS 写真,写真 プライバシー,オフライン AI 写真,顔認識,複数ユーザー 写真',
+      keywords: 'プライベートフォトライブラリ FAQ,NAS 写真,写真 プライバシー,オフライン AI 写真,顔認識,複数ユーザー 写真,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: 'よくある質問',
     },
     releases: {

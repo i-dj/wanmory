@@ -111,6 +111,20 @@ const faq: FaqDict = {
         },
       ],
     },
+    {
+      key: 'compare',
+      label: "Comparisons",
+      items: [
+        {
+          q: "Can Wanmory replace Google Photos or iCloud Photos?",
+          a: "It works as a private alternative: your photos live on your own NAS or server, with no storage fees and no subscription. Face recognition, content search, On This Day, a travel map and family sharing are all there, and the AI runs locally. The difference is that Wanmory is used in the browser (mobile browsers included) and has no phone app with automatic backup yet; you can upload photos from your phone in bulk through the web page, or sync them to a NAS folder and mount it for import.",
+        },
+        {
+          q: "How is Wanmory different from Immich, PhotoPrism or Synology Photos?",
+          a: "They are all excellent self-hosted photo libraries. Wanmory focuses on: natural-language search that works best in Chinese (based on Chinese-CLIP); modest hardware — it runs on a Raspberry Pi or a low-power NAS, and the AI can be handed to a Mac or GPU machine at home; no NAS brand lock-in — anything that runs Docker works (Synology Photos only runs on Synology); and an interface in 12 languages. If automatic backup from a phone app matters most to you, Immich is currently the better fit.",
+        },
+      ],
+    },
   ],
 }
 

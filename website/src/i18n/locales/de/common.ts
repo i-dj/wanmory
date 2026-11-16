@@ -44,11 +44,9 @@ const common: CommonDict = {
   },
   meta: {
     home: {
-      title: 'Wanmory | Open-Source-KI-Fotoverwaltung für Ihr NAS',
-      description:
-        'Verwalten Sie Ihre Fotos auf Ihrem eigenen NAS oder Heimserver mit Wanmory. Quelloffene, selbst gehostete Fotoverwaltung mit Gesichtserkennung, KI-Suche und „Heute vor …“-Erinnerungen.',
-      keywords:
-        'private Fotobibliothek,Fotos selbst hosten,NAS Fotoverwaltung,KI Fotoverwaltung,Open-Source Fotobibliothek,Gesichtserkennung,semantische Fotosuche,Docker',
+      title: "Wanmory | Open-Source-KI-Fotobibliothek für NAS & Docker",
+      description: "Wanmory ist eine selbst gehostete Open-Source-KI-Fotobibliothek, die Sie per Docker auf NAS, Raspberry Pi oder Heimserver installieren. Gesichtserkennung, Suche in natürlicher Sprache, „An diesem Tag“ und Familienfreigabe – die private Alternative zu Google Fotos und iCloud.",
+      keywords: "KI-Fotoverwaltung,selbst gehostete Fotobibliothek,Docker Foto-App,NAS Foto-App,Open-Source-Fotoverwaltung,Foto-Backup privat,Fotos mit Familie teilen,Gesichtserkennung,semantische Fotosuche,Raspberry Pi Fotoserver,Google Fotos Alternative,iCloud Fotos Alternative,Immich Alternative,PhotoPrism Alternative,Synology Photos Alternative",
       crumb: 'Startseite',
       appDescription:
         'Eine quelloffene, selbst gehostete private KI-Fotobibliothek mit Gesichtsgruppierung, Suche in natürlicher Sprache, KI-Highlights, Reisekarte und Serienbild-Bereinigung.',
@@ -71,7 +69,7 @@ const common: CommonDict = {
       title: 'Wanmory FAQ | NAS-Anforderungen, Datenschutz & lokale KI',
       description:
         'Antworten zu Hardwareanforderungen, NAS-Kompatibilität, Datenschutz bei Fotos, Offline-KI, entfernter Inferenz, Familienkonten, Sicherungen und Updates von Wanmory.',
-      keywords: 'private Fotobibliothek FAQ,NAS Fotos,Datenschutz Fotos,KI Fotos offline,Gesichtserkennung,Fotobibliothek mehrere Benutzer',
+      keywords: 'private Fotobibliothek FAQ,NAS Fotos,Datenschutz Fotos,KI Fotos offline,Gesichtserkennung,Fotobibliothek mehrere Benutzer,Immich,PhotoPrism,Synology Photos,Google Photos,iCloud',
       crumb: 'FAQ',
     },
     releases: {

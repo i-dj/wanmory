@@ -111,6 +111,20 @@ const faq: FaqDict = {
         },
       ],
     },
+    {
+      key: 'compare',
+      label: "So sánh",
+      items: [
+        {
+          q: "Wanmory có thay được Google Photos hay iCloud Photos không?",
+          a: "Có, như một lựa chọn riêng tư: ảnh nằm trên NAS hoặc máy chủ của bạn, không tính phí dung lượng, không cần đăng ký gói. Có nhận diện khuôn mặt, tìm theo nội dung, «Ngày này năm xưa», bản đồ dấu chân và chia sẻ trong gia đình, AI chạy ngay tại máy. Khác biệt là Wanmory hiện dùng qua trình duyệt (cả trên điện thoại) và chưa có ứng dụng điện thoại tự động sao lưu; ảnh trong điện thoại có thể tải lên hàng loạt qua trang web, hoặc đồng bộ vào một thư mục trên NAS rồi gắn vào để nhập.",
+        },
+        {
+          q: "Wanmory khác gì Immich, PhotoPrism hay Synology Photos?",
+          a: "Đều là những thư viện ảnh tự lưu trữ rất tốt. Wanmory chú trọng: tìm kiếm bằng ngôn ngữ tự nhiên hoạt động tốt nhất với tiếng Trung (dựa trên Chinese-CLIP); phần cứng khiêm tốn — chạy được trên Raspberry Pi hay NAS tiết kiệm điện, AI có thể giao cho máy Mac hoặc máy có card đồ họa trong nhà; không phụ thuộc hãng NAS — thiết bị nào chạy được Docker cũng được (Synology Photos chỉ chạy trên Synology); và giao diện 12 ngôn ngữ. Nếu bạn cần nhất là tự động sao lưu từ ứng dụng điện thoại, hiện tại Immich phù hợp hơn.",
+        },
+      ],
+    },
   ],
 }
 
