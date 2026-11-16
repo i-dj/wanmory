@@ -3,6 +3,14 @@
 // Una versión que falte (o con distinto número de puntos) se muestra en el chino original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "El banner de arriba de un álbum ahora elige una foto horizontal con caras nítidas que caben, y recorta centrado en ellas en vez de mostrar solo una barbilla; se vuelve a elegir al añadir o quitar fotos o al volver a abrir el álbum",
+    "Descarga un álbum entero: «Descargar álbum» en el menú … y en el menú contextual lo empaqueta en un zip con el nombre del álbum",
+    "Al añadir fotos a un álbum seguían apareciendo las que ya estaban en él; ahora se ocultan y la indicación es más corta",
+    "En «Crecimiento» de una persona cada edad muestra cuántos elementos tiene; «Huellas» separa el periodo y los días/elementos en dos líneas para que no se corten; «Juntos» solo muestra el número",
+    "Al pasar el ratón por el botón «Subir contenido» de la izquierda quedaba una franja sin color en medio",
+    "La portada del sitio tiene cuatro nuevas tarjetas ilustradas —subida por arrastre, subidas reanudables, importación en su sitio y descarga por lotes— y se quitaron las insignias de arriba",
+  ],
   'v0.4.8': [
     "Arrastra fotos a una categoría como Paisajes o Comida y quedan en ella al terminar la subida, sin esperar a que la IA las reconozca; suéltalas sobre la portada de un álbum en la lista de álbumes para subirlas a ese álbum; en Personas, Huellas y otras páginas se suben a la biblioteca",
     "El botón de subir a la izquierda ahora se llama «Subir contenido», con otro al lado para subir una carpeta entera; también puedes arrastrar una carpeta y se eligen sus fotos y vídeos",

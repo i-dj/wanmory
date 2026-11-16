@@ -3,6 +3,14 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "The banner at the top of an album now picks a landscape photo with clear faces that fit, and crops around the faces instead of showing only a chin; it is picked again when photos are added or removed, or when you reopen the album",
+    "Download a whole album: “Download album” in the album’s … menu and right-click menu packs it into a zip named after the album",
+    "When adding photos to an album, photos already in it were still listed; they are now hidden, and the hint is shorter",
+    "Growth on a person’s page shows the number of items under each age; Footprints puts the date range and the days/items count on separate lines so nothing is cut off; Together shows just the item count",
+    "Hovering the “Upload media” button on the left left an uncolored strip in the middle",
+    "The website home page has four new illustrated feature cards — drag-and-drop upload, resumable uploads, in-place import and batch download — and the hero badges are gone",
+  ],
   'v0.4.8': [
     "Drop photos into a category such as Scenery or Food and they land in that category right after uploading, without waiting for AI to recognize them; drop onto an album cover in the album list to upload into that album; drop on People, Footprints and other pages to upload to the library",
     "The upload button on the left is now “Upload media”, with a button next to it for uploading a whole folder; dropping a folder works too, picking out the photos and videos inside",

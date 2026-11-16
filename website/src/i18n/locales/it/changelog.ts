@@ -3,6 +3,14 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "Il banner in cima a un album ora sceglie una foto orizzontale con volti nitidi che ci stanno, e inquadra i volti invece di mostrare solo un mento; viene scelto di nuovo quando si aggiungono o tolgono foto o si riapre l’album",
+    "Scarica un intero album: «Scarica album» nel menu … e nel menu contestuale lo raccoglie in uno zip con il nome dell’album",
+    "Aggiungendo foto a un album, quelle già presenti restavano nell’elenco; ora sono nascoste e il suggerimento è più breve",
+    "In «Crescita» di una persona ogni età mostra quanti elementi ha; «Impronte» separa periodo e giorni/elementi su due righe, senza tagli; «Insieme» mostra solo il numero",
+    "Passando il mouse sul pulsante «Carica contenuti» a sinistra restava una striscia non colorata al centro",
+    "La home del sito ha quattro nuove schede illustrate — caricamento trascinando, caricamenti ripresi, importazione sul posto e download multiplo — e i badge in alto sono stati tolti",
+  ],
   'v0.4.8': [
     "Trascina le foto in una categoria come Paesaggi o Cibo e finiscono lì appena caricate, senza aspettare il riconoscimento IA; rilasciale sulla copertina di un album nell’elenco album per caricarle in quell’album; su Persone, Impronte e altre pagine vanno nella fototeca",
     "Il pulsante di caricamento a sinistra ora si chiama «Carica contenuti», con accanto un pulsante per caricare un’intera cartella; puoi anche trascinare una cartella, verranno scelte le foto e i video al suo interno",

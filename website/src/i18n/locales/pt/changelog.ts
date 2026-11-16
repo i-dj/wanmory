@@ -3,6 +3,14 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "O banner no topo de um álbum agora escolhe uma foto horizontal com rostos nítidos que cabem e enquadra nos rostos, em vez de mostrar só um queixo; ele é escolhido de novo quando fotos são adicionadas ou removidas, ou ao reabrir o álbum",
+    "Baixe um álbum inteiro: “Baixar álbum” no menu … e no menu de contexto empacota tudo em um zip com o nome do álbum",
+    "Ao adicionar fotos a um álbum, as que já estavam nele continuavam listadas; agora ficam ocultas e a dica está mais curta",
+    "Em “Crescimento” de uma pessoa, cada idade mostra quantos itens tem; “Pegadas” separa o período e os dias/itens em duas linhas, sem cortes; “Juntos” mostra só o número",
+    "Ao passar o mouse no botão “Enviar mídia” à esquerda, ficava uma faixa sem cor no meio",
+    "A página inicial do site ganhou quatro cartões ilustrados — envio por arrastar, envio retomável, importação no lugar e download em lote — e os selos do topo foram removidos",
+  ],
   'v0.4.8': [
     "Arraste fotos para uma categoria como Paisagens ou Comida e elas ficam nela assim que o envio termina, sem esperar a IA reconhecê-las; solte sobre a capa de um álbum na lista de álbuns para enviar a esse álbum; em Pessoas, Pegadas e outras páginas, o envio vai para a biblioteca",
     "O botão de envio à esquerda agora se chama “Enviar mídia”, com outro ao lado para enviar uma pasta inteira; arrastar uma pasta também funciona, separando as fotos e vídeos dela",

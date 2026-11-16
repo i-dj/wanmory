@@ -3,6 +3,14 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "Das Banner oben im Album wählt jetzt ein Querformat mit deutlichen Gesichtern, die hineinpassen, und richtet den Ausschnitt an den Gesichtern aus statt nur ein Kinn zu zeigen; es wird neu gewählt, wenn Fotos hinzukommen oder entfernt werden oder das Album erneut geöffnet wird",
+    "Ganzes Album herunterladen: „Album herunterladen“ im …-Menü und im Kontextmenü packt es in eine ZIP-Datei mit dem Albumnamen",
+    "Beim Hinzufügen von Fotos zu einem Album wurden bereits enthaltene Fotos weiter angezeigt; jetzt werden sie ausgeblendet, und der Hinweis ist kürzer",
+    "Unter „Entwicklung“ einer Person steht bei jedem Alter die Anzahl; „Spuren“ zeigt Zeitraum und Tage/Anzahl in zwei Zeilen, nichts wird abgeschnitten; „Zusammen“ zeigt nur die Anzahl",
+    "Beim Überfahren des Buttons „Medien hochladen“ links blieb in der Mitte ein nicht eingefärbter Streifen",
+    "Die Startseite der Website hat vier neue illustrierte Funktionskarten – Drag-and-drop-Upload, fortsetzbare Uploads, direktes Einbinden und Sammeldownload – und die Abzeichen oben sind weg",
+  ],
   'v0.4.8': [
     "Fotos in eine Kategorie wie Landschaft oder Essen ziehen: Nach dem Hochladen landen sie direkt dort, ohne auf die KI-Erkennung zu warten; auf ein Albumcover in der Albenliste gezogen, kommen sie in dieses Album; auf Personen, Spuren und anderen Seiten gehen sie in die Mediathek",
     "Der Upload-Button links heißt jetzt „Medien hochladen“, daneben ein Button für ganze Ordner; auch ein hineingezogener Ordner funktioniert, Fotos und Videos darin werden herausgesucht",

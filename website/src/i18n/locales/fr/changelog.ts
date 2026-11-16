@@ -3,6 +3,14 @@
 // Une version absente (ou avec un nombre de points différent) s’affiche dans le texte chinois d’origine.
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "La bannière en haut d’un album choisit désormais une photo paysage aux visages nets qui tiennent dans le cadre, et cadre sur les visages au lieu de ne montrer qu’un menton ; elle est choisie à nouveau quand des photos sont ajoutées ou retirées, ou quand vous rouvrez l’album",
+    "Téléchargez un album entier : « Télécharger l’album » dans le menu … et le menu contextuel crée un zip au nom de l’album",
+    "Lors de l’ajout de photos à un album, celles qui y étaient déjà restaient listées ; elles sont maintenant masquées et l’indication est plus courte",
+    "Dans « Évolution » d’une personne, chaque âge affiche son nombre d’éléments ; « Empreintes » sépare la période et les jours/éléments sur deux lignes, sans coupure ; « Ensemble » n’affiche que le nombre",
+    "Au survol du bouton « Importer des médias » à gauche, une bande non colorée apparaissait au milieu",
+    "La page d’accueil du site présente quatre nouvelles cartes illustrées — envoi par glisser-déposer, reprise des envois, import sur place, téléchargement groupé — et les badges du haut ont disparu",
+  ],
   'v0.4.8': [
     "Glissez des photos dans une catégorie comme Paysages ou Cuisine : elles y sont rangées dès l’envoi, sans attendre la reconnaissance IA ; déposées sur la couverture d’un album dans la liste des albums, elles vont dans cet album ; sur Personnes, Empreintes et les autres pages, elles vont dans la photothèque",
     "Le bouton d’envoi à gauche s’appelle désormais « Importer des médias », avec à côté un bouton pour envoyer un dossier entier ; glisser un dossier fonctionne aussi, en ne gardant que les photos et vidéos",

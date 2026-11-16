@@ -2,6 +2,14 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.4.9': [
+    "Ảnh bìa trên cùng của album giờ chọn ảnh ngang có khuôn mặt rõ và vừa khung, rồi cắt theo khuôn mặt thay vì chỉ thấy cằm; ảnh được chọn lại khi thêm, bớt ảnh hoặc khi mở lại album",
+    "Tải xuống cả album: «Tải album xuống» trong menu «…» và menu chuột phải sẽ gói thành tệp zip đặt theo tên album",
+    "Khi thêm ảnh vào album, những ảnh đã có trong album vẫn hiện trong danh sách; giờ chúng được ẩn đi, lời nhắc cũng ngắn hơn",
+    "Mục «Trưởng thành» của mỗi người ghi số mục dưới từng độ tuổi; «Dấu chân» tách khoảng thời gian và số ngày/số mục thành hai dòng, không bị cắt; «Chụp chung» chỉ ghi số mục",
+    "Khi rê chuột lên nút «Tải lên ảnh và video» bên trái, ở giữa còn một dải không đổi màu",
+    "Trang chủ website có thêm bốn thẻ tính năng kèm hình minh họa — kéo thả tải lên, tải tiếp khi gián đoạn, nhập tại chỗ và tải xuống hàng loạt — và bỏ các nhãn ở đầu trang",
+  ],
   'v0.4.8': [
     "Kéo ảnh vào một danh mục như Phong cảnh hay Ẩm thực, tải xong là ảnh nằm ngay trong danh mục đó, không cần chờ AI nhận ra; thả lên bìa một album trong danh sách album để tải vào album đó; ở Mọi người, Dấu chân và các trang khác thì tải vào thư viện",
     "Nút tải lên bên trái đổi tên thành «Tải lên ảnh và video», bên cạnh có thêm nút tải lên cả thư mục; kéo thả thư mục cũng được, ảnh và video bên trong sẽ được chọn ra",
