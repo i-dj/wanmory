@@ -2,6 +2,12 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.5.0': [
+    "Ghi chú phát hành trong Cài đặt hệ thống → Cập nhật hệ thống giờ hiển thị theo ngôn ngữ giao diện (dùng bản dịch 11 ngôn ngữ trên trang web), không lấy được thì hiển thị bản gốc tiếng Trung; ngày của phiên bản mới nhất không còn dính vào chữ “Phát hành”",
+    "Nhãn “Có bản cập nhật” cạnh số phiên bản ở thanh bên bị xuống hai dòng trong tiếng Anh và các ngôn ngữ khác; nay đổi thành “Cập nhật” ngắn hơn, nằm gọn một dòng",
+    "Nút “Tải lên ảnh và video” bị xuống hai dòng trong tiếng Nhật, tiếng Pháp, tiếng Tây Ban Nha và các ngôn ngữ khác; nay ngôn ngữ nào cũng vừa một dòng",
+    "README trên GitHub nay mặc định bằng tiếng Anh, có thêm bản tiếng Trung giản thể, bổ sung các bước triển khai nhanh và ảnh chụp giao diện sản phẩm; tiêu đề và mô tả trang chủ được viết lại theo các từ khóa tìm kiếm phổ biến như “album ảnh AI”, “album ảnh Docker” và “thay thế Google Photos”, và phần hỏi đáp thêm so sánh với Google Photos, iCloud, Immich, PhotoPrism và Synology Photos",
+  ],
   'v0.4.9': [
     "Ảnh bìa trên cùng của album giờ chọn ảnh ngang có khuôn mặt rõ và vừa khung, rồi cắt theo khuôn mặt thay vì chỉ thấy cằm; ảnh được chọn lại khi thêm, bớt ảnh hoặc khi mở lại album",
     "Tải xuống cả album: «Tải album xuống» trong menu «…» và menu chuột phải sẽ gói thành tệp zip đặt theo tên album",

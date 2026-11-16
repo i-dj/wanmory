@@ -3,6 +3,12 @@
 // Le versioni mancanti (o con un numero diverso di punti) compaiono nel cinese originale.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.0': [
+    "Le note di versione in Impostazioni di sistema → Aggiornamento di sistema ora compaiono nella lingua dell’interfaccia (con le 11 traduzioni del sito), oppure nel cinese originale se non si riescono a recuperare; la data dell’ultima versione non è più attaccata a “Rilasciata”",
+    "Il badge “Aggiornamento disponibile” accanto alla versione nella barra laterale andava a capo su due righe in inglese e in altre lingue; ora è il più breve “Aggiorna”, su una riga",
+    "Il pulsante “Carica foto e video” andava a capo su due righe in giapponese, francese, spagnolo e altre lingue; ora sta su una riga in ogni lingua",
+    "Il README su GitHub ora è in inglese per impostazione predefinita, con una versione in cinese semplificato, i passaggi per un’installazione rapida e screenshot del prodotto; titolo e descrizione della home del sito sono stati riscritti intorno a ricerche comuni come “album fotografico con IA”, “album fotografico Docker” e “alternativa a Google Foto”, e le FAQ aggiungono confronti con Google Foto, iCloud, Immich, PhotoPrism e Synology Photos",
+  ],
   'v0.4.9': [
     "Il banner in cima a un album ora sceglie una foto orizzontale con volti nitidi che ci stanno, e inquadra i volti invece di mostrare solo un mento; viene scelto di nuovo quando si aggiungono o tolgono foto o si riapre l’album",
     "Scarica un intero album: «Scarica album» nel menu … e nel menu contestuale lo raccoglie in uno zip con il nome dell’album",

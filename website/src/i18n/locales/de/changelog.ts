@@ -3,6 +3,12 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.0': [
+    "Die Versionshinweise unter Systemeinstellungen → Systemupdate erscheinen jetzt in der Sprache der Oberfläche (mit den 11 Übersetzungen der Website); sind sie nicht abrufbar, wird das chinesische Original gezeigt. Das Datum der neuesten Version klebt nicht mehr an „Veröffentlicht“",
+    "Das Abzeichen „Update verfügbar“ neben der Version in der Seitenleiste brach im Englischen und anderen Sprachen in zwei Zeilen um; jetzt steht dort das kürzere „Update“ in einer Zeile",
+    "Die Schaltfläche „Medien hochladen“ brach im Japanischen, Französischen, Spanischen und anderen Sprachen in zwei Zeilen um; sie passt jetzt in jeder Sprache in eine Zeile",
+    "Das README auf GitHub ist jetzt standardmäßig Englisch mit einer vereinfacht-chinesischen Version, enthält eine Schnellinstallation und Produkt-Screenshots; Titel und Beschreibung der Website-Startseite orientieren sich an häufigen Suchbegriffen wie „KI-Fotoalbum“, „Docker-Fotoalbum“ und „Google-Fotos-Alternative“, und die FAQ vergleichen mit Google Fotos, iCloud, Immich, PhotoPrism und Synology Photos",
+  ],
   'v0.4.9': [
     "Das Banner oben im Album wählt jetzt ein Querformat mit deutlichen Gesichtern, die hineinpassen, und richtet den Ausschnitt an den Gesichtern aus statt nur ein Kinn zu zeigen; es wird neu gewählt, wenn Fotos hinzukommen oder entfernt werden oder das Album erneut geöffnet wird",
     "Ganzes Album herunterladen: „Album herunterladen“ im …-Menü und im Kontextmenü packt es in eine ZIP-Datei mit dem Albumnamen",

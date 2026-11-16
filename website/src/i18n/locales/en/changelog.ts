@@ -3,6 +3,12 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.0': [
+    "Release notes in Settings → System update now appear in your interface language (using the 11 translations on the website), falling back to the Chinese original when they can't be fetched; the latest version's date no longer runs into “Released”",
+    "The “Update available” badge next to the version in the sidebar wrapped onto two lines in English and other languages; it is now a shorter “Update” that fits on one line",
+    "The “Upload media” button wrapped onto two lines in Japanese, French, Spanish and other languages; it now fits on one line in every language",
+    "The README on GitHub is now in English by default with a Simplified Chinese version, adds quick deployment steps and uses product screenshots; the website home page title and description were rewritten around common searches like “AI photo album”, “Docker photo album” and “Google Photos alternative”, and the FAQ adds comparisons with Google Photos, iCloud, Immich, PhotoPrism and Synology Photos",
+  ],
   'v0.4.9': [
     "The banner at the top of an album now picks a landscape photo with clear faces that fit, and crops around the faces instead of showing only a chin; it is picked again when photos are added or removed, or when you reopen the album",
     "Download a whole album: “Download album” in the album’s … menu and right-click menu packs it into a zip named after the album",
