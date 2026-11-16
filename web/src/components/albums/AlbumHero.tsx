@@ -1,38 +1,51 @@
 import { Images, Lock, Sparkles } from 'lucide-react'
-import { type Album, type Asset, previewUrl } from '@/lib/api'
+import { useRef } from 'react'
+import { useElementSize } from '@/hooks/useElementSize'
+import { type Album, type AlbumHeroPick, previewUrl } from '@/lib/api'
 import { t } from '@/i18n'
 
-const LANDSCAPE = 1.3 // 宽比高大这么多才算横图，放进又宽又矮的横幅不会裁得太狠
+const DEFAULT_Y = 0.35 // 没有人脸时偏上一点裁：照片的主体多半在上半部分（三分法），比正中间好
 
-// pickHero 从相册已经读到的照片里挑横幅用的那张：最好看的横图（CLIP 算的 beauty，收藏、星级加分）；
-// 没有横图就退到最好看的照片。视频不用，缩略图是第一帧，常常不好看
-export function pickHero(assets: Asset[]): Asset | null {
-  const photos = assets.filter((a) => a.type === 'image' && a.has_thumbnail && !a.hidden && !a.deleted_at)
-  const score = (a: Asset) => (a.beauty ?? 0.3) + (a.favorite ? 0.25 : 0) + a.rating * 0.05
-  const best = (list: Asset[]) => list.reduce<Asset | null>((b, a) => (!b || score(a) > score(b) ? a : b), null)
-  const wide = photos.filter((a) => a.width && a.height && a.width / a.height >= LANDSCAPE)
-  return best(wide) ?? best(photos)
+// cropPosition 算出 object-position：让 focus 那一点尽量落在横幅正中，又不露出照片外面的空白。
+// 横幅比照片扁时只露出照片高度的 visible 那一部分，上边缘停在 focus 往上半个 visible 的地方，
+// 换算成 object-position 的百分比（0% 顶对顶，100% 底对底）；照片比横幅扁时左右同理
+function cropPosition(focus: { x: number; y: number } | null, photo: number, banner: number) {
+  const axis = (f: number, visible: number) =>
+    visible >= 1 ? 50 : Math.min(100, Math.max(0, ((f - visible / 2) / (1 - visible)) * 100))
+  const x = axis(focus?.x ?? 0.5, Math.min(1, banner / photo))
+  const y = axis(focus?.y ?? DEFAULT_Y, Math.min(1, photo / banner))
+  return `${x}% ${y}%`
 }
 
-// AlbumHero 是相册顶上的横幅：最好看的一张横图铺满，左下角写「智能相册 / 相册」、相册名和照片数量
-// （播放在顶上工具组的「幻灯片」）。鼠标移上去照片轻轻放大，和「那年今天」的卡片一样
+// AlbumHero 是相册顶上的横幅：服务器挑的那张照片铺满（见 server 的 assets/hero.go），按人脸的位置裁，
+// 脸不会被裁掉；左下角写「智能相册 / 相册」、相册名和照片数量（播放在顶上工具组的「幻灯片」）。
+// 鼠标移上去照片以人脸为中心轻轻放大，和「那年今天」的卡片一样
 export default function AlbumHero({
   album,
-  asset,
+  pick,
   summary,
 }: {
   album: Album
-  asset: Asset
+  pick: AlbumHeroPick & { asset: NonNullable<AlbumHeroPick['asset']> }
   summary: string // 「1079 张照片、41 个视频 · 12.1 GB」
 }) {
   const smart = album.kind === 'smart'
   const Icon = smart ? Sparkles : Images
+  const box = useRef<HTMLElement>(null)
+  const { width, height } = useElementSize(box)
+  const { asset, focus } = pick
+  const photo = asset.width && asset.height ? asset.width / asset.height : 1.5
+  const position = cropPosition(focus, photo, width && height ? width / height : 4)
   return (
-    <section className="group relative mt-7 mb-3 h-56 overflow-hidden rounded-2xl bg-line shadow-[0_8px_24px_rgba(30,24,20,0.12)] md:h-72">
+    <section
+      ref={box}
+      className="group relative mt-7 mb-3 h-56 overflow-hidden rounded-2xl bg-line shadow-[0_8px_24px_rgba(30,24,20,0.12)] md:h-72"
+    >
       <img
         src={previewUrl(asset)}
         alt=""
         draggable={false}
+        style={{ objectPosition: position, transformOrigin: position }}
         className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none"
       />
       {/* 左下角压暗一些，白字在亮的照片上也看得清 */}

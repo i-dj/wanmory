@@ -125,7 +125,6 @@
   "{start}个月": "{start} mois",
   "{text}（UTC{offset}）": "{text} (UTC{offset})",
   "{time} 添加到图库": "Ajouté à la photothèque le {time}",
-  "{v0} · {v1} 天 · {v2} 项": "{v0} · {v1} jours · {v2} éléments",
   "{v0} 个国家": {
     "one": "{v0} pays",
     "other": "{v0} pays"
@@ -144,6 +143,7 @@
   },
   "{v0} 分钟": "{v0} min",
   "{v0} 天": "{v0} j",
+  "{v0} 天 · {v1} 项": "{v0} jours · {v1} éléments",
   "{v0} 天前": {
     "one": "il y a {v0} jour",
     "other": "il y a {v0} jours"
@@ -194,7 +194,6 @@
   "「在范围内」要填开始和结束日期": "« Dans la période » demande une date de début et de fin",
   "一次放进相册的照片太多了": "Trop de photos à ajouter à un album en une fois",
   "一次要选 1 到 {n} 张": "Sélectionnez de 1 à {n} éléments à la fois",
-  "一起 {v0} 项": "{v0} ensemble",
   "万象": "Wanmory",
   "万象 Wanmory 两步验证备用码（每个只能用一次）\n\n{v0}\n": "Codes de secours Wanmory pour la validation en deux étapes (chacun utilisable une seule fois)\n\n{v0}\n",
   "万象首页": "Accueil Wanmory",
@@ -225,6 +224,7 @@
   },
   "下载原图": "Télécharger l'original",
   "下载失败：": "Échec du téléchargement : ",
+  "下载相册": "Télécharger l’album",
   "不为空": "n'est pas vide",
   "不再精选": "Retirer de la sélection",
   "不到 1 分钟": "Moins d'une minute",
@@ -938,7 +938,7 @@
   "点一张照片，设为「{name}」的封面": "Cliquez sur une photo pour en faire la couverture de « {name} »",
   "点击复制": "Cliquer pour copier",
   "点这里选一张图片，或者拖进来": "Cliquez pour choisir une image ou glissez-la ici",
-  "点选或拖框选择照片，选好后点右上角的「添加」": "Cliquez ou faites glisser pour sélectionner des photos, puis cliquez sur « Ajouter » en haut à droite",
+  "点选或拖框选择照片": "Cliquez ou faites glisser pour sélectionner des photos",
   "焦距": "Focale",
   "照片": "Photos",
   "照片 ID 格式不对": "ID de photo non valide",

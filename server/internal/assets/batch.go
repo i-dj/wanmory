@@ -2,6 +2,7 @@ package assets
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -142,31 +143,43 @@ func (s *Service) purge(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"deleted": res.Assets, "failed_files": len(res.Failed)})
 }
 
-// download 下载选中照片的原始文件：POST /api/assets/download，表单字段 ids（逗号分隔）。
-// 用表单提交而不是 fetch，浏览器自己接管下载，大文件不用先放进内存。
-// 只选了一张就直接下载那个文件；多张打包成 zip，边读边发，不在服务器上生成临时文件。
+// download 下载照片的原始文件：POST /api/assets/download，表单字段 ids（逗号分隔，选中的那几张）
+// 或 album（整个相册，不限张数）。用表单提交而不是 fetch，浏览器自己接管下载，大文件不用先放进内存。
+// 只有一张就直接下载那个文件；多张打包成 zip，边读边发，不在服务器上生成临时文件。
 func (s *Service) download(w http.ResponseWriter, r *http.Request) {
-	var ids []uuid.UUID
-	for _, v := range strings.Split(r.FormValue("ids"), ",") {
-		if id, err := uuid.Parse(strings.TrimSpace(v)); err == nil {
-			ids = append(ids, id)
+	var list []*Asset
+	if v := r.FormValue("album"); v != "" {
+		id, err := uuid.Parse(v)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "album 应该是相册 ID")
+			return
 		}
-	}
-	if len(ids) == 0 || len(ids) > maxBatch {
-		httpx.Error(w, http.StatusBadRequest, fmt.Sprintf("一次要选 1 到 %d 张", maxBatch))
-		return
-	}
-	all, err := s.store.GetMany(r.Context(), ids)
-	if err != nil {
-		httpx.InternalError(w, err)
-		return
-	}
-	// 只打包自己看得到的（别人隐藏的照片不能靠 ID 下载，见 visibleTo）
-	u := auth.UserFrom(r.Context())
-	list := all[:0]
-	for _, a := range all {
-		if visibleTo(a, u) {
-			list = append(list, a)
+		if list, err = s.albumAssets(r.Context(), id); err != nil {
+			storeError(w, err)
+			return
+		}
+	} else {
+		var ids []uuid.UUID
+		for _, v := range strings.Split(r.FormValue("ids"), ",") {
+			if id, err := uuid.Parse(strings.TrimSpace(v)); err == nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) == 0 || len(ids) > maxBatch {
+			httpx.Error(w, http.StatusBadRequest, fmt.Sprintf("一次要选 1 到 %d 张", maxBatch))
+			return
+		}
+		all, err := s.store.GetMany(r.Context(), ids)
+		if err != nil {
+			httpx.InternalError(w, err)
+			return
+		}
+		// 只打包自己看得到的（别人隐藏的照片不能靠 ID 下载，见 visibleTo）
+		u := auth.UserFrom(r.Context())
+		for _, a := range all {
+			if visibleTo(a, u) {
+				list = append(list, a)
+			}
 		}
 	}
 	if len(list) == 0 {
@@ -204,6 +217,25 @@ func (s *Service) download(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := zw.Close(); err != nil {
 		log.Printf("打包下载失败: %v", err)
+	}
+}
+
+// albumAssets 取出相册里当前用户看得到的所有照片，和看相册时列出来的一样（智能相册按条件、私有相册只给主人，
+// 都在 Page 里处理），一页页取完
+func (s *Service) albumAssets(ctx context.Context, album uuid.UUID) ([]*Asset, error) {
+	f := Filter{Album: &album, User: auth.UserID(ctx)}
+	var all []*Asset
+	var after *Cursor
+	for {
+		page, next, err := s.store.Page(ctx, f, after, 1000)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, page...)
+		if next == nil {
+			return all, nil
+		}
+		after = next
 	}
 }
 

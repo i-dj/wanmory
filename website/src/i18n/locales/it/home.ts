@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Ognuno ha il proprio account. I membri gestiscono le foto che caricano, gli amministratori supervisionano tutto e la cronologia degli accessi è sempre consultabile.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Trascina per caricare, ordinamento automatico", desc: "Carica foto, video e cartelle annidate; rilasciali su una categoria o un album e vengono archiviati lì." },
+      { title: "Caricamenti ripresi, duplicati riconosciuti", desc: "I file grandi si caricano a pezzi e riprendono dopo un’interruzione; i duplicati vengono riconosciuti dal contenuto e non salvati due volte." },
+      { title: "Importazione sul posto, nuove foto trovate", desc: "Collega cartelle di un NAS o di un disco esterno, anche in sola lettura, senza toccare gli originali; le nuove foto vengono trovate ogni 15 minuti." },
+      { title: "Download multiplo, esportazione facile", desc: "Seleziona foto, video o un intero album e scaricali in una volta, per backup e condivisione." },
+    ],
+    art: { drop: "Rilascia per caricare 128 file", resume: "Ripresa in corso", skipped: "Già presente, saltato", download: "Scarica 5 elementi", readOnly: "Sola lettura", scan: "Scansione ogni 15 min" },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Sei funzioni chiave · Un nuovo modo di ordinare le foto',

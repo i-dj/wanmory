@@ -53,6 +53,7 @@ func (s *Service) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/bursts/review", s.reviewBursts)
 	mux.HandleFunc("POST /api/assets/batch", s.batch)
 	mux.HandleFunc("POST /api/assets/download", s.download)
+	mux.HandleFunc("GET /api/assets/hero", s.hero)
 	mux.HandleFunc("POST /api/assets/purge", s.purge)
 	mux.HandleFunc("GET /api/albums", s.listAlbums)
 	mux.HandleFunc("POST /api/albums", s.createAlbum)

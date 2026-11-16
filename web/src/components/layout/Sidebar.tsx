@@ -588,7 +588,7 @@ function SidebarUpload({ onFiles }: { onFiles: (files: FileList | File[]) => voi
   const rail = useContext(Rail) // 收起时只有图标，不分两截
   return (
     <>
-      <div className={cx(BIG_BUTTON, 'overflow-hidden p-0 hover:bg-fg active:scale-100')}>
+      <div className={cx(BIG_BUTTON, 'gap-0! overflow-hidden p-0! hover:bg-fg! active:scale-100!')}>
         <Tooltip label={rail ? t('上传影像') : ''} side="right">
           <button
             type="button"

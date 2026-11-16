@@ -15,6 +15,7 @@ export default function CoverCard({
   src,
   title,
   subtitle,
+  detail,
   aspect = 'square',
   badge,
   onClick,
@@ -22,6 +23,7 @@ export default function CoverCard({
   src: string
   title: ReactNode
   subtitle?: ReactNode
+  detail?: ReactNode // 副标题下面再一行，放不下一行的信息分两行写（足迹：时间段一行，天数、张数一行）
   aspect?: 'square' | 'portrait' // portrait：3:4 竖版（人物、成长、合影）
   badge?: ReactNode // 盖在封面左上角的小标签，例如「常在的地方」
   onClick: () => void
@@ -51,6 +53,7 @@ export default function CoverCard({
       </span>
       <span className="mt-3 block min-h-6 truncate px-0.5 text-[17px] font-semibold">{title}</span>
       {subtitle && <span className="mt-0.5 block truncate px-0.5 text-body text-muted tabular-nums">{subtitle}</span>}
+      {detail && <span className="block truncate px-0.5 text-body text-muted tabular-nums">{detail}</span>}
     </button>
   )
 }

@@ -252,6 +252,7 @@ type Filter struct {
 	Favorite   bool        // 只要收藏的
 	Rating     int         // 只要这个星级的（1–5），0 表示不限
 	Album      *uuid.UUID  // 只要这个相册里的
+	NotAlbum   *uuid.UUID  // 不要这个相册里已经有的（给相册挑照片时，已经加过的不再列出来）
 	Person     *uuid.UUID  // 只要有这个人的
 	With       *uuid.UUID  // 而且也有这个人的（两个人的合照）
 	Near       *[4]float64 // 只要拍摄地点在这个范围里的：最南、最西、最北、最东（纬度、经度）
@@ -374,6 +375,13 @@ func ParseFilter(q url.Values) (Filter, error) {
 		}
 		f.Album = &id
 	}
+	if v := q.Get("not_album"); v != "" {
+		id, err := uuid.Parse(v)
+		if err != nil {
+			return f, errors.New("not_album 应该是相册 ID")
+		}
+		f.NotAlbum = &id
+	}
 	for key, dst := range map[string]**time.Time{"from": &f.From, "to": &f.To} {
 		if v := q.Get(key); v != "" {
 			t, err := time.Parse(time.RFC3339Nano, v)
@@ -493,6 +501,10 @@ func (f Filter) where(args *[]any) string {
 	} else if f.Album != nil {
 		*args = append(*args, *f.Album)
 		sql += ` AND ` + fmt.Sprintf(albumCondition, len(*args))
+	}
+	if f.NotAlbum != nil {
+		*args = append(*args, *f.NotAlbum)
+		sql += ` AND NOT ` + fmt.Sprintf(albumCondition, len(*args))
 	}
 	if f.Person != nil {
 		*args = append(*args, *f.Person)

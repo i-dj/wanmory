@@ -128,7 +128,13 @@ function Growth({
 function AgeCard({ group, onOpen }: { group: AgeGroup; onOpen: () => void }) {
   return (
     <li>
-      <CoverCard src={facePortraitUrl(group.best.face)} aspect="portrait" title={group.label} onClick={onOpen} />
+      <CoverCard
+        src={facePortraitUrl(group.best.face)}
+        aspect="portrait"
+        title={group.label}
+        subtitle={t('{n} 项', { n: group.moments.length })}
+        onClick={onOpen}
+      />
     </li>
   )
 }
@@ -182,11 +188,8 @@ function Places({
               src={assetThumbUrl(p.cover.asset)}
               badge={p.home && t('常在的地方')}
               title={names[p.key] ?? (mapsOn ? '' : formatCoords(p.lat, p.lon))}
-              subtitle={t('{v0} · {v1} 天 · {v2} 项', {
-                v0: formatMonthSpan(p.first, p.last),
-                v1: p.days.toLocaleString(),
-                v2: p.moments.length.toLocaleString(),
-              })}
+              subtitle={formatMonthSpan(p.first, p.last)}
+              detail={t('{v0} 天 · {v1} 项', { v0: p.days.toLocaleString(), v1: p.moments.length.toLocaleString() })}
               onClick={() => open(p)}
             />
           </li>
@@ -227,7 +230,7 @@ function Friends({
               src={c.cover ? facePortraitUrl(c.cover) : ''}
               aspect="portrait"
               title={c.name || <span className="font-normal text-muted">{t('未命名')}</span>}
-              subtitle={t('一起 {v0} 项', { v0: c.shared.toLocaleString() })}
+              subtitle={t('{n} 项', { n: c.shared })}
               onClick={() => navigate(withPath(person.id, c.id))}
             />
           </li>

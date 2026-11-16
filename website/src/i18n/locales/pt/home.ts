@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Cada pessoa tem sua própria conta. Os membros cuidam das fotos que enviaram, os administradores supervisionam tudo, e o histórico de acessos está sempre disponível.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Arraste para enviar, organização automática", desc: "Envie fotos, vídeos e pastas aninhadas; solte sobre uma categoria ou álbum e eles são arquivados ali." },
+      { title: "Envio retomável, duplicados detectados", desc: "Arquivos grandes sobem em partes e continuam após uma interrupção; duplicados são reconhecidos pelo conteúdo e não são guardados duas vezes." },
+      { title: "Importação no lugar, fotos novas detectadas", desc: "Conecte pastas de um NAS ou disco externo, somente leitura se quiser, sem alterar os originais; fotos novas são detectadas a cada 15 minutos." },
+      { title: "Download em lote, exportação fácil", desc: "Selecione fotos, vídeos ou um álbum inteiro e baixe tudo de uma vez, para backup e compartilhamento." },
+    ],
+    art: { drop: "Solte para enviar 128 arquivos", resume: "Retomando", skipped: "Já existe, ignorado", download: "Baixar 5 itens", readOnly: "Somente leitura", scan: "Verifica a cada 15 min" },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Seis recursos principais · Um novo jeito de organizar suas fotos',

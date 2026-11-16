@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Jede Person hat ein eigenes Konto. Mitglieder verwalten ihre eigenen Uploads, Admins behalten den Überblick, und der Anmeldeverlauf ist jederzeit einsehbar.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Per Drag & Drop hochladen, automatisch einsortiert", desc: "Fotos, Videos und verschachtelte Ordner hochladen; in eine Kategorie oder ein Album gezogen, werden sie direkt dort abgelegt." },
+      { title: "Fortsetzbare Uploads, intelligente Duplikaterkennung", desc: "Große Dateien werden in Stücken hochgeladen und nach einer Unterbrechung fortgesetzt; Duplikate werden am Inhalt erkannt und nicht doppelt gespeichert." },
+      { title: "Direkt einbinden, neue Fotos automatisch finden", desc: "Ordner auf NAS oder externer Festplatte anbinden, auf Wunsch schreibgeschützt und ohne die Originale zu verändern; neue Fotos werden alle 15 Minuten entdeckt." },
+      { title: "Sammeldownload, einfacher Export", desc: "Fotos, Videos oder ein ganzes Album auswählen und auf einmal herunterladen – praktisch für Backups und zum Teilen." },
+    ],
+    art: { drop: "Loslassen: 128 Dateien hochladen", resume: "Wird fortgesetzt", skipped: "Schon vorhanden, übersprungen", download: "5 Dateien herunterladen", readOnly: "Schreibgeschützt", scan: "Scan alle 15 Min." },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Sechs Kernfunktionen · Ihre Fotos neu geordnet',

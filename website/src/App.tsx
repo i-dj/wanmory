@@ -15,6 +15,7 @@ import { Button, Container, CopyButton, Footer, Nav, SectionHead } from './compo
 import InstallTerminal, { INSTALL_CMD } from './components/InstallTerminal'
 import Mockup from './components/Mockup'
 import DemoDialog from './components/DemoDialog'
+import FeatureArt, { type ArtKind } from './components/FeatureArt'
 import { useState } from 'react'
 import { usePage, useI18n } from './i18n'
 import type { HomeDict } from './i18n/locales/zh/home'
@@ -83,12 +84,13 @@ function Hero() {
   )
 }
 
-// —— 四张特性卡 ——
+// —— 特性卡：第一排四张讲理念，第二排四张带插图讲常用功能 ——
 
 const featureIcons = [ShieldCheck, Zap, Map, Users]
+const artKinds: ArtKind[] = ['upload', 'resume', 'import', 'download']
 
 function Features() {
-  const features = usePage<HomeDict>().features
+  const { features, more } = usePage<HomeDict>()
   return (
     <section id="features" className="pb-20 sm:pb-28">
       <Container className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -107,6 +109,21 @@ function Features() {
           </div>
           )
         })}
+      </Container>
+      {/* 第二排：上传和导入这些日常用得最多的，顶上配一张插图，一眼看懂 */}
+      <Container className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {more.items.map(({ title, desc }, k) => (
+          <div
+            key={title}
+            className="flex flex-col overflow-hidden rounded-2xl border border-line bg-card transition hover:border-line-strong"
+          >
+            <FeatureArt kind={artKinds[k]} />
+            <div className="p-6">
+              <h3 className="text-[17px] font-semibold text-fg">{title}</h3>
+              <p className="mt-2.5 text-sm leading-[1.75] text-muted">{desc}</p>
+            </div>
+          </div>
+        ))}
       </Container>
     </section>
   )

@@ -69,7 +69,8 @@ function mergeChanges(list: Asset[], changed: Asset[], hasMore: boolean, filter:
 }
 
 // serverOnly：这些条件只有服务器能判断（人脸、照片内容、地点、相机……）
-const serverOnly = (f: Filter) => !!(f.person || f.with || f.near || f.city || f.q || f.tag || f.camera || f.lens)
+const serverOnly = (f: Filter) =>
+  !!(f.person || f.with || f.near || f.city || f.q || f.tag || f.camera || f.lens || f.notAlbum)
 
 const NO_ASSETS: Asset[] = []
 

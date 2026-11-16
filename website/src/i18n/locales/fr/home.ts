@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Chacun a son propre compte. Les membres gèrent les photos qu’ils ont importées, les administrateurs supervisent l’ensemble, et l’historique des connexions est toujours consultable.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Glisser pour envoyer, classement automatique", desc: "Envoyez photos, vidéos et dossiers imbriqués ; déposés sur une catégorie ou un album, ils y sont rangés directement." },
+      { title: "Envoi avec reprise, doublons détectés", desc: "Les gros fichiers partent par morceaux et reprennent après une interruption ; les doublons sont reconnus à leur contenu et jamais stockés deux fois." },
+      { title: "Import sur place, nouvelles photos détectées", desc: "Connectez des dossiers d’un NAS ou d’un disque externe, en lecture seule si besoin, sans toucher aux originaux ; les nouvelles photos sont détectées toutes les 15 minutes." },
+      { title: "Téléchargement groupé, export facile", desc: "Sélectionnez photos, vidéos ou un album entier et téléchargez-les d’un coup, pour sauvegarder et partager." },
+    ],
+    art: { drop: "Déposez pour envoyer 128 fichiers", resume: "Reprise", skipped: "Déjà présent, ignoré", download: "Télécharger 5 éléments", readOnly: "Lecture seule", scan: "Analyse toutes les 15 min" },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Six fonctionnalités clés · Une nouvelle façon d’organiser vos photos',

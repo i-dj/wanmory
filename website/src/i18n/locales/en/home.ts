@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Everyone gets their own account. Members manage the photos they upload, admins oversee everything, and the sign-in history is always available.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Drag to upload, sorted automatically", desc: "Upload photos, videos and nested folders; drop them onto a category or album and they’re filed right there." },
+      { title: "Resumable uploads, smart deduplication", desc: "Large files upload in chunks and pick up where they left off; duplicates are recognized by content, so nothing is stored twice." },
+      { title: "Import in place, new photos found", desc: "Connect folders on a NAS or external drive, read-only if you like, without touching the originals; new photos are discovered every 15 minutes." },
+      { title: "Batch download, easy export", desc: "Select photos, videos or a whole album and download them in one go, for backups and sharing." },
+    ],
+    art: { drop: "Drop to upload 128 items", resume: "Resuming", skipped: "Already there, skipped", download: "Download 5 items", readOnly: "Read-only", scan: "Scans every 15 min" },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Six Core Features · A Fresh Way to Organize Your Photos',

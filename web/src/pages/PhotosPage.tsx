@@ -2,7 +2,7 @@ import { CircleUserRound, Info, Play } from 'lucide-react'
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import AddPhotosButton from '@/components/albums/AddPhotosButton'
-import AlbumHero, { pickHero } from '@/components/albums/AlbumHero'
+import AlbumHero from '@/components/albums/AlbumHero'
 import type { InfoTarget } from '@/components/photos/AssetTile'
 import DatePicker, { type DateRange } from '@/components/photos/DatePicker'
 import DropOverlay from '@/components/photos/DropOverlay'
@@ -41,6 +41,8 @@ import { useTimeline } from '@/hooks/useTimeline'
 import { useUploadQueue } from '@/hooks/useUploadQueue'
 import {
   addToAlbum,
+  albumHero,
+  type AlbumHeroPick,
   setAvatar,
   type Album,
   type Asset,
@@ -153,6 +155,7 @@ export default function PhotosPage({
     const f: Filter = range.value ? { ...view.filter, from: range.value.from, to: range.value.to } : { ...view.filter }
     if (filterable && !picking && kinds.length) f.kinds = kinds
     if (filterable && !picking && uploaders.length) f.uploaders = uploaders
+    if (picking) f.notAlbum = picking.id // 给相册挑照片：已经在相册里的不再列出来
     // 自己的私有相册、人物页、足迹里，自己隐藏了的照样显示
     if ((album?.private && album.owner === getCurrentUserId()) || f.person || f.city || f.near) f.myHidden = true
     if (sorted) {
@@ -455,15 +458,33 @@ export default function PhotosPage({
   const showPlay = !picking && filter.view !== 'deleted'
   const canPlay = showPlay && ordered.length > 0
 
-  // 相册顶上的横幅：第一页照片读到后挑一次，记住是哪个相册的；往下滚加载更多时不换，免得横幅突然变样
-  const [hero, setHero] = useState<{ album: string; asset: Asset } | null>(null)
+  // 相册顶上的横幅：问服务器挑一张（好看、人脸清楚又放得进横幅，见 server 的 assets/hero.go）。
+  // 每次进到这个相册、相册里的照片数量变了（加了、移出、删了、隐藏了）都重新挑一次，用上新加的照片，
+  // 也不会留着已经不在相册里的那张；往下滚加载更多时数量不变，横幅不动。
+  // 重新挑的时候先留着旧的那张，新的到了再换，不会闪一下没了
+  const [hero, setHero] = useState<{ album: string; pick: AlbumHeroPick } | null>(null)
+  const [visit, setVisit] = useState(0)
+  const albumId = album?.id
+  const albumCount = album?.count ?? 0
   useEffect(() => {
-    if (!album || hero?.album === album.id || timeline.assets.length === 0) return
-    const asset = pickHero(timeline.assets)
-    if (asset) setHero({ album: album.id, asset })
-  }, [album, hero, timeline.assets])
-  // 选了日期时看的是其中一段，标题是那段时间，不放横幅
-  const heroAsset = album && !picking && !range.value && hero?.album === album.id ? hero.asset : null
+    if (active && albumId) setVisit((v) => v + 1)
+  }, [active, albumId])
+  const heroKey = albumId && albumCount > 0 ? `${albumId}|${albumCount}|${visit}` : null
+  useEffect(() => {
+    if (!albumId || !heroKey) return
+    let stale = false
+    albumHero(albumId)
+      .then((pick) => !stale && setHero({ album: albumId, pick }))
+      .catch((e) => console.error(e)) // 挑不出来就留着原来的（或不放横幅），标题照常显示
+    return () => {
+      stale = true
+    }
+  }, [albumId, heroKey])
+  // 选了日期时看的是其中一段，标题是那段时间，不放横幅；相册空了也不放
+  const heroPick =
+    album && albumCount > 0 && !picking && !range.value && hero?.album === album.id && hero.pick.asset
+      ? { ...hero.pick, asset: hero.pick.asset }
+      : null
 
   return (
     <div
@@ -476,14 +497,8 @@ export default function PhotosPage({
         ref={toolbarRef}
         layout={layout}
         title={picking ? t('添加到「{name}」', { name: picking.name }) : pageTitle(view, range.value)}
-        hideTitle={!!heroAsset} // 相册名和数量写在横幅上
-        subtitle={
-          picking
-            ? t('点选或拖框选择照片，选好后点右上角的「添加」')
-            : status.summary
-              ? pageSubtitle(view, status.summary)
-              : ''
-        }
+        hideTitle={!!heroPick} // 相册名和数量写在横幅上
+        subtitle={picking ? t('点选或拖框选择照片') : status.summary ? pageSubtitle(view, status.summary) : ''}
         // 人物的照片：标题的位置换成头像、名字、统计和四个标签
         hero={
           person &&
@@ -600,8 +615,8 @@ export default function PhotosPage({
           <MemoriesStrip navigate={navigate} filter={{ kinds: filter.kinds, uploaders: filter.uploaders }} />
         </>
       )}
-      {album && heroAsset && (
-        <AlbumHero album={album} asset={heroAsset} summary={status.summary ? pageSubtitle(view, status.summary) : ''} />
+      {album && heroPick && (
+        <AlbumHero album={album} pick={heroPick} summary={status.summary ? pageSubtitle(view, status.summary) : ''} />
       )}
       {view.filter.near && view.path.startsWith('/places/') && (
         <AreaFootprint key={view.path} box={view.filter.near} city={view.filter.city} navigate={navigate} />

@@ -1,10 +1,10 @@
-import { Ellipsis, ImageIcon, Lock, Pencil, Settings2, Trash2, Users } from 'lucide-react'
+import { Download, Ellipsis, ImageIcon, Lock, Pencil, Settings2, Trash2, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MenuItem } from '@/components/ui/Popover'
 import Tooltip from '@/components/ui/Tooltip'
 import { useAnchorPosition } from '@/hooks/useAnchorPosition'
-import { type Album, canManageAlbum } from '@/lib/api'
+import { type Album, canManageAlbum, downloadAlbum } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import { askDelete } from '@/lib/dialog'
 import { useCurrentUser } from '@/lib/session'
@@ -14,6 +14,7 @@ import { t as tr } from '@/i18n'
 // 删除要在居中的确认框里再确认一次（askConfirm），照片本身不删。菜单放到 body 下浮在按钮下面，不会被侧边栏的滚动区域裁掉。
 // 关着时按钮只在鼠标移到这一行、或者正在看这个相册时出现（visible）。
 // 相册页的卡片上右键时，同一个菜单出现在鼠标的位置（contextAt），多一项「修改封面」（onChangeCover）。
+// 「下载相册」把整个相册打包成 zip，登录的人都能用（访客不能下载）。
 // 改名、删除、私有 / 共享（onPrivacy）只有能管这个相册的人看得到（见 canManageAlbum），别人的共享相册只能换封面
 export default function AlbumMenu({
   album,
@@ -71,7 +72,7 @@ export default function AlbumMenu({
   }, [shown])
 
   const smart = album.kind === 'smart'
-  const { user } = useCurrentUser()
+  const { user, guest } = useCurrentUser()
   const manage = canManageAlbum(album, user)
   return (
     <>
@@ -102,6 +103,18 @@ export default function AlbumMenu({
                 onClick={() => {
                   close()
                   onChangeCover()
+                }}
+              />
+            )}
+            {!guest && (
+              <MenuItem
+                icon={Download}
+                label={tr('下载相册')}
+                hint={tr('{n} 项', { n: album.count })}
+                disabled={album.count === 0}
+                onClick={() => {
+                  close()
+                  downloadAlbum(album)
                 }}
               />
             )}

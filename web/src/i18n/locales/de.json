@@ -128,7 +128,6 @@
   },
   "{text}（UTC{offset}）": "{text} (UTC{offset})",
   "{time} 添加到图库": "Am {time} zur Mediathek hinzugefügt",
-  "{v0} · {v1} 天 · {v2} 项": "{v0} · {v1} Tage · {v2} Objekte",
   "{v0} 个国家": {
     "one": "{v0} Land",
     "other": "{v0} Länder"
@@ -147,6 +146,7 @@
   },
   "{v0} 分钟": "{v0} Min.",
   "{v0} 天": "{v0} T.",
+  "{v0} 天 · {v1} 项": "{v0} Tage · {v1} Objekte",
   "{v0} 天前": {
     "one": "vor {v0} Tag",
     "other": "vor {v0} Tagen"
@@ -197,7 +197,6 @@
   "「在范围内」要填开始和结束日期": "„Im Zeitraum“ braucht ein Start- und Enddatum",
   "一次放进相册的照片太多了": "Zu viele Fotos auf einmal für ein Album",
   "一次要选 1 到 {n} 张": "Wähle 1 bis {n} Elemente auf einmal",
-  "一起 {v0} 项": "{v0} gemeinsam",
   "万象": "Wanmory",
   "万象 Wanmory 两步验证备用码（每个只能用一次）\n\n{v0}\n": "Wanmory-Wiederherstellungscodes für die Bestätigung in zwei Schritten (jeder nur einmal verwendbar)\n\n{v0}\n",
   "万象首页": "Wanmory-Startseite",
@@ -228,6 +227,7 @@
   },
   "下载原图": "Original herunterladen",
   "下载失败：": "Download fehlgeschlagen: ",
+  "下载相册": "Album herunterladen",
   "不为空": "ist nicht leer",
   "不再精选": "Aus Auswahl entfernen",
   "不到 1 分钟": "Unter einer Minute",
@@ -935,7 +935,7 @@
   "点一张照片，设为「{name}」的封面": "Klicke auf ein Foto, um es als Titelbild von „{name}“ festzulegen",
   "点击复制": "Zum Kopieren klicken",
   "点这里选一张图片，或者拖进来": "Klicke, um ein Bild zu wählen, oder ziehe es hierher",
-  "点选或拖框选择照片，选好后点右上角的「添加」": "Fotos anklicken oder aufziehen, dann oben rechts auf „Hinzufügen“ klicken",
+  "点选或拖框选择照片": "Fotos anklicken oder aufziehen",
   "焦距": "Brennweite",
   "照片": "Fotos",
   "照片 ID 格式不对": "Ungültige Foto-ID",

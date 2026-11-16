@@ -100,6 +100,7 @@ export interface Filter {
   favorite?: boolean
   rating?: number // 1–5
   album?: string // 只看这个相册里的
+  notAlbum?: string // 不要这个相册里已经有的（给相册挑照片时用）
   person?: string // 只看有这个人的
   with?: string // 而且也有这个人的（两个人的合照）
   near?: [number, number, number, number] // 拍摄地点在这个范围里的：最南、最西、最北、最东
@@ -126,6 +127,7 @@ function filterQuery(f: Filter): string {
   if (f.favorite) q.set('favorite', 'true')
   if (f.rating) q.set('rating', String(f.rating))
   if (f.album) q.set('album', f.album)
+  if (f.notAlbum) q.set('not_album', f.notAlbum)
   if (f.person) q.set('person', f.person)
   if (f.with) q.set('with', f.with)
   if (f.near) q.set('near', f.near.join(','))
@@ -663,6 +665,16 @@ export interface AssetDetails {
 
 export const assetDetails = (id: string) => getJSON<AssetDetails>(`/api/assets/${id}/details`)
 
+// AlbumHero 是相册横幅用的照片：服务器从相册里挑好看、人脸清楚又放得进横幅的一张；
+// focus 是要对准的点（0–1，人脸所在），照片里没有清楚的人脸时为 null
+export interface AlbumHeroPick {
+  asset: Asset | null
+  focus: { x: number; y: number } | null
+}
+
+export const albumHero = (album: string) =>
+  getJSON<AlbumHeroPick>(`/api/assets/hero?album=${encodeURIComponent(album)}`)
+
 export const originalUrl = (a: Asset) => `/api/assets/${a.id}/original`
 
 // AssetPatch 是批量修改的内容：deleted 为 true 放进「最近删除」，为 false 恢复。只改传了的字段。
@@ -687,10 +699,16 @@ export const updateAssets = (ids: string[], patch: AssetPatch) =>
 export const purgeAssets = (ids?: string[]) =>
   send<{ deleted: number; failed_files: number }>('POST', '/api/assets/purge', ids ? { ids } : { all: true })
 
-// downloadAssets 下载选中照片的原始文件：一张直接下载，多张由服务器打包成 zip。
-// 用表单提交，浏览器自己接管下载，几个 GB 的 zip 也不用先放进内存；
+// downloadAssets 下载选中照片的原始文件：一张直接下载，多张由服务器打包成 zip
+export const downloadAssets = (ids: string[]) =>
+  submitDownload({ ids: ids.join(','), name: t('Wanmory {n} 项', { n: ids.length }) })
+
+// downloadAlbum 把整个相册打包成 zip 下载，压缩包用相册的名字
+export const downloadAlbum = (album: Album) => submitDownload({ album: album.id, name: album.name })
+
+// submitDownload 用表单提交下载请求，浏览器自己接管下载，几个 GB 的 zip 也不用先放进内存；
 // 提交到看不见的 iframe 里，出错时页面也不会跳走
-export function downloadAssets(ids: string[]) {
+function submitDownload(fields: Record<string, string>) {
   let frame = document.querySelector<HTMLIFrameElement>('iframe[name="wanmory-download"]')
   if (!frame) {
     frame = document.createElement('iframe')
@@ -702,15 +720,13 @@ export function downloadAssets(ids: string[]) {
   form.method = 'POST'
   form.action = '/api/assets/download'
   form.target = frame.name
-  const input = document.createElement('input')
-  input.type = 'hidden'
-  input.name = 'ids'
-  input.value = ids.join(',')
-  const name = document.createElement('input') // 多张时压缩包的名字，跟界面语言走
-  name.type = 'hidden'
-  name.name = 'name'
-  name.value = t('Wanmory {n} 项', { n: ids.length })
-  form.append(input, name)
+  for (const [key, value] of Object.entries(fields)) {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = key
+    input.value = value
+    form.append(input)
+  }
   document.body.append(form)
   form.submit()
   form.remove()

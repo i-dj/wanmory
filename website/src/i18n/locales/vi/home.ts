@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Mỗi người có tài khoản riêng. Thành viên quản lý ảnh mình tải lên, quản trị viên quản lý tất cả, lịch sử đăng nhập xem được bất cứ lúc nào.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Kéo thả để tải lên, tự động phân loại", desc: "Tải lên ảnh, video và thư mục nhiều cấp; thả vào một danh mục hay album là được xếp ngay vào đó." },
+      { title: "Tải tiếp khi gián đoạn, lọc trùng thông minh", desc: "File lớn được tải lên theo từng phần, gián đoạn vẫn tải tiếp được; trùng lặp được nhận ra theo nội dung, không lưu hai lần." },
+      { title: "Nhập tại chỗ, tự phát hiện ảnh mới", desc: "Kết nối thư mục trên NAS hay ổ cứng ngoài, có thể nhập ở chế độ chỉ đọc, không đụng tới file gốc; cứ 15 phút tự phát hiện ảnh mới." },
+      { title: "Tải xuống hàng loạt, xuất dễ dàng", desc: "Chọn nhiều ảnh, video hoặc cả album rồi tải về một lần, tiện sao lưu và chia sẻ." },
+    ],
+    art: { drop: "Thả để tải lên 128 tệp", resume: "Đang tải tiếp", skipped: "Đã có, bỏ qua", download: "Tải xuống 5 mục", readOnly: "Chỉ đọc", scan: "Quét mỗi 15 phút" },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Sáu tính năng cốt lõi · Sắp xếp lại thư viện ảnh của bạn',

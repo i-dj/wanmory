@@ -41,6 +41,16 @@ const home: HomeDict = {
       desc: 'Cada persona tiene su cuenta. Los miembros gestionan las fotos que suben, los administradores supervisan todo y el historial de inicios de sesión siempre está disponible.',
     },
   ],
+  // 第二排特性卡（带插图），art 是插图里的几处小字
+  more: {
+    items: [
+      { title: "Arrastra para subir, se clasifica solo", desc: "Sube fotos, vídeos y carpetas anidadas; suéltalos sobre una categoría o un álbum y quedan archivados ahí." },
+      { title: "Subidas reanudables, duplicados detectados", desc: "Los archivos grandes se suben por partes y continúan tras una interrupción; los duplicados se reconocen por su contenido y no se guardan dos veces." },
+      { title: "Importación en su sitio, fotos nuevas detectadas", desc: "Conecta carpetas de un NAS o disco externo, en solo lectura si quieres, sin tocar los originales; cada 15 minutos detecta fotos nuevas." },
+      { title: "Descarga por lotes, exportación sencilla", desc: "Selecciona fotos, vídeos o un álbum entero y descárgalos de una vez, para copias de seguridad y compartir." },
+    ],
+    art: { drop: "Suelta para subir 128 archivos", resume: "Reanudando", skipped: "Ya existe, omitido", download: "Descargar 5 elementos", readOnly: "Solo lectura", scan: "Revisa cada 15 min" },
+  },
   pillars: {
     eyebrow: 'CORE FEATURES',
     title: 'Seis funciones clave · Una nueva forma de ordenar tus fotos',
