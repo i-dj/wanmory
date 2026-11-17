@@ -40,7 +40,8 @@ type Def struct {
 var ErrInvalid = errors.New("设置值不合法")
 
 type Registry struct {
-	defs []Def
+	defs    []Def
+	changed map[string]func(context.Context)
 }
 
 func NewRegistry() *Registry {
@@ -50,6 +51,20 @@ func NewRegistry() *Registry {
 // Register 登记设置项，网页上按登记顺序显示。
 func (r *Registry) Register(d Def) {
 	r.defs = append(r.defs, d)
+}
+
+// OnChange 登记设置改了（或恢复默认）以后要做的事，例如按新的值重新整理数据；在保存请求里调用，要花时间的自己开 goroutine
+func (r *Registry) OnChange(key string, fn func(context.Context)) {
+	if r.changed == nil {
+		r.changed = map[string]func(context.Context){}
+	}
+	r.changed[key] = fn
+}
+
+func (r *Registry) notify(ctx context.Context, key string) {
+	if fn := r.changed[key]; fn != nil {
+		fn(ctx)
+	}
 }
 
 func (r *Registry) Lookup(key string) (Def, bool) {

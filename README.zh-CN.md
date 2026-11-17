@@ -173,13 +173,13 @@ docker compose exec server wanmory reset-password
 它会列出所有账号，输入序号选一个，再输两遍新密码：
 
 ```
-这台相册上的账号：
-  1. alice      管理员   2026-11-03 创建   最近登录 2026-11-08
-  2. bob                 2026-11-03 创建   最近没有登录
-重置哪一个的密码？输入序号（直接回车退出）：1
-新密码：
-再输一遍：
-已重置「alice」的密码，请用新密码登录（所有设备上的登录都已退出）。
+Accounts on this server:
+  1. alice        admin   created 2026-11-03   last sign-in 2026-11-08
+  2. bob                  created 2026-11-03   no recent sign-in
+Reset whose password? Enter a number (press Enter to quit): 1
+New password:
+Repeat it:
+Password for "alice" has been reset. Sign in with the new password (...)
 ```
 
 也可以直接带上账号名：`docker compose exec server wanmory reset-password alice`。改好后这个账号在所有设备上都会退出登录，照片和相册不受影响。只有能登录这台机器的人才能运行，网页上没有这个入口。

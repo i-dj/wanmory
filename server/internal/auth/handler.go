@@ -206,7 +206,7 @@ func (s *Service) setup(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, err) {
 		return
 	}
-	log.Printf("auth: 建好了管理员「%s」", u.Name)
+	log.Printf("auth: created admin %q", u.Name)
 	s.startSession(w, r, c.Name, c.Password, true)
 }
 

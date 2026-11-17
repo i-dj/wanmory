@@ -116,7 +116,7 @@ def start_download(name: str, original: bool = False) -> None:
                 onnx_model(name, download=True)
             give_to_owner()
         except Exception as e:  # 网络断了、磁盘满了：记下来给网页看，可以再点一次重试（重试时重新选下载源）
-            log.exception("下载模型 %s 失败", name)
+            log.exception("downloading model %s failed", name)
             forget_endpoint()
             _report(name, state="error", error=str(e))
 
@@ -155,7 +155,7 @@ def delete(name: str) -> None:
                 shutil.rmtree(d)
         with _progress_lock:
             _progress.pop(name, None)
-        log.info("删掉了模型 %s", name)
+        log.info("deleted model %s", name)
     finally:
         _download_locks[name].release()
 
@@ -170,7 +170,7 @@ def insightface_pack(name: str, download: bool = AUTO_DOWNLOAD) -> Path:
             raise ModelMissing(name)
         url = INSIGHTFACE_PACKS[name]
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
-        log.info("下载模型 %s：%s", name, url)
+        log.info("downloading model %s: %s", name, url)
         _report(name, state="downloading", error="")
         with tempfile.TemporaryDirectory(dir=MODEL_DIR) as tmp:
             archive = Path(tmp) / f"{name}.zip"
@@ -186,7 +186,7 @@ def insightface_pack(name: str, download: bool = AUTO_DOWNLOAD) -> Path:
                 shutil.rmtree(target)
             shutil.move(str(onnx.parent), target)
         _report(name, state="done")
-        log.info("模型 %s 已就绪：%s", name, target)
+        log.info("model %s ready: %s", name, target)
         return target
 
 
@@ -259,7 +259,9 @@ def endpoint() -> str:
         chosen = min(ok, key=ok.__getitem__) if ok else HF_ENDPOINTS[0]
         _endpoint_cache = (time.monotonic(), chosen)
         log.info(
-            "模型从 %s 下载（测速：%s）", chosen, {b: (f"{t:.1f}s" if t else "连不上") for b, t in results.items()}
+            "downloading models from %s (speed test: %s)",
+            chosen,
+            {b: (f"{t:.1f}s" if t else "unreachable") for b, t in results.items()},
         )
         return chosen
 
@@ -325,7 +327,7 @@ def onnx_model(name: str, download: bool = AUTO_DOWNLOAD) -> Path:
         total = sum(sizes.values())
         done = sum(sizes.get(f, 0) for f in files if (target / f).is_file())
         _report(name, state="downloading", done=done, total=total, error="")
-        log.info("下载模型 %s（ONNX）：%s", name, base)
+        log.info("downloading model %s (ONNX): %s", name, base)
         for f in files:
             if (target / f).is_file():
                 continue
@@ -338,7 +340,7 @@ def onnx_model(name: str, download: bool = AUTO_DOWNLOAD) -> Path:
             done += sizes.get(f, 0)
         (target / "meta.json").write_bytes(meta_raw)  # 最后写 meta.json：有它才算下载完了
         _report(name, state="done", done=total, total=total)
-        log.info("模型 %s 已就绪：%s", name, target)
+        log.info("model %s ready: %s", name, target)
         return target
 
 
@@ -357,7 +359,7 @@ def hf_model(name: str, repo: str, download: bool = AUTO_DOWNLOAD) -> Path:
             raise ModelMissing(name)
         from huggingface_hub import get_hf_file_metadata, hf_hub_url
 
-        log.info("下载模型 %s：huggingface.co/%s（几个 GB，要等一会儿）", name, repo)
+        log.info("downloading model %s: huggingface.co/%s (several GB, this takes a while)", name, repo)
         target.mkdir(parents=True, exist_ok=True)
         files = [(f, hf_hub_url(repo, f, endpoint=endpoint())) for f in HF_FILES]
         sizes = {f: get_hf_file_metadata(url).size or 0 for f, url in files}
@@ -372,5 +374,5 @@ def hf_model(name: str, repo: str, download: bool = AUTO_DOWNLOAD) -> Path:
             part.rename(target / f)
             done += sizes[f]
         _report(name, state="done", done=total, total=total)
-        log.info("模型 %s 已就绪：%s", name, target)
+        log.info("model %s ready: %s", name, target)
         return target

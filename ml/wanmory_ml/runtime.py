@@ -56,7 +56,7 @@ def _set(key: str, value, allowed: tuple[str, ...] | None) -> None:
         s[key] = value
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
         _path.write_text(json.dumps(s))
-    log.info("%s 改成 %s", key, value)
+    log.info("%s set to %s", key, value)
 
 
 def device_pref() -> str:
@@ -168,7 +168,7 @@ def onnx_session(path: Path, skip: tuple[str, ...] = ()):
     try:
         return ort.InferenceSession(str(path), session_options(), providers=use)
     except Exception as e:  # noqa: BLE001 —— 各家加速后端出错时抛的异常类型不一样，统一退回 CPU
-        log.warning("用 %s 加载 %s 失败（%s），改用 CPU", use, path.name, e)
+        log.warning("loading %s with %s failed (%s), falling back to CPU", use, path.name, e)
         return ort.InferenceSession(str(path), session_options(), providers=["CPUExecutionProvider"])
 
 

@@ -105,7 +105,7 @@ func run(ctx context.Context) error {
 	// 同时处理几个任务、AI 什么时候跑：按核数和内存自动定，设置页上能改
 	perfService := perf.New(settingsStore, cfg.Workers)
 	if err := perfService.Load(ctx); err != nil {
-		log.Printf("读取性能设置失败，用默认的: %v", err)
+		log.Printf("perf: cannot read performance settings, using defaults: %v", err)
 	}
 	exif := assets.NewExifPool(perfService.MaxWorkers())
 	defer exif.Close()
@@ -120,11 +120,11 @@ func run(ctx context.Context) error {
 	// 设置里可以换成远程的 AI 服务、换档位（模型组合）
 	aiAdmin := ai.NewAdmin(aiClient, settingsStore, cfg.MLURL, cfg.MLToken, cfg.FaceModel, cfg.ClipModel)
 	if err := aiAdmin.Load(ctx); err != nil {
-		log.Printf("读取 AI 服务地址失败，用默认的 %s: %v", cfg.MLURL, err)
+		log.Printf("ai: cannot read the AI service address, using the default %s: %v", cfg.MLURL, err)
 	}
 	models, err := aiAdmin.Models(ctx)
 	if err != nil {
-		log.Printf("读取 AI 档位失败，用默认的模型: %v", err)
+		log.Printf("ai: cannot read the AI tier, using the default models: %v", err)
 	}
 	faceService := faces.NewService(conn, aiClient, models.Face, cfg.ThumbsDir())
 	aiWorker := jobs.NewWorker(conn, aiWorkerName, ai.MaxConcurrency)
@@ -155,7 +155,7 @@ func run(ctx context.Context) error {
 			return err
 		}
 		_, err := clipService.Backfill(ctx)
-		log.Printf("AI 档位换成 人脸 %s、语义搜索 %s，所有照片重新处理", t.Face, t.Clip)
+		log.Printf("ai: tier changed to face %s, smart search %s; reprocessing all photos", t.Face, t.Clip)
 		return err
 	}, func(ctx context.Context) (map[string][2]int, error) {
 		fd, ft, err := faceService.Progress(ctx)
@@ -174,18 +174,22 @@ func run(ctx context.Context) error {
 	assetService.SetSearch(clipService.Search, categories, clipService.Model)
 	assetService.SetAesthetic(clipService.AestheticVector)
 	if n, err := clipService.Backfill(ctx); err != nil {
-		log.Printf("clip: 给已有照片排语义向量、文字识别任务失败: %v", err)
+		log.Printf("clip: cannot queue embedding and text recognition for existing photos: %v", err)
 	} else if n > 0 {
-		log.Printf("clip: 给已有照片排上了 %d 个语义向量、文字识别任务", n)
+		log.Printf("clip: queued %d embedding and text recognition jobs for existing photos", n)
 	}
 	go clipService.RetagStale(ctx)
 	if n, err := faceService.Backfill(ctx); err != nil {
-		log.Printf("faces: 给已有照片排人脸任务失败: %v", err)
+		log.Printf("faces: cannot queue face recognition for existing photos: %v", err)
 	} else if n > 0 {
-		log.Printf("faces: 给 %d 张已有照片排上了人脸识别", n)
+		log.Printf("faces: queued face recognition for %d existing photos", n)
 	}
 	go faceService.Watch(ctx)
-	go faceService.Regroup(ctx) // 还没归人物的脸按现在的门槛（2 张照片）重新归一遍
+	// 还没归人物的脸按现在的门槛重新归一遍；门槛和上次整理时不一样（改过、或刚升级）先拆掉不够数的人物
+	go faceService.ApplyMinPhotos(ctx, false)
+	registry.OnChange(faces.SettingMinPhotos, func(context.Context) {
+		go faceService.ApplyMinPhotos(ctx, true) // 用服务的 ctx：保存请求结束了也接着整理
+	})
 
 	// 照片拍摄地点的城市名：后台查好存进库里；设置里关了在线地图就不查
 	geoService := geo.NewService(conn, func(ctx context.Context) bool {
@@ -219,7 +223,7 @@ func run(ctx context.Context) error {
 	if os.Getenv("WANMORY_MDNS") != "off" {
 		go func() {
 			if err := mdns.Run(ctx, netService.Domain); err != nil {
-				log.Printf("mdns: 没能在局域网里报名字: %v", err)
+				log.Printf("mdns: cannot announce the name on the local network: %v", err)
 			}
 		}()
 	}
@@ -272,12 +276,12 @@ func run(ctx context.Context) error {
 		srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("wanmory %s listening on %s，同时处理 %d 个任务，可浏览的目录 %v，AI 服务 %s",
+	log.Printf("wanmory %s listening on %s, %d workers, browsable folders %v, AI service %s",
 		version.Version, cfg.Addr, perfService.Workers(), cfg.StorageRoots, cfg.MLURL)
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
-	log.Println("正在等待进行中的任务完成…")
+	log.Println("waiting for running jobs to finish…")
 	<-workerDone
 	<-aiDone
 	return nil
@@ -298,7 +302,7 @@ func healthcheck() error {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("健康检查返回 %d", res.StatusCode)
+		return fmt.Errorf("health check returned %d", res.StatusCode)
 	}
 	return nil
 }

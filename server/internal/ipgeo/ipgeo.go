@@ -42,13 +42,13 @@ func load() {
 		}
 		r, err := service.NewIp2RegionWithPath(v4, v6)
 		if err != nil {
-			log.Printf("ipgeo: 读 %s 里的 IP 地址库失败: %v", d, err)
+			log.Printf("ipgeo: cannot read the IP database in %s: %v", d, err)
 			return
 		}
 		region = r
 		return
 	}
-	log.Printf("ipgeo: 没找到 IP 地址库（ip2region_v4.xdb），登录日志里只显示 IP，不显示地点")
+	log.Printf("ipgeo: IP database (ip2region_v4.xdb) not found; sign-in history shows IPs without locations")
 }
 
 func exists(p string) bool {

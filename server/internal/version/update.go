@@ -112,7 +112,7 @@ func (u *Updates) get(ctx context.Context, refresh bool) ([]Release, time.Time, 
 				list[i].Translations = tr["v"+list[i].Version]
 			}
 		} else {
-			log.Printf("检查更新：取不到更新说明的译文，显示中文原文: %v", err)
+			log.Printf("update: cannot fetch translated release notes, showing the original: %v", err)
 		}
 		u.list = list
 	}
@@ -132,7 +132,7 @@ func (u *Updates) translations(ctx context.Context) (map[string]map[string][]str
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("官网回答 %d", res.StatusCode)
+		return nil, fmt.Errorf("website returned %d", res.StatusCode)
 	}
 	var out map[string]map[string][]string
 	return out, json.NewDecoder(io.LimitReader(res.Body, 4<<20)).Decode(&out)
@@ -152,7 +152,7 @@ func (u *Updates) fetch(ctx context.Context) ([]Release, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GitHub 回答 %d", res.StatusCode)
+		return nil, fmt.Errorf("GitHub returned %d", res.StatusCode)
 	}
 	var raw []struct {
 		TagName     string    `json:"tag_name"`

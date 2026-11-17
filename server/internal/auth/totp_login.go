@@ -128,7 +128,7 @@ func (s *Service) loginTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 	logins.succeed(ip, t.name)
 	s.noteLogin(r.Context(), r, u.Name, true)
-	log.Printf("auth: 「%s」用两步验证登录", u.Name)
+	log.Printf("auth: %q signed in with two-step verification", u.Name)
 	s.issueCookie(w, r, token, t.remember)
 	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
 }
@@ -180,7 +180,7 @@ func (s *Service) totpEnable(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		httpx.InternalError(w, err)
 	default:
-		log.Printf("auth: 「%s」开启了两步验证", u.Name)
+		log.Printf("auth: %q turned on two-step verification", u.Name)
 		httpx.JSON(w, http.StatusOK, map[string]any{"recovery_codes": codes})
 	}
 }
@@ -206,6 +206,6 @@ func (s *Service) totpDisable(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, err)
 		return
 	}
-	log.Printf("auth: 「%s」关掉了两步验证", u.Name)
+	log.Printf("auth: %q turned off two-step verification", u.Name)
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -22,7 +22,7 @@ const (
 
 // ErrRetryLater 由处理函数返回（可以包在别的错误里），表示暂时做不了、和任务本身无关（例如 AI 服务连不上）：
 // 任务退回队列稍后再做，不消耗重试次数
-var ErrRetryLater = errors.New("稍后再试")
+var ErrRetryLater = errors.New("retry later")
 
 // Worker 从队列领取任务并交给注册的处理函数。只领取自己注册过的任务类型，
 // 其他类型（例如交给 AI 服务的任务）留给别的 worker。
@@ -95,7 +95,7 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 
 	if err := w.releaseOwn(ctx); err != nil {
-		log.Printf("jobs: 退回上次未完成的任务失败: %v", err)
+		log.Printf("jobs: cannot requeue jobs left unfinished last time: %v", err)
 	}
 
 	var wg sync.WaitGroup
@@ -117,7 +117,7 @@ func (w *Worker) loop(ctx context.Context, slot int, types []string) {
 		}
 		job, err := w.claim(ctx, types)
 		if err != nil && ctx.Err() == nil {
-			log.Printf("jobs: 领取任务失败: %v", err)
+			log.Printf("jobs: cannot claim jobs: %v", err)
 		}
 		if job == nil {
 			select {
@@ -176,7 +176,7 @@ func (w *Worker) execute(j *Job) {
 			       locked_by = NULL, locked_until = NULL, last_error = NULL
 			WHERE id = $1 AND status = 'running' AND locked_by = $2`, j.ID, w.name)
 		if err != nil {
-			log.Printf("jobs: 标记任务 %d 完成失败: %v", j.ID, err)
+			log.Printf("jobs: cannot mark job %d done: %v", j.ID, err)
 		}
 		return
 	}
@@ -190,12 +190,12 @@ func (w *Worker) execute(j *Job) {
 			WHERE id = $1 AND status = 'running' AND locked_by = $2`,
 			j.ID, w.name, retryLaterDelay.Seconds(), err.Error())
 		if dbErr != nil {
-			log.Printf("jobs: 退回任务 %d 时出错: %v", j.ID, dbErr)
+			log.Printf("jobs: cannot requeue job %d: %v", j.ID, dbErr)
 		}
 		return
 	}
 
-	log.Printf("jobs: %s #%d 第 %d/%d 次失败（%s）: %v",
+	log.Printf("jobs: %s #%d failed, attempt %d/%d (%s): %v",
 		j.Type, j.ID, j.Attempts, j.MaxAttempts, time.Since(start).Round(time.Millisecond), err)
 	retryAfter := time.Duration(j.Attempts*j.Attempts) * baseRetryDelay
 	_, dbErr := w.db.ExecContext(finishCtx, `
@@ -207,7 +207,7 @@ func (w *Worker) execute(j *Job) {
 		WHERE id = $1 AND status = 'running' AND locked_by = $2`,
 		j.ID, w.name, retryAfter.Seconds(), err.Error())
 	if dbErr != nil {
-		log.Printf("jobs: 标记任务 %d 失败时出错: %v", j.ID, dbErr)
+		log.Printf("jobs: cannot mark job %d failed: %v", j.ID, dbErr)
 	}
 }
 
@@ -239,7 +239,7 @@ func (w *Worker) reapLoop(ctx context.Context) {
 			return
 		case <-t.C:
 			if err := Reap(ctx, w.db); err != nil && ctx.Err() == nil {
-				log.Printf("jobs: 回收过期任务失败: %v", err)
+				log.Printf("jobs: cannot reclaim expired jobs: %v", err)
 			}
 		}
 	}

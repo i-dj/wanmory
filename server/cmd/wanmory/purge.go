@@ -27,24 +27,24 @@ func purge(ctx context.Context, args []string) error {
 		return err
 	}
 	if s.Assets == 0 && s.Jobs == 0 {
-		fmt.Println("没有照片，不需要删除。")
+		fmt.Println("No photos, nothing to delete.")
 		return nil
 	}
 
-	fmt.Printf("将删除 %d 个照片和视频（含原始文件、缩略图、预览图）、%d 个任务、%d 条语义向量。\n",
+	fmt.Printf("Deleting %d photos and videos (originals, thumbnails and previews), %d jobs and %d embeddings.\n",
 		s.Assets, s.Jobs, s.Embeddings)
-	fmt.Println("设置不受影响。删除后无法恢复。")
+	fmt.Println("Settings are kept. This cannot be undone.")
 
 	res, err := assets.PurgeAll(ctx, conn)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("已删除 %d 个照片记录，删除文件 %d 个。\n", res.Assets, res.Removed)
+	fmt.Printf("Deleted %d photo records and %d files.\n", res.Assets, res.Removed)
 	if res.Missing > 0 {
-		fmt.Printf("%d 个文件在本机找不到（可能是在 Docker 容器里上传的，在容器里运行 purge 才能删到）。\n", res.Missing)
+		fmt.Printf("%d files were not found on this machine (they may have been uploaded inside the Docker container; run purge inside the container to delete them).\n", res.Missing)
 	}
 	for _, f := range res.Failed {
-		fmt.Printf("删除失败：%s\n", f)
+		fmt.Printf("Could not delete: %s\n", f)
 	}
 	return nil
 }

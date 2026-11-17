@@ -37,7 +37,7 @@ func Run(ctx context.Context, name func() string) error {
 	_ = p.SetControlMessage(ipv4.FlagInterface, true) // 知道询问是从哪块网卡来的，回答那块网卡的 IP
 	_ = p.SetMulticastLoopback(true)                  // 本机上的浏览器也能问到
 	joined := joinAll(p)
-	log.Printf("mdns: 在 %d 块网卡上回答局域网里对 %s 的询问", joined, name())
+	log.Printf("mdns: answering queries for %s on %d network interfaces", name(), joined)
 
 	go func() {
 		<-ctx.Done()
@@ -148,7 +148,7 @@ func announce(ctx context.Context, p *ipv4.PacketConn, name func() string) {
 					_, _ = p.WriteTo(msg, &ipv4.ControlMessage{IfIndex: ifi.Index}, group)
 				}
 			}
-			log.Printf("mdns: 局域网里可以用 %s 打开相册", strings.TrimSuffix(host, "."))
+			log.Printf("mdns: the library is available on the local network at %s", strings.TrimSuffix(host, "."))
 		}
 		last = host
 		select {

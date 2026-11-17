@@ -51,12 +51,12 @@ func Load() (Config, error) {
 		ClipModel:   envOr("WANMORY_CLIP_MODEL", "chinese-clip-vit-h-14"),
 	}
 	if c.DatabaseURL == "" {
-		return c, errors.New("DATABASE_URL 未设置")
+		return c, errors.New("DATABASE_URL is not set")
 	}
 	if v := os.Getenv("WANMORY_WORKERS"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 {
-			return c, fmt.Errorf("WANMORY_WORKERS 应该是正整数: %q", v)
+			return c, fmt.Errorf("WANMORY_WORKERS must be a positive integer: %q", v)
 		}
 		c.Workers = n
 	}
@@ -89,7 +89,7 @@ func Load() (Config, error) {
 		}
 		real, err := filepath.EvalSymlinks(abs)
 		if err != nil {
-			return c, fmt.Errorf("WANMORY_STORAGE_ROOTS 里的目录不可用: %w", err)
+			return c, fmt.Errorf("a folder in WANMORY_STORAGE_ROOTS is unusable: %w", err)
 		}
 		c.StorageRoots = append(c.StorageRoots, real)
 	}

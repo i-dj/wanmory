@@ -80,7 +80,7 @@ func (s *Service) ingest(ctx context.Context, src, name string, mtime time.Time,
 
 	uploadDir, err := s.uploadDir(ctx)
 	if err != nil {
-		return nil, false, fmt.Errorf("读取上传目录设置: %w", err)
+		return nil, false, fmt.Errorf("reading the upload folder setting: %w", err)
 	}
 	// 按上传时间分目录：upload/2026/10/IMG_0001.jpg
 	now := time.Now()
@@ -169,7 +169,7 @@ func placeUnique(src, dir, name string) (string, error) {
 			return "", err
 		}
 	}
-	return "", fmt.Errorf("%s 下同名文件太多: %s", dir, name)
+	return "", fmt.Errorf("too many files with the same name in %s: %s", dir, name)
 }
 
 // copyExclusive 复制文件，目标已存在时返回 os.ErrExist。

@@ -49,7 +49,7 @@ func (s *Service) serveLarge(w http.ResponseWriter, r *http.Request) {
 	err := s.makeLarge(r, a, dest)
 	largeMu.Unlock()
 	if err != nil {
-		log.Printf("assets: 生成 %s 的大图失败，先用预览图: %v", a.ID, err)
+		log.Printf("assets: cannot make the large image for %s, using the preview for now: %v", a.ID, err)
 		w.Header().Set("Cache-Control", "no-store") // 退回的预览图别让浏览器记成大图，下次再试
 		http.ServeFile(w, r, *a.PreviewPath)
 		return

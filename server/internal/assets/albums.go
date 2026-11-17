@@ -932,7 +932,7 @@ func (s *Service) RunHiddenSync(ctx context.Context) {
 		case <-s.hiddenKick:
 		}
 		if err := s.store.SyncSmartHidden(ctx); err != nil && ctx.Err() == nil {
-			log.Printf("assets: 同步智能相册的隐藏失败: %v", err)
+			log.Printf("assets: syncing hidden photos in smart albums failed: %v", err)
 		}
 	}
 }

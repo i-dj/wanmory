@@ -44,7 +44,7 @@ func (s *Store) Highlights(ctx context.Context, f Filter, limit int, slideshow b
 			art = fmt.Sprintf(`(SELECT -(e.embedding <#> $%d::vector) FROM clip_embeddings e
 				WHERE e.asset_id = assets.id AND e.model_id = $%d)`, len(args)-1, len(args))
 		} else {
-			log.Printf("精选：拿不到好照片的方向，先按 beauty 排: %v", err)
+			log.Printf("highlights: cannot read photo orientation, ranking by beauty only: %v", err)
 		}
 	}
 	shape := `(width >= height * 1.45 OR (width >= height * 1.3 AND EXISTS (SELECT 1 FROM faces WHERE asset_id = assets.id AND ` + subjectFace + `)))`

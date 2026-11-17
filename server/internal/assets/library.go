@@ -43,9 +43,9 @@ func (s *Service) RunLibrary(ctx context.Context) {
 		case <-timer.C:
 		}
 		if n, err := s.scanLibrary(ctx); err != nil {
-			log.Printf("照片目录：扫描 %s 出错: %v", s.libraryDir, err)
+			log.Printf("library: scanning %s failed: %v", s.libraryDir, err)
 		} else if n > 0 {
-			log.Printf("照片目录：从 %s 导入了 %d 个新文件，接着读信息、生成缩略图、AI 识别", s.libraryDir, n)
+			log.Printf("library: imported %d new files from %s; reading metadata, making thumbnails and running AI next", n, s.libraryDir)
 		}
 		timer.Reset(libraryEvery)
 	}
@@ -83,7 +83,7 @@ func (s *Service) scanLibrary(ctx context.Context) (int, error) {
 		}
 		ok, err := s.importLibraryFile(ctx, path)
 		if err != nil {
-			log.Printf("照片目录：导入 %s 失败: %v", path, err)
+			log.Printf("library: importing %s failed: %v", path, err)
 			return nil
 		}
 		if ok {

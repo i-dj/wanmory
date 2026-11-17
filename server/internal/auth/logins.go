@@ -46,7 +46,7 @@ func (s *Service) noteLogin(ctx context.Context, r *http.Request, name string, o
 		VALUES ((SELECT id FROM users WHERE lower(name) = lower($1)), $1, $2, $3, $4, $5)`,
 		name, ok, ip, ua, ipgeo.Lookup(ip))
 	if err != nil {
-		log.Printf("auth: 记登录日志失败: %v", err)
+		log.Printf("auth: cannot record the sign-in: %v", err)
 		return
 	}
 	_, _ = s.db.ExecContext(ctx, `DELETE FROM login_events WHERE created_at < $1`, time.Now().Add(-loginKeep))

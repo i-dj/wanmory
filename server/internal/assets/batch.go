@@ -212,11 +212,11 @@ func (s *Service) download(w http.ResponseWriter, r *http.Request) {
 	for _, a := range list {
 		if err := addToZip(zw, a, uniqueName(names, a.FileName)); err != nil {
 			// 响应头已经发出去了，没法再改成错误；记下来，跳过这个文件
-			log.Printf("打包 %s 失败: %v", a.OriginalPath, err)
+			log.Printf("download: cannot add %s to the zip: %v", a.OriginalPath, err)
 		}
 	}
 	if err := zw.Close(); err != nil {
-		log.Printf("打包下载失败: %v", err)
+		log.Printf("download: building the zip failed: %v", err)
 	}
 }
 

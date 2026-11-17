@@ -21,7 +21,7 @@ func Open(ctx context.Context, url string) (*sql.DB, error) {
 	}
 	if err := conn.PingContext(ctx); err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("连接数据库失败: %w", err)
+		return nil, fmt.Errorf("connecting to the database: %w", err)
 	}
 	return conn, nil
 }

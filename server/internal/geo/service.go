@@ -52,7 +52,7 @@ func (s *Service) Run(ctx context.Context) {
 			case ctx.Err() != nil:
 				return
 			case err != nil:
-				log.Printf("geo: 查城市失败，%s后再试: %v", retryAfter, err)
+				log.Printf("geo: city lookup failed, retrying in %s: %v", retryAfter, err)
 				wait = retryAfter
 			case n == batchSize:
 				wait = 0 // 还有没查的，接着查
@@ -63,7 +63,7 @@ func (s *Service) Run(ctx context.Context) {
 				case ctx.Err() != nil:
 					return
 				case err != nil:
-					log.Printf("geo: 补英文地名失败，%s后再试: %v", retryAfter, err)
+					log.Printf("geo: English place name lookup failed, retrying in %s: %v", retryAfter, err)
 					wait = retryAfter
 				case m == batchSize:
 					wait = 0

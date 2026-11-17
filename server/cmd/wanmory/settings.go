@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"strconv"
 
 	"github.com/wanmory/wanmory/server/internal/assets"
 	"github.com/wanmory/wanmory/server/internal/auth"
 	"github.com/wanmory/wanmory/server/internal/config"
+	"github.com/wanmory/wanmory/server/internal/faces"
 	"github.com/wanmory/wanmory/server/internal/netaccess"
 	"github.com/wanmory/wanmory/server/internal/settings"
 	"github.com/wanmory/wanmory/server/internal/storage"
@@ -41,6 +43,20 @@ func newSettingsRegistry(cfg config.Config, roots storage.Roots) *settings.Regis
 				return nil, fmt.Errorf("%w：%v", settings.ErrInvalid, err)
 			}
 			return resolved, nil
+		},
+	})
+
+	r.Register(settings.Def{
+		Key:         faces.SettingMinPhotos,
+		Label:       "新建人物的门槛",
+		Description: "同一个人至少出现在几张照片里，才在「人物」里单独列出来。改大后，照片不够数、没起名字的人物会拆掉。",
+		Kind:        settings.KindChoice,
+		Default:     strconv.Itoa(faces.DefaultMinPhotos),
+		Choices: []settings.Choice{
+			{Value: "2", Label: "2 张照片", Hint: "认得最全，偶尔出现的人也会列出来"},
+			{Value: "3", Label: "3 张照片", Hint: "大多数路人不会列出来"},
+			{Value: "5", Label: "5 张照片", Hint: "只列常出现的人"},
+			{Value: "10", Label: "10 张照片", Hint: "只列经常出现的人"},
 		},
 	})
 

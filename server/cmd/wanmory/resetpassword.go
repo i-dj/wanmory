@@ -39,7 +39,7 @@ func resetPassword(ctx context.Context, args []string) error {
 		return err
 	}
 	if len(accounts) == 0 {
-		fmt.Println("还没有账号。用浏览器打开相册，第一次打开时会让你建管理员。")
+		fmt.Println("No accounts yet. Open Wanmory in a browser; the first visit asks you to create an admin.")
 		return nil
 	}
 
@@ -53,44 +53,44 @@ func resetPassword(ctx context.Context, args []string) error {
 			}
 		}
 		if target == nil {
-			fmt.Printf("没有叫「%s」的账号。\n\n", name)
+			fmt.Printf("No account named %q.\n\n", name)
 		}
 	}
 	if target == nil {
-		fmt.Println("这台相册上的账号：")
+		fmt.Println("Accounts on this server:")
 		for i, a := range accounts {
 			fmt.Printf("  %d. %s\n", i+1, a.describe())
 		}
-		fmt.Print("重置哪一个的密码？输入序号（直接回车退出）：")
+		fmt.Print("Reset whose password? Enter a number (press Enter to quit): ")
 		line, _ := in.ReadString('\n')
 		line = strings.TrimSpace(line)
 		if line == "" {
-			fmt.Println("没有改任何账号。")
+			fmt.Println("No account was changed.")
 			return nil
 		}
 		n, err := strconv.Atoi(line)
 		if err != nil || n < 1 || n > len(accounts) {
-			return fmt.Errorf("序号要是 1 到 %d", len(accounts))
+			return fmt.Errorf("enter a number from 1 to %d", len(accounts))
 		}
 		target = &accounts[n-1]
 	}
 
-	password, err := askPassword(in, "新密码：")
+	password, err := askPassword(in, "New password: ")
 	if err != nil {
 		return err
 	}
-	again, err := askPassword(in, "再输一遍：")
+	again, err := askPassword(in, "Repeat it: ")
 	if err != nil {
 		return err
 	}
 	if password != again {
-		return errors.New("两次输入的密码不一样，没有改。再运行一次吧")
+		return errors.New("the passwords do not match; nothing was changed, please run it again")
 	}
 	// keep 为空：这个人所有设备上的登录都失效，要用新密码重新登录
 	if err := auth.NewService(conn).ResetPassword(ctx, target.id, password); err != nil {
 		return err
 	}
-	fmt.Printf("已重置「%s」的密码，请用新密码登录（所有设备上的登录都已退出，两步验证也已关闭，需要的话登录后重新开启）。\n", target.name)
+	fmt.Printf("Password for %q has been reset. Sign in with the new password (all devices were signed out and two-step verification was turned off; turn it on again after signing in if needed).\n", target.name)
 	return nil
 }
 
@@ -103,15 +103,15 @@ type account struct {
 }
 
 func (a account) describe() string {
-	role := "      "
+	role := "     "
 	if a.admin {
-		role = "管理员"
+		role = "admin"
 	}
-	last := "最近没有登录"
+	last := "no recent sign-in"
 	if a.lastLogin != nil {
-		last = "最近登录 " + a.lastLogin.Local().Format("2006-01-02")
+		last = "last sign-in " + a.lastLogin.Local().Format("2006-01-02")
 	}
-	return fmt.Sprintf("%s %s   %s 创建   %s", pad(a.name, 12), role, a.created.Local().Format("2006-01-02"), last)
+	return fmt.Sprintf("%s %s   created %s   %s", pad(a.name, 12), role, a.created.Local().Format("2006-01-02"), last)
 }
 
 // pad 在名字后面补空格到 width 个半角宽（中文算两个），几行的列对得齐
@@ -164,7 +164,7 @@ func askPassword(in *bufio.Reader, prompt string) (string, error) {
 	}
 	line, err := in.ReadString('\n')
 	if err != nil && line == "" {
-		return "", errors.New("没有读到密码")
+		return "", errors.New("no password entered")
 	}
 	return strings.TrimRight(line, "\r\n"), nil
 }

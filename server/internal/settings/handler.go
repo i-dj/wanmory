@@ -101,6 +101,7 @@ func (h *Handler) put(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, err)
 		return
 	}
+	h.registry.notify(r.Context(), def.Key)
 	httpx.JSON(w, http.StatusOK, value)
 }
 
@@ -115,5 +116,6 @@ func (h *Handler) reset(w http.ResponseWriter, r *http.Request) {
 		httpx.InternalError(w, err)
 		return
 	}
+	h.registry.notify(r.Context(), def.Key)
 	w.WriteHeader(http.StatusNoContent)
 }

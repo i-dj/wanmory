@@ -58,7 +58,7 @@ type Service struct {
 func NewService(db *sql.DB, client *ai.Client, model string) (*Service, error) {
 	dim, ok := dims[model]
 	if !ok {
-		return nil, fmt.Errorf("不认识的 CLIP 模型 %q", model)
+		return nil, fmt.Errorf("unknown CLIP model %q", model)
 	}
 	return &Service{db: db, ai: client, model: model, dim: dim, queries: map[string][]float32{}}, nil
 }
@@ -80,7 +80,7 @@ func (s *Service) Model() string {
 func (s *Service) SetModel(model string) error {
 	dim, ok := dims[model]
 	if !ok {
-		return fmt.Errorf("不认识的 CLIP 模型 %q", model)
+		return fmt.Errorf("unknown CLIP model %q", model)
 	}
 	s.modelMu.Lock()
 	s.model, s.dim = model, dim
@@ -147,7 +147,7 @@ func (s *Service) preview(ctx context.Context, id uuid.UUID) ([]byte, string, er
 // predict 发给 AI 服务；它连不上、模型还在加载时，这个任务和之后一小会儿的任务都排到后面，不算失败
 func (s *Service) predict(ctx context.Context, image []byte, name string, tasks ai.Tasks) (*ai.Prediction, error) {
 	if time.Now().UnixNano() < s.notBefore.Load() {
-		return nil, fmt.Errorf("%w: AI 服务还没准备好", jobs.ErrRetryLater)
+		return nil, fmt.Errorf("%w: the AI service is not ready yet", jobs.ErrRetryLater)
 	}
 	pred, err := s.ai.Predict(ctx, image, name, tasks)
 	if errors.Is(err, ai.ErrUnavailable) {
@@ -160,7 +160,7 @@ func (s *Service) predict(ctx context.Context, image []byte, name string, tasks 
 // runClip 处理一张照片：预览图发给 AI 服务算向量，存下来，再重算分类
 func (s *Service) runClip(ctx context.Context, job *jobs.Job) error {
 	if job.AssetID == nil {
-		return errors.New("clip 任务缺少 asset_id")
+		return errors.New("clip job has no asset_id")
 	}
 	image, name, err := s.preview(ctx, *job.AssetID)
 	if err != nil || image == nil {
@@ -172,7 +172,7 @@ func (s *Service) runClip(ctx context.Context, job *jobs.Job) error {
 		return err
 	}
 	if got := pred.ModelIDs["clip"]; got != model || pred.Clip == nil || len(pred.Clip.Embedding) != dim {
-		return fmt.Errorf("AI 服务返回的 CLIP 向量不对（模型 %q）", got)
+		return fmt.Errorf("the AI service returned an invalid CLIP vector (model %q)", got)
 	}
 	if _, err := s.db.ExecContext(ctx, `
 		INSERT INTO clip_embeddings (asset_id, model_id, embedding) VALUES ($1, $2, $3::vector)
@@ -186,7 +186,7 @@ func (s *Service) runClip(ctx context.Context, job *jobs.Job) error {
 // runOCR 认出照片里的字存下来，再重算分类（证件、文档要看字）
 func (s *Service) runOCR(ctx context.Context, job *jobs.Job) error {
 	if job.AssetID == nil {
-		return errors.New("ocr 任务缺少 asset_id")
+		return errors.New("ocr job has no asset_id")
 	}
 	image, name, err := s.preview(ctx, *job.AssetID)
 	if err != nil || image == nil {
@@ -197,7 +197,7 @@ func (s *Service) runOCR(ctx context.Context, job *jobs.Job) error {
 		return err
 	}
 	if got := pred.ModelIDs["ocr"]; got != ocrModel || pred.OCR == nil {
-		return fmt.Errorf("AI 服务返回的文字识别结果不对（模型 %q）", got)
+		return fmt.Errorf("the AI service returned an invalid text recognition result (model %q)", got)
 	}
 	if _, err := s.db.ExecContext(ctx,
 		`UPDATE assets SET ocr_text = NULLIF($2, ''), ocr_model = $3, updated_at = now() WHERE id = $1`,
@@ -221,7 +221,7 @@ func (s *Service) RetagStale(ctx context.Context) {
 	for {
 		done, err := s.retagStale(ctx)
 		if err != nil && !errors.Is(err, ai.ErrUnavailable) {
-			log.Printf("clip: 重算分类失败: %v", err)
+			log.Printf("clip: recomputing categories failed: %v", err)
 			return
 		}
 		if done {
@@ -258,7 +258,7 @@ func (s *Service) retagStale(ctx context.Context) (bool, error) {
 		}
 	}
 	if len(ids) > 0 {
-		log.Printf("clip: 重算了 %d 张照片的分类", len(ids))
+		log.Printf("clip: recomputed categories for %d photos", len(ids))
 	}
 	return true, nil
 }
@@ -270,7 +270,7 @@ func (s *Service) texts(ctx context.Context, model string, texts []string) ([][]
 		return nil, err
 	}
 	if pred.ModelIDs["clip"] != model || pred.ClipText == nil || len(pred.ClipText.Embeddings) != len(texts) {
-		return nil, fmt.Errorf("AI 服务返回的文字向量不对（模型 %q）", pred.ModelIDs["clip"])
+		return nil, fmt.Errorf("the AI service returned an invalid text vector (model %q)", pred.ModelIDs["clip"])
 	}
 	return pred.ClipText.Embeddings, nil
 }

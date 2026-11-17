@@ -3,7 +3,7 @@
 //
 // 归类是增量的，每张照片处理完就归一次，不用等全部算完：
 //   - 够清楚、够正、够大的「好脸」，在别的照片里找最像的人脸（余弦距离 < maxDistance）。
-//     其中有已经归了人物的，就归到票数最多的那个人；都还没归人物、但像的加上自己够 minFaces 张，就新建一个人物把它们放进去；
+//     其中有已经归了人物的，就归到票数最多的那个人；都还没归人物、但像的加上自己够门槛（系统设置里改，默认 3 张，见 threshold.go）张，就新建一个人物把它们放进去；
 //   - 模糊、侧脸、太小的脸不新建人物，只有和某个人的脸很像（< weakDistance）时才跟着归进去。
 //
 // 几个 face 任务可能同时在跑，归类在一个数据库事务里、拿着同一把咨询锁做，不会把一个人建成两个。
@@ -36,7 +36,6 @@ import (
 const (
 	maxDistance  = 0.55 // 两张好脸的余弦距离小于这个算像（相似度 > 0.45）
 	weakDistance = 0.45 // 模糊、侧脸要更像才归进去
-	minFaces     = 2    // 至少在这么多张照片里出现（像的好脸）才新建一个人物，只出现一次的路人不建
 	neighbors    = 24   // 每张脸找多少个最像的
 
 	// 好脸的标准（按 1440 像素的预览图）
@@ -92,9 +91,9 @@ func (s *Service) Watch(ctx context.Context) {
 		ok := err == nil && h.Status == "ok"
 		if was := s.healthy.Swap(ok); was != ok {
 			if ok {
-				log.Printf("faces: AI 服务已连接（%s，加速 %s）", s.ai.URL(), strings.Join(h.Providers, ", "))
+				log.Printf("faces: AI service connected (%s, providers %s)", s.ai.URL(), strings.Join(h.Providers, ", "))
 			} else {
-				log.Printf("faces: AI 服务连不上（%s），人脸识别先暂停: %v", s.ai.URL(), err)
+				log.Printf("faces: AI service unreachable (%s), pausing face recognition: %v", s.ai.URL(), err)
 			}
 		}
 	}
@@ -130,7 +129,7 @@ func (s *Service) Backfill(ctx context.Context) (int64, error) {
 // runFace 处理一张照片：把预览图发给 AI 服务，存下找到的人脸，再逐张归类
 func (s *Service) runFace(ctx context.Context, job *jobs.Job) error {
 	if job.AssetID == nil {
-		return errors.New("face 任务缺少 asset_id")
+		return errors.New("face job has no asset_id")
 	}
 	var preview sql.NullString
 	err := s.db.QueryRowContext(ctx,
@@ -156,7 +155,7 @@ func (s *Service) runFace(ctx context.Context, job *jobs.Job) error {
 		return err
 	}
 	if got := pred.ModelIDs["face"]; got != model {
-		return fmt.Errorf("AI 服务用的人脸模型是 %q，不是 %q，结果不能用", got, model)
+		return fmt.Errorf("the AI service used face model %q instead of %q; discarding the result", got, model)
 	}
 	return s.save(ctx, *job.AssetID, model, pred)
 }
@@ -165,7 +164,7 @@ func (s *Service) runFace(ctx context.Context, job *jobs.Job) error {
 func (s *Service) save(ctx context.Context, assetID uuid.UUID, model string, pred *ai.Prediction) error {
 	w, h := float64(pred.Image.Width), float64(pred.Image.Height)
 	if w == 0 || h == 0 {
-		return errors.New("AI 服务没有返回图片大小")
+		return errors.New("the AI service returned no image size")
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -227,16 +226,17 @@ func (s *Service) save(ctx context.Context, assetID uuid.UUID, model string, pre
 	return tx.Commit()
 }
 
-// Regroup 把还没归到任何人的脸重新归一遍：建人物的门槛改过（例如从 3 张照片改成 2 张）以后，
-// 以前没够数的脸不用重新跑 AI 就能归成人物。启动时在后台跑一次；一张一张来，每张一个事务、拿着归类锁，
+// Regroup 把还没归到任何人的脸重新归一遍：建人物的门槛改小以后，
+// 以前没够数的脸不用重新跑 AI 就能归成人物。启动时、改了门槛时在后台跑一次（见 ApplyMinPhotos）；一张一张来，每张一个事务、拿着归类锁，
 // 不挡住新照片的识别。没归上的照旧留着
 func (s *Service) Regroup(ctx context.Context) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, asset_id, model_id, embedding::text, good FROM faces
 		WHERE person_id IS NULL AND good AND model_id = $1
+		  AND asset_id IN (SELECT id FROM assets WHERE deleted_at IS NULL)
 		ORDER BY created_at`, s.Model())
 	if err != nil {
-		log.Printf("faces: 重新归类读取失败: %v", err)
+		log.Printf("faces: reading faces to regroup failed: %v", err)
 		return
 	}
 	type face struct {
@@ -249,7 +249,7 @@ func (s *Service) Regroup(ctx context.Context) {
 		var f face
 		if err := rows.Scan(&f.id, &f.asset, &f.model, &f.vec, &f.good); err != nil {
 			rows.Close()
-			log.Printf("faces: 重新归类读取失败: %v", err)
+			log.Printf("faces: reading faces to regroup failed: %v", err)
 			return
 		}
 		list = append(list, f)
@@ -281,13 +281,13 @@ func (s *Service) Regroup(ctx context.Context) {
 			return tx.Commit()
 		}()
 		if err != nil && ctx.Err() == nil {
-			log.Printf("faces: 重新归类 %s 失败: %v", f.id, err)
+			log.Printf("faces: regrouping face %s failed: %v", f.id, err)
 		}
 	}
 	after := 0
 	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM people`).Scan(&after)
 	if after > before {
-		log.Printf("faces: 重新归类了 %d 张没归人物的脸，新认出 %d 个人", len(list), after-before)
+		log.Printf("faces: regrouped %d unassigned faces, %d new people", len(list), after-before)
 	}
 }
 
@@ -299,21 +299,24 @@ func (s *Service) cluster(ctx context.Context, tx *sql.Tx, model string, faceID,
 	}
 	// 同一张照片里的不会是同一个人，不算
 	rows, err := tx.QueryContext(ctx, `
-		SELECT id, person_id, embedding <=> $1::vector AS d FROM faces
+		SELECT id, asset_id, person_id, embedding <=> $1::vector AS d,
+		       (SELECT deleted_at IS NOT NULL FROM assets WHERE id = faces.asset_id)
+		FROM faces
 		WHERE model_id = $2 AND asset_id <> $3 AND good
 		ORDER BY embedding <=> $1::vector LIMIT $4`, vec, model, assetID, neighbors)
 	if err != nil {
 		return err
 	}
 	type near struct {
-		id     uuid.UUID
-		person uuid.NullUUID
-		d      float64
+		id, asset uuid.UUID
+		person    uuid.NullUUID
+		d         float64
+		deleted   bool // 在「最近删除」里的照片：可以跟着归人物，但不算进新建人物要的张数
 	}
 	var similar []near
 	for rows.Next() {
 		var n near
-		if err := rows.Scan(&n.id, &n.person, &n.d); err != nil {
+		if err := rows.Scan(&n.id, &n.asset, &n.person, &n.d, &n.deleted); err != nil {
 			rows.Close()
 			return err
 		}
@@ -350,8 +353,17 @@ func (s *Service) cluster(ctx context.Context, tx *sql.Tx, model string, faceID,
 		return err
 	}
 
-	// 都还没有人物：好脸够多就新建一个，把这些像的脸一起放进去
-	if !good || len(similar)+1 < minFaces {
+	// 都还没有人物：出现在够多张照片里（同一张照片里的两张脸只算一张，删掉的照片不算）就新建一个，把这些像的脸一起放进去
+	if !good {
+		return nil
+	}
+	photos := map[uuid.UUID]bool{assetID: true}
+	for _, n := range similar {
+		if !n.deleted {
+			photos[n.asset] = true
+		}
+	}
+	if len(photos) < minPhotos(ctx, tx) {
 		return nil
 	}
 	if err := tx.QueryRowContext(ctx, `INSERT INTO people DEFAULT VALUES RETURNING id`).Scan(&person); err != nil {

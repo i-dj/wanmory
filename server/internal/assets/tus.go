@@ -183,12 +183,12 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 		return tusd.HTTPResponse{}, tusd.NewError("ERR_UNSUPPORTED_TYPE", err.Error(), http.StatusUnsupportedMediaType)
 	}
 	if err != nil {
-		log.Printf("assets: 分片上传 %s 入库失败: %v", meta["filename"], err)
+		log.Printf("assets: saving upload %s failed: %v", meta["filename"], err)
 		return tusd.HTTPResponse{}, tusd.NewError("ERR_INGEST", "保存照片失败", http.StatusInternalServerError)
 	}
 
 	if err := s.store.SetUploader(ctx, a.ID, auth.UserID(hook.Context)); err != nil {
-		log.Printf("assets: 记录 %s 的上传者失败: %v", meta["filename"], err)
+		log.Printf("assets: cannot record who uploaded %s: %v", meta["filename"], err)
 	}
 
 	// 在「收藏」「几星」里上传（或拖进来）的：传完顺手标上收藏、星级（已经存在的照片也标）
@@ -202,7 +202,7 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 	}
 	if patch != (Patch{}) {
 		if _, err := s.store.UpdateMany(ctx, auth.UserID(hook.Context), false, []uuid.UUID{a.ID}, patch); err != nil {
-			log.Printf("assets: 给 %s 标收藏、星级失败: %v", meta["filename"], err)
+			log.Printf("assets: cannot set favorite/rating on %s: %v", meta["filename"], err)
 		}
 	}
 
@@ -211,23 +211,23 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 		if _, err := s.db.ExecContext(ctx, `
 			UPDATE assets SET manual_tags = array_append(manual_tags, $2), updated_at = now()
 			WHERE id = $1 AND NOT ($2 = ANY(manual_tags))`, a.ID, tag); err != nil {
-			log.Printf("assets: 把 %s 归进分类 %s 失败: %v", meta["filename"], tag, err)
+			log.Printf("assets: cannot file %s under category %s: %v", meta["filename"], tag, err)
 		}
 	}
 
 	// 在相册里点「从电脑添加」上传的，顺手放进那个相册（已经存在的照片也放）
 	if album, err := uuid.Parse(meta["album"]); err == nil {
 		if err := s.store.CheckAlbum(ctx, auth.UserID(hook.Context), false, album, false); err != nil {
-			log.Printf("assets: 不能把 %s 放进相册 %s: %v", meta["filename"], album, err)
+			log.Printf("assets: cannot add %s to album %s: %v", meta["filename"], album, err)
 		} else if err := s.store.AddToAlbum(ctx, album, []uuid.UUID{a.ID}); err != nil {
-			log.Printf("assets: 把 %s 放进相册失败: %v", meta["filename"], err)
+			log.Printf("assets: adding %s to the album failed: %v", meta["filename"], err)
 		}
 	}
 
 	done := finishedUpload{AssetID: a.ID.String(), Duplicate: dup}
 	if err := markFinished(bin, hook.Upload.Size, done); err != nil {
 		// 只影响「没收到响应后重连」这种少见情况，照片已经入库了
-		log.Printf("assets: 记录分片上传 %s 的结果失败: %v", meta["filename"], err)
+		log.Printf("assets: cannot record the result of upload %s: %v", meta["filename"], err)
 	}
 	return tusd.HTTPResponse{Header: tusd.HTTPHeader{
 		"Wanmory-Asset-Id":  done.AssetID,
@@ -242,16 +242,16 @@ func logUploadTiming(name string, size int64, started, saveStart time.Time, hash
 		return
 	}
 	save := time.Since(saveStart).Round(10 * time.Millisecond)
-	how := "收的时候已算好校验值"
+	how := "checksum computed while receiving"
 	if !hashed {
-		how = "重新读文件算校验值"
+		how = "file re-read for checksum"
 	}
 	if started.IsZero() {
-		log.Printf("上传 %s：%.0f MB，入库 %s（%s）", name, float64(size)/1e6, save, how)
+		log.Printf("upload %s: %.0f MB, saved in %s (%s)", name, float64(size)/1e6, save, how)
 		return
 	}
 	recv := saveStart.Sub(started)
-	log.Printf("上传 %s：%.0f MB，接收 %s（%.1f MB/s），入库 %s（%s）",
+	log.Printf("upload %s: %.0f MB, received in %s (%.1f MB/s), saved in %s (%s)",
 		name, float64(size)/1e6, recv.Round(100*time.Millisecond), float64(size)/1e6/max(recv.Seconds(), 0.001), save, how)
 }
 
@@ -332,7 +332,7 @@ func cleanStaleUploads(dir string, now time.Time) {
 		}
 		if !last.IsZero() && last.Before(now.Add(-staleUploadAge)) {
 			removeTusUpload(bin)
-			log.Printf("assets: 清理了一个超过 %v 没有完成的上传: %s", staleUploadAge, filepath.Base(bin))
+			log.Printf("assets: removed an upload unfinished for over %v: %s", staleUploadAge, filepath.Base(bin))
 		}
 	}
 }

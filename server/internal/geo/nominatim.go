@@ -127,7 +127,7 @@ func (c *Client) reverse(ctx context.Context, lat, lon float64, zoom int, lang s
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("nominatim 返回 %s", res.Status)
+		return nil, fmt.Errorf("nominatim returned %s", res.Status)
 	}
 	var p nominatimPlace
 	if err := json.NewDecoder(res.Body).Decode(&p); err != nil {

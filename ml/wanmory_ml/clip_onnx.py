@@ -43,7 +43,7 @@ class ClipOnnx:
         self.tokenizer.enable_truncation(self.text_len)
         self.tokenizer.enable_padding(length=self.text_len, pad_id=0, pad_token="[PAD]")
         self.lock = threading.Lock()
-        log.info("CLIP 模型 %s 已加载（ONNX，%s，%d 维）", name, self.visual.get_providers()[0], self.dim)
+        log.info("CLIP model %s loaded (ONNX, %s, %d dims)", name, self.visual.get_providers()[0], self.dim)
 
     def pixels(self, bgr: np.ndarray) -> np.ndarray:
         """OpenCV 的 BGR 图片 → [1, 3, 224, 224]，和 ChineseCLIPProcessor 一样（PIL 双三次缩放）"""

@@ -131,7 +131,7 @@ func start() (*process, error) {
 		return nil, err
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("启动 exiftool: %w", err)
+		return nil, fmt.Errorf("starting exiftool: %w", err)
 	}
 	return &process{cmd: cmd, stdin: stdin, stdout: bufio.NewReader(stdout), stderr: bufio.NewReader(stderr)}, nil
 }
@@ -146,7 +146,7 @@ func (p *process) run(ctx context.Context, args []string) ([]byte, error) {
 	for _, a := range args {
 		// 参数按行传，带换行的参数（例如文件名里有换行）没法传
 		if strings.ContainsAny(a, "\r\n") {
-			return nil, fmt.Errorf("exiftool 参数里不能有换行: %q", a)
+			return nil, fmt.Errorf("exiftool arguments cannot contain newlines: %q", a)
 		}
 		b.WriteString(a)
 		b.WriteByte('\n')
@@ -176,7 +176,7 @@ func (p *process) run(ctx context.Context, args []string) ([]byte, error) {
 	case r := <-done:
 		if r.err != nil {
 			p.broken = true
-			return nil, fmt.Errorf("exiftool 意外退出: %w", r.err)
+			return nil, fmt.Errorf("exiftool exited unexpectedly: %w", r.err)
 		}
 		if len(bytes.TrimSpace(r.out)) == 0 {
 			return nil, fmt.Errorf("exiftool: %s", strings.TrimSpace(string(r.errOut)))
@@ -223,4 +223,4 @@ func (p *process) close() {
 	}
 }
 
-var errClosed = errors.New("exiftool 进程池已关闭")
+var errClosed = errors.New("exiftool pool is closed")

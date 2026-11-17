@@ -199,7 +199,7 @@ def unload_idle(now: float | None = None) -> list[str]:
         _last_used.pop(key, None)
     if gone:
         release_memory()
-        log.info("闲置超过 %d 秒，卸掉模型：%s", after, "、".join(gone))
+        log.info("idle for over %d s, unloaded models: %s", after, ", ".join(gone))
     return gone
 
 
@@ -218,7 +218,7 @@ def _unload_loop() -> None:
         try:
             unload_idle()
         except Exception:  # 别让后台线程因为意外退出
-            log.exception("卸载闲置模型出错")
+            log.exception("unloading idle models failed")
 
 
 threading.Thread(target=_unload_loop, daemon=True, name="unload-idle").start()
@@ -385,7 +385,7 @@ def predict(image: UploadFile | None = File(None), tasks: str = Form(...)) -> di
         vectors = ready_clip(name).texts(texts)
         result["clip.text"] = {"embeddings": vectors, "embedding": vectors[0]}
         result["model_ids"]["clip"] = name
-        log.info("clip.text %d 段，%.0f ms", len(texts), (time.perf_counter() - start) * 1000)
+        log.info("clip.text %d texts, %.0f ms", len(texts), (time.perf_counter() - start) * 1000)
     if not {"face", "clip", "ocr"} & set(wanted):
         return result
     if image is None:
@@ -415,7 +415,7 @@ def analyze(img: np.ndarray, wanted: dict, filename: str | None, result: dict) -
         faces = model.analyze(img, float(opts.get("min_score", 0.5)))
         result["face"] = [f.__dict__ for f in faces]
         result["model_ids"]["face"] = name
-        log.info("face %s：%d 张脸，%.0f ms", filename, len(faces), (time.perf_counter() - start) * 1000)
+        log.info("face %s: %d faces, %.0f ms", filename, len(faces), (time.perf_counter() - start) * 1000)
     if "clip" in wanted:
         opts = wanted["clip"] or {}
         name = opts.get("model") or DEFAULT_CLIP_MODEL
@@ -430,4 +430,5 @@ def analyze(img: np.ndarray, wanted: dict, filename: str | None, result: dict) -
         start = time.perf_counter()
         result["ocr"] = ocr_model().read(img)
         result["model_ids"]["ocr"] = MODEL_ID
-        log.info("ocr %s：%d 字，%.0f ms", filename, len(result["ocr"]["text"]), (time.perf_counter() - start) * 1000)
+        ms = (time.perf_counter() - start) * 1000
+        log.info("ocr %s: %d chars, %.0f ms", filename, len(result["ocr"]["text"]), ms)

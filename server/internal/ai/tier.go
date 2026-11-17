@@ -71,13 +71,31 @@ func (a *Admin) autoApply(ctx context.Context, raw json.RawMessage) {
 	defer a.switchMu.Unlock()
 	if t != a.models() {
 		if err := a.switcher(ctx, t); err != nil {
-			log.Printf("AI 档位自动换成 %s 失败: %v", name, err)
+			log.Printf("ai: switching the automatic tier to %s failed: %v", name, err)
 			return
 		}
 		a.mu.Lock()
 		a.inUse = t
 		a.mu.Unlock()
-		log.Printf("AI 档位自动：按 AI 服务器的硬件用「%s」", name)
+		log.Printf("ai: automatic tier: using %q for this AI server's hardware", name)
 	}
+	a.rememberAuto(ctx, name)
 	a.resolved.Store(true)
+}
+
+// rememberAuto 记下自动选的那档，下次启动直接用（见 settingAutoTier）
+func (a *Admin) rememberAuto(ctx context.Context, name string) {
+	a.mu.Lock()
+	saved := a.autoSaved
+	a.mu.Unlock()
+	if saved == name {
+		return
+	}
+	if err := a.store.Set(ctx, settingAutoTier, name, nil); err != nil {
+		log.Printf("ai: cannot remember the automatic tier: %v", err)
+		return
+	}
+	a.mu.Lock()
+	a.autoSaved = name
+	a.mu.Unlock()
 }

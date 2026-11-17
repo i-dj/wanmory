@@ -205,7 +205,7 @@ func (c *Client) do(req *http.Request, out any) error {
 			resp.StatusCode == http.StatusGatewayTimeout {
 			return fmt.Errorf("%w：%s %s", ErrUnavailable, resp.Status, strings.TrimSpace(string(msg)))
 		}
-		return fmt.Errorf("AI 服务返回 %s: %s", resp.Status, strings.TrimSpace(string(msg)))
+		return fmt.Errorf("AI service returned %s: %s", resp.Status, strings.TrimSpace(string(msg)))
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
 }

@@ -61,7 +61,7 @@ class FaceModel:
         self.anchors = 2
         self._centers: dict[tuple[int, int, int], np.ndarray] = {}
         log.info(
-            "人脸模型 %s 已加载：检测 %s，特征 %s（%d 维），加速 %s",
+            "face model %s loaded: detection %s, embedding %s (%d dims), providers %s",
             pack,
             det.name,
             rec.name,

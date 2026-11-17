@@ -21,7 +21,7 @@ const (
 // runThumbnail 用 libvips 生成缩略图和预览图（视频先用 FFmpeg 截一帧），完成后加入 clip 任务。
 func (s *Service) runThumbnail(ctx context.Context, job *jobs.Job) error {
 	if job.AssetID == nil {
-		return errors.New("thumbnail 任务缺少 asset_id")
+		return errors.New("thumbnail job has no asset_id")
 	}
 	a, err := s.store.Get(ctx, *job.AssetID)
 	if errors.Is(err, ErrNotFound) {
@@ -83,23 +83,23 @@ func imageDerivatives(ctx context.Context, a *Asset, thumb, preview string) erro
 	if a.MimeType == "image/jpeg" {
 		plainErr := plainJPEGDerivatives(ctx, a.OriginalPath, thumb, preview)
 		if plainErr == nil {
-			log.Printf("assets: %s 用 libvips 处理失败（%s），已改用普通 JPEG 解码生成缩略图",
+			log.Printf("assets: libvips failed on %s (%s); made thumbnails with the plain JPEG decoder instead",
 				a.OriginalPath, oneLine(vipsErr))
 			return nil
 		}
-		vipsErr = fmt.Errorf("%w；普通 JPEG 解码也失败: %v", vipsErr, plainErr)
+		vipsErr = fmt.Errorf("%w; plain JPEG decoding also failed: %v", vipsErr, plainErr)
 	}
 
 	converted, err := ffmpegFrame(ctx, a.OriginalPath, "") // 照片不能加 -ss，否则 FFmpeg 什么也不输出
 	if err != nil {
-		return fmt.Errorf("%w；FFmpeg 兜底也失败: %v", vipsErr, err)
+		return fmt.Errorf("%w; FFmpeg fallback also failed: %v", vipsErr, err)
 	}
 	defer os.Remove(converted)
 	copyColorProfile(ctx, a.OriginalPath, converted)
 	if err := makeDerivatives(ctx, converted, thumb, preview); err != nil {
-		return fmt.Errorf("%w；FFmpeg 兜底后仍失败: %v", vipsErr, err)
+		return fmt.Errorf("%w; still failed after FFmpeg fallback: %v", vipsErr, err)
 	}
-	log.Printf("assets: %s 用 libvips 处理失败（%s），已改用 FFmpeg 转换后生成缩略图",
+	log.Printf("assets: libvips failed on %s (%s); made thumbnails after converting with FFmpeg instead",
 		a.OriginalPath, oneLine(vipsErr))
 	return nil
 }
@@ -173,7 +173,7 @@ func ffmpegFrame(ctx context.Context, path string, seeks ...string) (string, err
 			if st, statErr := os.Stat(f.Name()); statErr == nil && st.Size() > 0 {
 				return f.Name(), nil
 			}
-			err = errors.New("没有截到画面")
+			err = errors.New("no frame captured")
 		}
 		lastErr = fmt.Errorf("ffmpeg: %v: %s", err, strings.TrimSpace(string(out)))
 	}
@@ -188,6 +188,6 @@ func copyColorProfile(ctx context.Context, src, dest string) {
 	cmd := exec.CommandContext(ctx, "exiftool", "-q", "-overwrite_original",
 		"-tagsFromFile", src, "-ICC_Profile", dest)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Printf("assets: 复制色彩配置失败（不影响缩略图）: %v: %s", err, strings.TrimSpace(string(out)))
+		log.Printf("assets: copying the color profile failed (thumbnails unaffected): %v: %s", err, strings.TrimSpace(string(out)))
 	}
 }

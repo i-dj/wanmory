@@ -31,7 +31,7 @@ class OcrModel:
             }
         )
         self.lock = threading.Lock()
-        log.info("文字识别模型 %s 已加载", MODEL_ID)
+        log.info("text recognition model %s loaded", MODEL_ID)
 
     def read(self, bgr: np.ndarray) -> dict:
         """认出图片里的字：text 是按从上到下、从左到右排好、一行一个换行的全文，lines 带每行的把握"""

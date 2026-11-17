@@ -17,7 +17,7 @@ import (
 // runMetadata 用 ExifTool 读取尺寸、拍摄时间和 GPS，完成后加入 thumbnail 任务。
 func (s *Service) runMetadata(ctx context.Context, job *jobs.Job) error {
 	if job.AssetID == nil {
-		return errors.New("metadata 任务缺少 asset_id")
+		return errors.New("metadata job has no asset_id")
 	}
 	a, err := s.store.Get(ctx, *job.AssetID)
 	if errors.Is(err, ErrNotFound) {
@@ -53,10 +53,10 @@ func (s *Service) readExif(ctx context.Context, path string) (map[string]any, er
 	}
 	var list []map[string]any
 	if err := json.Unmarshal(out, &list); err != nil {
-		return nil, fmt.Errorf("解析 exiftool 输出: %w", err)
+		return nil, fmt.Errorf("parsing exiftool output: %w", err)
 	}
 	if len(list) == 0 {
-		return nil, errors.New("exiftool 没有返回结果")
+		return nil, errors.New("exiftool returned no result")
 	}
 	return list[0], nil
 }

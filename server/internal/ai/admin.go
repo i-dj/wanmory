@@ -35,6 +35,10 @@ type Endpoint struct {
 // 没选过时用启动时的 WANMORY_FACE_MODEL、WANMORY_CLIP_MODEL
 const SettingTier = "ai.tier"
 
+// settingAutoTier 记着档位是自动时上次按硬件选的那档：重启后直接用它，不用每次先按启动时的模型起来、
+// 问到硬件后再换一次（换档要给所有照片重新排任务，AI 服务也会先白白加载一遍默认的大模型）
+const settingAutoTier = "ai.tier_auto"
+
 // Tier 是一档的模型组合
 type Tier struct {
 	Face string `json:"face"`
@@ -68,6 +72,7 @@ type Admin struct {
 	switchMu   sync.Mutex   // 换档一次只换一个
 	parallel   atomic.Int32 // AI 服务同时算几张照片（它按显卡、核数、内存自动定，设置里能改），没问到时是 1
 	missing    atomic.Bool  // 这一档的模型 AI 服务上还没下载（问不到时当作有，连不上另有处理）
+	autoSaved  string       // 已经记进 settingAutoTier 的那档，一样就不再写
 }
 
 // NewAdmin：faceModel、clipModel 是启动时环境变量里的模型，设置里没选过档位时用
@@ -167,6 +172,13 @@ func (a *Admin) Models(ctx context.Context) (Tier, error) {
 		a.resolved.Store(true)
 	} else {
 		a.auto = true
+		// 自动：先用上次按硬件选的那档；问到硬件后一样就不用换（见 autoApply）
+		if last, e := settings.GetOr(ctx, a.store, settingAutoTier, ""); e == nil {
+			if t, ok := Tiers[last]; ok {
+				a.inUse = t
+				a.autoSaved = last
+			}
+		}
 	}
 	return a.inUse, err
 }

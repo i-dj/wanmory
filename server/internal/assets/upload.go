@@ -93,7 +93,7 @@ func (s *Service) saveUpload(ctx context.Context, part *multipart.Part, mtime ti
 	}
 	uploadDir, err := s.uploadDir(ctx)
 	if err != nil {
-		return nil, false, fmt.Errorf("读取上传目录设置: %w", err)
+		return nil, false, fmt.Errorf("reading the upload folder setting: %w", err)
 	}
 
 	// 临时文件放在上传目录下，和最终位置在同一个磁盘，入库时可以直接硬链接过去
@@ -113,7 +113,7 @@ func (s *Service) saveUpload(ctx context.Context, part *multipart.Part, mtime ti
 		err = closeErr
 	}
 	if err != nil {
-		return nil, false, fmt.Errorf("保存上传文件: %w", err)
+		return nil, false, fmt.Errorf("saving the uploaded file: %w", err)
 	}
 	return s.ingest(ctx, tmp.Name(), name, mtime, hash.Sum(nil))
 }

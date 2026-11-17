@@ -58,7 +58,7 @@ class ClipModel:
         self.dim = self.model.config.projection_dim
         # 同一时刻只让一个请求用模型：MPS 上并发推理会出错，也不会更快
         self.lock = threading.Lock()
-        log.info("CLIP 模型 %s 已加载（%s，%d 维）", name, self.device, self.dim)
+        log.info("CLIP model %s loaded (%s, %d dims)", name, self.device, self.dim)
 
     @torch.inference_mode()
     def image(self, bgr: np.ndarray) -> list[float]:
