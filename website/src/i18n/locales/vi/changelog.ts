@@ -2,6 +2,12 @@
 // Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
 
 const changelog: Record<string, string[]> = {
+  'v0.5.1': [
+    "Cài đặt hệ thống có mục mới “Số ảnh tối thiểu cho mỗi người”: một người phải xuất hiện trong bao nhiêu ảnh mới được liệt kê trong Mọi người — 2, 3, 5 hoặc 10, mặc định 3. Tăng lên thì những người chưa đặt tên và không đủ ảnh sẽ bị tách ra; giảm xuống thì các khuôn mặt chưa thuộc ai sẽ được gom lại. Lần khởi động đầu tiên sau khi nâng cấp sẽ áp dụng mức mặc định 3 một lần",
+    "Hai khuôn mặt trong cùng một ảnh và ảnh trong “Đã xóa gần đây” cũng được tính vào số ảnh cần để tạo người mới, nên người chỉ có 2 ảnh vẫn bị liệt kê",
+    "Khi cấp AI để Tự động, mỗi lần khởi động lại đều đổi về mô hình mặc định rồi đổi lại, ghi “xử lý lại tất cả ảnh” vào nhật ký và xếp lại tác vụ AI; nay lựa chọn tự động lần trước được ghi nhớ",
+    "Nhật ký của máy chủ, dịch vụ AI và đầu ra của lệnh reset-password, purge nay đều bằng tiếng Anh; các yêu cầu bị ngắt do trình duyệt đóng trang không còn bị ghi là lỗi nội bộ",
+  ],
   'v0.5.0': [
     "Ghi chú phát hành trong Cài đặt hệ thống → Cập nhật hệ thống giờ hiển thị theo ngôn ngữ giao diện (dùng bản dịch 11 ngôn ngữ trên trang web), không lấy được thì hiển thị bản gốc tiếng Trung; ngày của phiên bản mới nhất không còn dính vào chữ “Phát hành”",
     "Nhãn “Có bản cập nhật” cạnh số phiên bản ở thanh bên bị xuống hai dòng trong tiếng Anh và các ngôn ngữ khác; nay đổi thành “Cập nhật” ngắn hơn, nằm gọn một dòng",

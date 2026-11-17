@@ -3,6 +3,12 @@
 // Fehlt eine Version (oder weicht die Anzahl der Punkte ab), erscheint das chinesische Original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.1': [
+    "Neu in den Systemeinstellungen: „Mindestfotos pro Person“ – in wie vielen Fotos jemand vorkommen muss, um unter Personen aufzutauchen: 2, 3, 5 oder 10, Standard 3. Beim Erhöhen werden unbenannte Personen mit zu wenigen Fotos aufgelöst, beim Senken werden nicht zugeordnete Gesichter neu gruppiert. Der erste Start nach dem Update wendet den Standardwert 3 einmal an",
+    "Zwei Gesichter im selben Foto und Fotos unter „Zuletzt gelöscht“ zählten zu den Fotos, die eine neue Person braucht, sodass Personen mit nur 2 Fotos trotzdem aufgeführt wurden",
+    "Mit der KI-Stufe auf Automatisch wechselte jeder Neustart erst zu den Standardmodellen und dann zurück, protokollierte „alle Fotos werden neu verarbeitet“ und stellte KI-Aufträge erneut ein; die letzte automatische Wahl wird jetzt gespeichert",
+    "Protokolle von Server und KI-Dienst sowie die Ausgabe der Befehle reset-password und purge sind jetzt auf Englisch; Anfragen, die abbrechen, weil der Browser eine Seite schließt, werden nicht mehr als interne Fehler protokolliert",
+  ],
   'v0.5.0': [
     "Die Versionshinweise unter Systemeinstellungen → Systemupdate erscheinen jetzt in der Sprache der Oberfläche (mit den 11 Übersetzungen der Website); sind sie nicht abrufbar, wird das chinesische Original gezeigt. Das Datum der neuesten Version klebt nicht mehr an „Veröffentlicht“",
     "Das Abzeichen „Update verfügbar“ neben der Version in der Seitenleiste brach im Englischen und anderen Sprachen in zwei Zeilen um; jetzt steht dort das kürzere „Update“ in einer Zeile",

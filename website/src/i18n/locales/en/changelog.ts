@@ -3,6 +3,12 @@
 // A version missing here (or with a different number of bullets) falls back to the original Chinese.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.1': [
+    "System settings has a new “Minimum photos per person”: how many photos someone must appear in before they are listed in People — 2, 3, 5 or 10, default 3. Raising it takes apart unnamed people with too few photos; lowering it regroups unassigned faces. The first start after upgrading applies the default of 3 once",
+    "Two faces in the same photo, and photos in Recently deleted, counted toward the photos needed for a new person, so people with only 2 photos were still listed",
+    "With the AI tier on Automatic, every restart switched back to the default models and then back again, logging “reprocessing all photos” and requeuing AI jobs; the last automatic choice is now remembered",
+    "Server and AI service logs and the output of the reset-password and purge commands are now in English; requests cut off when a browser closes a page are no longer logged as internal errors",
+  ],
   'v0.5.0': [
     "Release notes in Settings → System update now appear in your interface language (using the 11 translations on the website), falling back to the Chinese original when they can't be fetched; the latest version's date no longer runs into “Released”",
     "The “Update available” badge next to the version in the sidebar wrapped onto two lines in English and other languages; it is now a shorter “Update” that fits on one line",

@@ -3,6 +3,12 @@
 // Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.1': [
+    "Novo em Configurações do sistema: “Mínimo de fotos por pessoa” — em quantas fotos alguém precisa aparecer para constar em Pessoas: 2, 3, 5 ou 10, padrão 3. Ao aumentar, pessoas sem nome com poucas fotos são desfeitas; ao diminuir, rostos sem pessoa são reagrupados. A primeira inicialização após a atualização aplica o padrão de 3 uma vez",
+    "Dois rostos na mesma foto e fotos em “Apagados recentemente” contavam para as fotos necessárias a uma nova pessoa, então pessoas com só 2 fotos continuavam listadas",
+    "Com o nível de IA em Automático, cada reinício voltava aos modelos padrão e depois trocava de novo, registrando “reprocessando todas as fotos” e reenfileirando tarefas de IA; agora a última escolha automática é lembrada",
+    "Os logs do servidor e do serviço de IA e a saída dos comandos reset-password e purge agora estão em inglês; requisições interrompidas quando o navegador fecha uma página não são mais registradas como erros internos",
+  ],
   'v0.5.0': [
     "As notas de versão em Configurações do sistema → Atualização do sistema agora aparecem no idioma da interface (com as 11 traduções do site), ou no chinês original quando não for possível obtê-las; a data da versão mais recente não fica mais grudada em “Lançada”",
     "O selo “Atualização disponível” ao lado da versão na barra lateral quebrava em duas linhas em inglês e outros idiomas; agora é o mais curto “Atualizar”, em uma linha",
