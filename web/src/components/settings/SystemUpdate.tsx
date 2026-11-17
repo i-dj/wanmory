@@ -209,19 +209,20 @@ function ReleaseNotes({ release }: { release: Release }) {
   )
 }
 
-// localNotes 是按现在的语言显示的说明：有官网的译文、而且条数对得上就用译文（「修复：」开头的条目译文里没写，补上），
-// 繁体中文以外的语言没有那种语言的译文时用英文，都没有就显示中文原文
+// localNotes 是按现在的语言显示的说明：GitHub Release 里是英文原文（早期版本是中文），官网上有各语言的译文。
+// 有这种语言的译文、而且条数对得上就用译文（「Fix: 」开头的条目译文里没写，补上这种语言的「修复：」）；
+// 繁体中文没有译文时用简体中文，其他语言用英文，都没有就显示原文
 function localNotes(release: Release): string[] {
   const lines = release.notes
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
   const lang = locale()
-  if (lang === 'zh-CN') return lines
-  const tr = release.translations?.[lang] ?? (lang === 'zh-TW' ? undefined : release.translations?.en)
+  const all = release.translations
+  const tr = all?.[lang] ?? (lang === 'zh-TW' ? all?.['zh-CN'] : all?.en)
   const items = lines.filter((l) => /^[-*]\s+/.test(l))
   if (!tr || tr.length !== items.length || items.length !== lines.length) return lines
-  return items.map((l, i) => `- ${/^[-*]\s+修复：/.test(l) ? t('修复：') : ''}${tr[i]}`)
+  return items.map((l, i) => `- ${/^[-*]\s+(修复：|Fix:)/.test(l) ? t('修复：') : ''}${tr[i]}`)
 }
 
 // plain 去掉简单的 Markdown 记号（**粗体**、`代码`、[文字](链接)），说明里只显示文字

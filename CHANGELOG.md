@@ -1,187 +1,188 @@
-# 更新记录
+# Changelog
 
-每个版本发布时，这里对应的一段会成为 GitHub Release 的说明，相册的「设置 → 系统更新」里显示的就是它。
-新版本写在最上面，标题格式是 `## v0.2.2 — 日期`。
+Each version's section becomes the notes of its GitHub Release, which Settings → System update shows.
+Newest first; headings look like `## v0.5.1 — 2026-11-17`. Fixes start with `Fix: `.
+Translations live in `website/src/i18n/locales/<lang>/changelog.ts`, one string per bullet in the same order.
 
 ## v0.5.1 — 2026-11-17
 
-- 系统设置新增「新建人物的门槛」：同一个人至少出现在几张照片里才在「人物」里列出来，可选 2、3、5、10 张，默认 3 张；改大后照片不够数、没起名字的人物会拆掉，改小后没归人物的脸会重新归一遍。升级后第一次启动按 3 张整理一次
-- 修复：同一张照片里的两张脸、「最近删除」里的照片也算进新建人物要的张数，只有 2 张照片的人还是会被列出来
-- 修复：AI 档位是「自动」时，每次重启都先换回默认的模型再换回来，日志里写「所有照片重新处理」并重新排上 AI 任务；现在记住上次选的那档
-- 服务端、AI 服务的日志和 reset-password、purge 命令的输出全部改为英文；浏览器关掉页面时中断的请求不再记成内部错误
+- System settings has a new “Minimum photos per person”: how many photos someone must appear in before they are listed in People — 2, 3, 5 or 10, default 3. Raising it takes apart unnamed people with too few photos; lowering it regroups unassigned faces. The first start after upgrading applies the default of 3 once
+- Fix: Two faces in the same photo, and photos in Recently deleted, counted toward the photos needed for a new person, so people with only 2 photos were still listed
+- Fix: With the AI tier on Automatic, every restart switched back to the default models and then back again, logging “reprocessing all photos” and requeuing AI jobs; the last automatic choice is now remembered
+- Server and AI service logs and the output of the reset-password and purge commands are now in English; requests cut off when a browser closes a page are no longer logged as internal errors
 
 ## v0.5.0 — 2026-11-16
 
-- 「系统设置 → 系统更新」里的更新说明按界面语言显示（用官网上 11 种语言的译文），取不到时显示中文原文；最新版本的日期和「发布」不再挤在一起
-- 修复：侧栏版本号旁的「有新版本」标签在英文等语言下折成两行；现在换成更短的「可更新」，只占一行
-- 修复：「上传影像」按钮在日语、法语、西班牙语等语言下文字太长、折成两行；现在每种语言都放得下一行
-- GitHub 上的 README 默认英文、另有简体中文版，加上快速部署步骤，配图换成产品界面截图；官网首页的标题和描述按「AI 相册」「Docker 相册」「Google 相册替代」等常见搜索词改写，常见问题新增和 Google 相册、iCloud、Immich、PhotoPrism、群晖 Photos 的对比
+- Release notes in Settings → System update now appear in your interface language (using the 11 translations on the website), falling back to the Chinese original when they can't be fetched; the latest version's date no longer runs into “Released”
+- Fix: The “Update available” badge next to the version in the sidebar wrapped onto two lines in English and other languages; it is now a shorter “Update” that fits on one line
+- Fix: The “Upload media” button wrapped onto two lines in Japanese, French, Spanish and other languages; it now fits on one line in every language
+- The README on GitHub is now in English by default with a Simplified Chinese version, adds quick deployment steps and uses product screenshots; the website home page title and description were rewritten around common searches like “AI photo album”, “Docker photo album” and “Google Photos alternative”, and the FAQ adds comparisons with Google Photos, iCloud, Immich, PhotoPrism and Synology Photos
 
 ## v0.4.9 — 2026-11-15
 
-- 相册顶上的横幅会挑横图、人脸清楚又放得进横幅的照片，并对准人脸裁，不会只露出下巴；相册里加了或移出照片、重新进入相册时会重新挑
-- 可以下载整个相册：相册的「…」菜单和右键菜单里的「下载相册」，打包成以相册名命名的 zip
-- 修复：给相册添加照片时，已经在相册里的照片还会列出来；现在不再显示，提示文字也更简短
-- 人物的「成长」每个年龄下面写着多少项；「足迹」的时间段和天数、张数分两行写，不再被截断；「合影」只写多少项
-- 修复：鼠标移到左边「上传影像」按钮上时，中间有一条没变色的空白
-- 官网首页新增四张带插图的功能卡：拖拽上传、断点续传、原地导入、批量下载；去掉了首屏的标签
+- The banner at the top of an album now picks a landscape photo with clear faces that fit, and crops around the faces instead of showing only a chin; it is picked again when photos are added or removed, or when you reopen the album
+- Download a whole album: “Download album” in the album’s … menu and right-click menu packs it into a zip named after the album
+- Fix: When adding photos to an album, photos already in it were still listed; they are now hidden, and the hint is shorter
+- Growth on a person’s page shows the number of items under each age; Footprints puts the date range and the days/items count on separate lines so nothing is cut off; Together shows just the item count
+- Fix: Hovering the “Upload media” button on the left left an uncolored strip in the middle
+- The website home page has four new illustrated feature cards — drag-and-drop upload, resumable uploads, in-place import and batch download — and the hero badges are gone
 
 ## v0.4.8 — 2026-11-15
 
-- 在「风景」「美食」等分类里拖进照片，传完就归到这个分类，不用等 AI 认出来；在相册列表里拖到某个相册的封面上松开，传进那个相册；在人物、足迹等页面拖进来，传到图库
-- 左边的上传按钮改叫「上传影像」，旁边多了一个按钮可以上传整个文件夹；直接拖进文件夹也行，会挑出里面的照片和视频
-- 照片信息里的人物只列认出的人，不再显示没认出的人脸；填了生日的写拍照时几岁，没填的写「N 年前」；切换照片时信息栏不再闪一下
-- 人物：同一个人有 2 张照片就会单独成组（以前要 3 张），升级后已有的照片会重新归组一次
-- 修复：删掉的照片还排着 AI 识别，任务数对不上，新传的照片还要排在它们后面；现在删掉的照片不计数也不识别
-- 右上角任务面板更紧凑；管理员可以直接在面板里暂停、继续 AI 识别
-- 搜索时 AI 服务不可用：按文字、地点能找到的照片照样显示；模型没下载时直接提示去下载
-- 存储空间挪到了「系统设置」；「那年今天」一排正好放下，不再横向滚动；去掉了「生成缩略图中」等多余的提示；docker-compose.yml 的注释改为英文；官网的在线演示先说明演示账号和限制
+- Drop photos into a category such as Scenery or Food and they land in that category right after uploading, without waiting for AI to recognize them; drop onto an album cover in the album list to upload into that album; drop on People, Footprints and other pages to upload to the library
+- The upload button on the left is now “Upload media”, with a button next to it for uploading a whole folder; dropping a folder works too, picking out the photos and videos inside
+- People in photo info list only recognized people, no longer unknown faces; with a birthday it shows their age when the photo was taken, otherwise “N years ago”; the info panel no longer flickers when switching photos
+- People: two photos of the same person are now enough for their own group (it used to take three); existing photos are regrouped once after upgrading
+- Fix: Deleted photos were still queued for AI analysis, throwing off the task count and making new uploads wait behind them; deleted photos are now neither counted nor analyzed
+- More compact task panel at the top right; admins can pause and resume AI analysis right from the panel
+- When the AI service is unavailable, search still shows photos found by text and place; without models it tells you to download them
+- Storage moved to System settings; “On this day” fits in one row without scrolling sideways; removed redundant notices such as “Generating thumbnails”; docker-compose.yml comments are now in English; the website’s live demo first explains the demo account and its limits
 
 ## v0.4.7 — 2026-11-13
 
-- 修复：用 Safari 上传视频等大文件时，每一片都会卡住几十秒，局域网里每秒只有零点几 MB；现在 Safari 和 Chrome 一样快（实测 30 个视频 1.9 GB 用 25 秒）
-- 系统设置 → 后台处理新增「传完后等多久再开始」：照片传完后 AI 先等 30 秒到 4 小时再开始，一批接一批上传时不会插进来抢资源；想等到夜里，配合「夜间」时段
-- 右上角任务面板更简洁：每类任务下面一行短话，左边是正在做什么或者为什么在等，右边是还要多久；模型没下载时直接提示「请先在设置中下载模型」
-- 上传中、暂停时，上传那一栏右上角的 × 可以直接全部取消，已经传完的照片会留着；剩余时间不再写「约」，面板加宽，时间不会被截掉
-- 登录页的那句话在各种语言下都正好两行；弹出的菜单和对话框更不透明，在不做背景模糊的浏览器里也看得清
-- 官网文档重写：安装脚本的全部参数和每一步提示、卸载脚本各选项删什么、如何更新、AI 什么时候处理、在 macOS / Windows / Linux 上用 uv 单独部署远程 AI 服务
+- Fix: Uploading videos and other large files in Safari stalled for tens of seconds on every chunk, managing only a fraction of a MB per second on a local network; Safari is now as fast as Chrome (30 videos, 1.9 GB, in 25 seconds in testing)
+- Settings → Background processing has a new “Wait after uploads”: AI waits 30 seconds to 4 hours after photos finish uploading, so it doesn't compete for resources between batches; combine it with the Night window to wait until night
+- Simpler task panel at the top right: each task has one short line — what it's doing or why it's waiting on the left, time left on the right; without models it simply says “Download the models in Settings first”
+- While uploading or paused, the × at the top right of the upload section cancels everything at once, keeping photos that already finished; time left no longer says “About”, and the wider panel keeps it from being cut off
+- The sign-in line fits on exactly two lines in every language; menus and dialogs are less transparent, so they stay readable in browsers that skip the background blur
+- Rewritten website docs: every install script option and prompt, what each uninstall option deletes, how to update, when AI runs, and running the AI service separately with uv on macOS / Windows / Linux
 
 ## v0.4.6 — 2026-11-12
 
-- 上传大文件时「保存中」快了很多：一边接收一边算校验值，传完不再把整个文件从磁盘上再读一遍（树莓派上一个几百 MB 的视频以前要等几十秒）；20 MB 以上的文件传完，日志里记下接收速度和入库耗时，上传慢时能看出是网络还是磁盘
-- 镜像更小：相册程序换成单文件的 ffmpeg，不再连带三百多 MB 用不到的库，下载量少了约三分之一；AI 服务的镜像不再带打包工具
-- 右上角任务面板的「导入照片」按一批累计，一边上传一边导入时数字不再一会儿 2 一会儿 10
-- 登录页换了一句话：「拾起散落的时光碎片，编织成岁月的诗篇。」，各语言都有自己的说法；补上了几处一直没翻译的文字（夜间时段、按内容搜索、改端口、忘记密码的说明）
+- “Saving” after large uploads is much faster: the checksum is computed while the file is received, so the whole file is no longer read from disk again (a video of a few hundred MB used to take tens of seconds on a Raspberry Pi); for files over 20 MB the log records receive speed and save time, so a slow upload shows whether the network or the disk is the limit
+- Smaller images: the server now uses a single-file ffmpeg instead of pulling in over 300 MB of unused libraries, cutting the download by about a third; the AI service image no longer ships its packaging tool
+- “Importing photos” in the task panel counts up over the whole batch, instead of jumping between 2 and 10 while uploading
+- New line on the sign-in page — “Gather the scattered fragments of time, and weave them into a poem of the years.” — written for each language; several texts that were never translated are now (night hours, content search, changing the port, forgotten password)
 
 ## v0.4.5 — 2026-11-12
 
-- 修复：一批里有大视频时，照片传完、视频还没传完 AI 就开始识别，和上传抢资源；现在只要还有没传完的文件，AI 就一直等（取消的马上不等，10 分钟没动静的也不再等）
-- 右上角任务面板：做了哪些事和进度（还要多久、在等什么）分成两行，放不下就换行，不再被截成几个字；面板不再出现横向滚动条
+- Fix: With large videos in a batch, AI analysis started once the photos were done while the videos were still uploading, competing with the upload; AI now waits as long as any file is still unfinished (a cancelled upload stops the wait at once, and one with no activity for 10 minutes no longer holds it up)
+- Task panel at the top right: what each task does and its progress (time left, what it is waiting for) are on separate lines and wrap when needed, instead of being cut down to a few characters; the panel no longer scrolls sideways
 
 ## v0.4.4 — 2026-11-12
 
-- 修复：v0.4.2 起相册把数据目录里的文件改成归容器里的用户，宿主机上的用户（例如树莓派上不是 1000 号的用户）删不掉上传的照片和缩略图；现在相册以数据目录主人的身份运行，写出的文件都归他，以前留下的也会改回来
-- 修复：AI 服务下载的模型文件归 root，宿主机上删不掉；现在交给模型目录的主人
-- 卸载脚本：普通删除被拒绝时，自动借一个临时容器删除；真删不掉才提示，并给出 sudo 命令，不再先说删不掉又说已删除
+- Fix: Since v0.4.2, Wanmory gave the files in the data folder to the container's own user, so the host user (for example a Raspberry Pi user whose ID isn't 1000) couldn't delete uploaded photos and thumbnails; Wanmory now runs as the owner of the data folder, so everything it writes belongs to that user, and files left by earlier versions are given back
+- Fix: Model files downloaded by the AI service belonged to root and couldn't be deleted on the host; they now go to the owner of the model folder
+- Uninstall script: when a normal delete is refused, it deletes through a temporary container; only if that fails too does it say so, with the sudo command to run, instead of reporting both failure and success
 
 ## v0.4.3 — 2026-11-12
 
-- 右上角新的状态胶囊：上传照片、导入和 AI 识别时出现在工具按钮左边，一句话说现在在做什么（上传中 11%、上传完成、等待 AI 识别、AI 识别 3 / 674），点开看上传进度、每个文件和后台任务；代替了左下角的上传窗口和菜单顶上的任务图标
-- 上传时切到别的页面也接着传，进度在每一页都看得到；还有照片没传完时关掉或刷新网页，会先提醒
-- 上传卡住（网络断了一下，45 秒没有任何进度）时自动重新连接，从已经传到的位置接着传
-- 修复：没下载 AI 模型时，内置的文字识别照样在跑，任务进度看起来像在识别；现在模型没下载时 AI 识别全部暂停，并提示去「系统设置 → AI 设置」下载，下完自动开始
+- New status capsule at the top right: while photos upload, import or go through AI analysis it appears left of the toolbar and says in a few words what is happening (Uploading 11%, Upload complete, Waiting for AI analysis, AI analysis 3 / 674); click it for upload progress, each file and background tasks. It replaces the upload window at the bottom left and the task icon at the top of the menu
+- Uploads keep going when you switch to another page, and progress is visible on every page; closing or reloading the page while photos are still uploading asks first
+- A stalled upload (the network dropped for a moment, no progress for 45 seconds) reconnects automatically and continues from where it stopped
+- Fix: Without the AI models downloaded, the built-in text recognition still ran, so task progress looked like analysis was happening; now all AI analysis pauses until the models are downloaded, with a hint to download them in Settings → AI, and starts automatically afterwards
 
 ## v0.4.2 — 2026-11-12
 
-- 修复：数据目录不归容器里的用户时（比如用 sudo 安装、树莓派上），相册启动不了、一直重启；现在启动时会自动改好数据目录的归属，U 盘、网络共享这类改不了归属的目录也能用
-- 安装脚本：最多等 5 分钟再判断有没有启动成功；相册反复重启时直接显示最后几行日志，没启动成功时不再显示「安装完成」；安装结束的提示去掉了中文；开头显示欢迎画面和要安装的版本号
+- Fix: Wanmory could not start and kept restarting when the data folder wasn’t owned by the container’s user (for example after installing with sudo, or on a Raspberry Pi); it now fixes the folder’s owner on startup, and also works on USB drives and network shares where the owner can’t be changed
+- Install script: waits up to 5 minutes before deciding whether Wanmory started; if it keeps restarting, the last log lines are shown, and “Installation complete” is no longer printed when it didn’t start; the closing hint no longer contains Chinese; it now opens with a welcome banner and the version being installed
 
 ## v0.4.1 — 2026-11-12
 
-- 两步验证：验证器 App 里显示的名字改成「Wanmory:用户名」，去掉了前面的中文；已经开启的要关掉再重新扫码才会变
+- Two-step verification: authenticator apps now show the entry as “Wanmory:username”, without the Chinese prefix; if you already turned it on, turn it off and scan again to get the new name
 
 ## v0.4.0 — 2026-11-12
 
-- 界面支持 12 种语言：简体中文、繁體中文、English、日本語、한국어、Deutsch、Français、Español、Português、Русский、Italiano、Tiếng Việt；在「我的账号」里设置，默认跟随浏览器语言，换设备登录也是这个语言；日期、数字和地名也跟着语言显示
-- 两步验证：在「我的账号」里用验证器 App（Google Authenticator、Microsoft Authenticator、2FAS 等）扫码开启，登录时在密码之后再输 6 位验证码；开启时给 10 个备用码，手机不在身边时可以用
-- 更换头像重新设计：上面是裁剪预览，可以拖动和缩放，下面选上传图片、相册里的照片、默认头像或卡通头像
-- 所有对话框统一成一种样子：居中的图标、标题和说明，下面两个一样宽的按钮；删除成员、相册和模型用同一个删除确认框
-- 选中照片后，「更多」里可以「分享…」：用系统的分享面板发邮件（照片直接在附件里）、隔空投送或发到其他应用；需要用 https 或 localhost 打开相册
-- 按「添加时间」排序时，右边的时间线和照片上面的日期分组也按添加日期
-- 安全：密码连续输错会暂时锁定；网页不能被别的网站嵌入，上传的文件不会被当成网页运行；系统设置里可以直接修改局域网访问域名
-- 上传完成的提示 10 秒后自动消失
-- 修复：打开确认框时背景会卡一下
+- The interface now comes in 12 languages: 简体中文, 繁體中文, English, 日本語, 한국어, Deutsch, Français, Español, Português, Русский, Italiano, Tiếng Việt. Set it in My account; by default it follows your browser language, and it stays the same when you sign in on another device. Dates, numbers and place names follow the language too
+- Two-step verification: turn it on in My account by scanning a QR code with an authenticator app (Google Authenticator, Microsoft Authenticator, 2FAS and others); signing in then asks for a 6-digit code after your password. You get 10 recovery codes for when your phone isn’t at hand
+- Redesigned avatar picker: a crop preview on top that you can drag and zoom, and below it a choice of uploading an image, a photo from your library, the default avatar or a cartoon
+- All dialogs now share one look: a centered icon, title and description, with two equal-width buttons below; deleting a member, album or model uses the same delete confirmation
+- With photos selected, More now offers Share…: use the system share sheet to email them (the photos go straight into the attachments), AirDrop them or send them to other apps; the library must be opened over https or localhost
+- When sorting by date added, the timeline on the right and the date groups above the photos use the date added too
+- Security: repeated wrong passwords now lock sign-in for a while; the site can’t be embedded by other websites, and uploaded files are never run as web pages; the local network domain can be changed right in System settings
+- The upload-complete notice now disappears after 10 seconds
+- Fix: The background stuttered when a confirmation dialog opened
 
 ## v0.3.1 — 2026-11-11
 
-- 「足迹」的地图可以放大、缩小和拖动：滚轮或触控板缩放，双击放大，按住拖动，手机上两指捏合，右下角有放大、缩小和回到整个世界的按钮；放大到一个国家左右换成街道地图（要打开在线地图），能看到城市、道路和地名，照片钉子也跟着越分越细，一直到一个个拍摄地点；从照片返回时停在原来的位置
-- 官网：版本发布页的日历改成月历，每天写上发布的版本号，点版本号跳到更新说明；修复网络慢或官网刚更新时偶尔整页没有样式
+- The Places map can now be zoomed and dragged: zoom with the mouse wheel or trackpad, double-click to zoom in, drag to pan, pinch with two fingers on phones, and use the buttons at the bottom right to zoom in, zoom out or show the whole world; at around country level it switches to a street map (online maps must be on) with cities, roads and place names, and the photo pins keep splitting as you zoom, down to individual spots; coming back from the photos returns you to where you were
+- Website: the calendar on the releases page is now a month calendar with each day’s version numbers, and clicking a version jumps to its notes; fixed pages occasionally loading with no styling on slow networks or right after a site update
 
 ## v0.3.0 — 2026-11-11
 
-- 新的官网：首页、功能架构、部署与文档、常见问题、版本发布和问题反馈，支持 12 种语言，默认跟随浏览器语言，页面底部可以手动切换
-- 一键安装和卸载脚本（install.sh、uninstall.sh）：安装时可以设置端口、域名、数据库密码和位置、时区、数据目录和照片目录；数据库、数据和模型放在哪里都可以自己定（WANMORY_DB_DIR、WANMORY_DATA_DIR、WANMORY_MODELS_DIR），WANMORY_DOMAIN 设置局域网里访问用的域名
-- 「足迹」改成一张平铺的世界地图：去过的国家颜色暖一点，每个城市钉一张照片，写上城市和国家，点开看那里的照片；右上角只留「地图 / 网格」，去掉了街道地图和卫星地球
-- 相册页换成大卡片：方形封面，名字和张数写在下面，私人相册的封面上有一把锁，别人建的相册写上是谁建的；删除相册改用统一的确认框，相册里的「添加照片」改成醒目的主按钮
-- 人物页换成 3:4 的大头像，名字和张数写在下面，点名字直接改名；人物的页头更简洁：头像、名字和年龄，下面一行是年份和照片、视频数，右边切换照片、成长、足迹、合影；成长、合影、足迹里的卡片和人物页、相册页一样大
-- 所有页面的标题统一成一行：大标题后面跟着灰色的说明
-- 手机等窄屏上，顶部是标志栏，点右上角从右边滑出菜单
-- 演示账号：用户名是 demo 的账号（可以用 WANMORY_DEMO_USER 换成别的）不能改密码、退出其他设备，也不能删除东西，但可以上传，自己 30 分钟内传的照片、建的相册可以删
-- 精选回忆、登录记录、头像、美学评分和 IP 归属地等多处改进
+- A new website: home, architecture, setup & docs, FAQ, releases and feedback, in 12 languages; it follows your browser language by default, and you can switch at the bottom of the page
+- One-command install and uninstall scripts (install.sh, uninstall.sh): set the port, domain, database password and location, time zone, data directory and photo directory during install; you can choose where the database, data and models live (WANMORY_DB_DIR, WANMORY_DATA_DIR, WANMORY_MODELS_DIR), and WANMORY_DOMAIN sets the domain used on your local network
+- Places is now a flat world map: countries you have visited are shown in a warm color, each city has a photo pin labeled with the city and country, and clicking one opens the photos taken there; the top right now offers just Map / Grid, and the street map and satellite globe are gone
+- The Albums page now uses large cards: square covers with the name and item count below, a lock on private albums, and the creator’s name on albums made by someone else; deleting an album uses the standard confirmation dialog, and Add photos inside an album is now a prominent primary button
+- The People page now shows large 3:4 portraits with the name and count below; click a name to rename. The person header is simpler: avatar, name and age, with the years and photo and video counts on the line below, and Photos, Growth, Places and Together tabs on the right; cards in Growth, Together and Places are the same size as on the People and Albums pages
+- Every page title is now a single line: the large title followed by a gray description
+- On phones and other narrow screens, a logo bar sits at the top, and the menu slides in from the right
+- Demo account: the account named demo (change it with WANMORY_DEMO_USER) cannot change its password, sign out other devices or delete anything, but it can upload, and it can delete photos it uploaded and albums it created within the last 30 minutes
+- Improvements to featured memories, sign-in history, avatars, aesthetic scoring, IP location and more
 
 ## v0.2.9 — 2026-11-09
 
-- 新的标志：细线圆里一笔画的「M」和一个红点；浏览器标签页上也有了图标
-- 左边菜单可以收起成只有图标的窄栏（点标志展开）；菜单分成常用、分类、整理三组，分类里有收藏、星级、视频、风景、美食、动物、植物，截图、文档、证件收在「更多」里
-- 新增「植物」分类，「宠物」改成「动物」（鸟、动物园里的动物也算）；搜分类名（美食、风景……）直接出这一类的照片
-- 新的「我的账号」：点菜单左下角的头像进去，可以换头像、改名字、改密码，看在哪些设备上登录着（浏览器、IP、最近使用）并退出其他设备，主题也在这里
-- 系统设置改成一张张卡片：成员、AI 运行方式（可以测试连接，连不上会提示）、计算设备、模型档位（下载过的模型可以删除）、后台处理、上传目录、访客浏览、在线地图、系统更新；模型从 Hugging Face 还是国内镜像下载改成自动选快的
-- 所有弹出窗口统一成半透明磨砂的样子，按钮分主次；添加成员、修改密码的错误直接写在窗口里
-- 相册的「共享设置」改名「权限设置」：所有人、指定成员、仅自己
-- 深色模式底色更深；全站按钮、分段按钮统一成一种样式
-- 修复：后台任务做完后图标还一直转、显示 0
+- New logo: a single-stroke “M” inside a thin circle with a red dot; browser tabs now show an icon too
+- The left menu can collapse into a narrow icon-only bar (click the logo to expand); it is now split into three groups, Main, Categories and Organize. Categories include Favorites, Rating, Videos, Scenery, Food, Animals and Plants, with Screenshots, Documents and IDs under More
+- New Plants category, and Pets is now Animals (birds and zoo animals count too); searching a category name (Food, Scenery…) shows that category’s photos directly
+- New My account page: click the avatar at the bottom left of the menu to change your avatar, name and password, see the devices you are signed in on (browser, IP, last used) and sign out other devices; the theme setting lives here too
+- System settings are now a set of cards: Members, AI run mode (with a connection test and a warning if it cannot connect), Compute device, Model tier (downloaded models can be deleted), Background processing, Upload directory, Guest browsing, Online maps and System update; models now download automatically from whichever is faster, Hugging Face or a mirror in China
+- All pop-up windows now share a translucent frosted look, with primary and secondary buttons; errors when adding a member or changing a password are shown right in the window
+- An album’s Sharing settings are renamed Permissions: Everyone, Specific members, Only me
+- Darker background in dark mode; all buttons and segmented controls across the app now share one style
+- Fix: The background task icon kept spinning and showing 0 after all tasks had finished
 
 ## v0.2.8 — 2026-11-09
 
-- 内容区改成白底（照片颜色更准），左边菜单是米色；菜单底部的存储空间改成小白卡片
-- 播放按钮只留一个橙色圆形图标，鼠标停上去显示「幻灯片播放」
-- 人物页头部更简洁：去掉渐变，细边框，上面是头像、名字、年龄和生日，下面四格统计；名字下面就能设置 / 修改生日，照片、成长、足迹、合影四个标签上的头部完全一样
+- The content area now has a white background (for more accurate photo colors) and the left menu is beige; storage usage at the bottom of the menu is now a small white card
+- The play button is now just an orange circular icon, showing “Slideshow” on hover
+- Cleaner person page header: no gradient, a thin border, avatar, name, age and birthday on top and four stats below; the birthday can be set or changed right under the name, and the header is identical across the Photos, Growth, Places and Together tabs
 
 ## v0.2.7 — 2026-11-09
 
-- 全新的暖色外观：米白底、砖橙强调色，页面标题、人名、回忆、日期用宋体；新的橙色标志
-- 每个页面顶上都有搜索框（在整个图库里搜）；右边日历、排序、筛选、显示大小收进一个按钮组，播放统一是橙色的「幻灯片」
-- 图库、收藏、相册、人物里的照片按月分组，每组上面写「十一月 2026」
-- 「那年今天」改成大张的单图卡片
-- 人物页新的头部：大头像、年龄和生日、照片 / 视频 / 跨越几年 / 去过几个地方的统计，「常和 Ta 一起」的人
-- 左边菜单一直显示（点进人物、相册也不收起），底部显示存储空间用了多少；「上传文件」改名「上传照片 / 视频」
-- 单击照片直接打开大图（⌘ / Ctrl、⇧ 单击是多选）；切换页面时照片渐显
-- 修复：切换页面时右上角按钮、右边时间轴会跳一下，点进人物时屏幕闪一下，iPad 上菜单动画卡
-- 对话框、菜单改成不透明的白底；选中照片后的操作栏、后台任务、上传窗口改成浅色磨砂
-- 忘了密码（包括唯一的管理员、连名字也忘了）：在运行相册的机器上运行 `docker compose exec server wanmory reset-password`，见 README 的「忘记密码」
+- A brand-new warm look: off-white background, brick-orange accent, and a serif font for page titles, names, memories and dates; a new orange logo
+- Every page now has a search box at the top (searching the whole library); the calendar, sort, filter and display size on the right are combined into one button group, and play is now an orange Slideshow button everywhere
+- Photos in the library, favorites, albums and people are grouped by month, each group headed like “November 2026”
+- On This Day is now a large single-photo card
+- New person page header: large avatar, age and birthday, stats for photos, videos, years spanned and places visited, and the people they often appear with
+- The left menu always stays visible (it no longer collapses when opening a person or album) and shows storage usage at the bottom; “Upload files” is renamed “Upload photos / videos”
+- A single click on a photo opens it full size (⌘ / Ctrl or ⇧ click to multi-select); photos fade in when switching pages
+- Fix: The top-right buttons and the timeline on the right jumped when switching pages, the screen flashed when opening a person, and the menu animation stuttered on iPad
+- Dialogs and menus now have an opaque white background; the selection action bar, background tasks and upload window now use a light frosted style
+- Forgot your password (even as the only admin, or if you have forgotten the name too)? On the machine running the app, run `docker compose exec server wanmory reset-password`; see “Forgot password” in the README
 
 ## v0.2.6 — 2026-11-08
 
-- 各页面顶上的标题栏统一成同一个高度和位置，切换页面时标题、按钮不再跳动
-- 切换页面时不再先闪一下上一页的照片
-- 浅色模式下内容区和左侧菜单同一个底色
-- 菜单底部加「退出登录」；不是管理员时不显示系统设置的齿轮（点头像和名字进自己的设置）
-- 能点的地方鼠标移上去都是小手
+- The title bar at the top of every page now has the same height and position, so titles and buttons no longer jump when switching pages
+- Switching pages no longer briefly shows the previous page’s photos
+- In light mode, the content area and the left menu share the same background
+- Added Sign out at the bottom of the menu; the system settings gear is hidden for non-admins (click your avatar and name for your own settings)
+- Everything clickable now shows a pointer cursor on hover
 
 ## v0.2.5 — 2026-11-08
 
-- 后台任务面板精简：人脸、内容、文字合成一行「AI 识别照片」，读信息、缩略图合成「导入照片」，都按照片张数显示进度，并给出预计还要多久
-- 档位是自动时，AI 服务刚启动比较忙也能更快定下档位开始处理
+- Simplified background task panel: faces, content and text are merged into one “AI recognition” row, and metadata and thumbnails into “Importing photos”; both show progress by photo count with an estimated time remaining
+- With the Auto tier, a tier is settled sooner and processing starts faster even when the AI service is busy right after starting
 
 ## v0.2.4 — 2026-11-08
 
-- AI 服务省内存：模型闲置一段时间后自动卸掉（内存不到 8 GB 的机器 5 分钟，大的 30 分钟），换档后旧档的模型也会释放；小内存机器上不再预留内存池。树莓派上不处理照片时 AI 服务只占很少内存
-- 档位新增「自动」（没选过档位时默认就是自动）：按 AI 服务器的硬件选，有显卡用高精度，只有 CPU 时内存不到 6 GB 用轻量、再大用均衡；换了 AI 服务器会跟着换。档位定下来之前不开始 AI 处理
+- The AI service uses less memory: idle models are unloaded automatically (after 5 minutes on machines with less than 8 GB of memory, 30 minutes on larger ones), the previous tier’s models are released after switching tiers, and no memory pool is reserved on low-memory machines. On a Raspberry Pi, the AI service uses very little memory when not processing photos
+- New Auto tier (the default if no tier has been chosen): picked from the AI server’s hardware, Quality with a GPU, and on CPU only, Lite below 6 GB of memory and Balanced above; it follows along if you change AI servers. AI processing does not start until a tier is settled
 
 ## v0.2.3 — 2026-11-08
 
-- 修复：照片早就传完了，后台任务里还一直显示「AI 暂停：有照片正在上传」。现在只算真正在传数据的上传，传完 30 秒后 AI 接着处理
-- 图库顶上不再显示「处理中 / 已处理完」，处理进度统一看菜单顶上的任务图标
+- Fix: Background tasks kept showing “AI paused: photos are uploading” long after the uploads had finished. Now only uploads actively transferring data count, and AI resumes 30 seconds after they finish
+- The library header no longer shows “Processing / Done”; processing progress is now shown only by the task icon at the top of the menu
 
 ## v0.2.2 — 2026-11-08
 
-- 菜单顶上显示版本号；设置里新增「系统更新」：看相册程序、AI 服务的版本，有新版本时提示，并列出新版本更新了什么
-- 发布新版本时自动生成更新说明
+- The version number is shown at the top of the menu; new System update in Settings shows the versions of the app and the AI service, tells you when a new version is available, and lists what is new in it
+- Release notes are generated automatically when a new version is published
 
 ## v0.2.1 — 2026-11-08
 
-- 后台处理按机器自动调整：AI 同时算几张、每个模型几个线程，按有没有显卡、核数和内存定，树莓派上不再卡住
-- AI 处理时机：空闲时（默认，有人上传、生成缩略图时先暂停）、随时、只在夜间
-- 设置新增「性能」，以上都能手动改；AI 档位按服务器的硬件给出推荐
-- 菜单顶上的后台任务图标：有任务在处理时出现，点开看每类任务的进度、AI 是否暂停
-- 部署用的 docker-compose.yml 带上数据库，一个文件就能装好
+- Background processing adapts to the machine: how many photos the AI handles at once and how many threads each model uses are set from whether there is a GPU, the core count and memory, so a Raspberry Pi no longer stalls
+- AI processing schedule: When idle (the default; pauses while someone is uploading or thumbnails are being generated), Anytime, or At night only
+- New Performance section in Settings where all of the above can be changed by hand; the AI tier is recommended from the server’s hardware
+- Background task icon at the top of the menu: appears while tasks are running, and opens to show each task type’s progress and whether AI is paused
+- The deployment docker-compose.yml now includes the database, so a single file is enough to install
 
 ## v0.2.0 — 2026-11-03
 
-- 访客浏览：没登录也能只读看共享的照片和相册（设置里可以关）
-- 新的登录窗口
-- 相册可以设为私有或只共享给指定成员，私有相册可以同时隐藏自己上传的照片
+- Guest browsing: view shared photos and albums read-only without signing in (can be turned off in Settings)
+- New sign-in window
+- Albums can be made private or shared only with specific members; a private album can also hide the photos you uploaded to it
 
 ## v0.1.0 — 2026-11-03
 
-- 第一个版本：图库、相册、人物（人脸识别）、足迹、收藏、星级、语义搜索、文字识别
+- First release: library, albums, people (face recognition), places, favorites, ratings, semantic search and text recognition

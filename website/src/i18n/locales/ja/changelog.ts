@@ -1,5 +1,6 @@
-// 日本語 · CHANGELOG.md の翻訳。バージョンごとに、原文と同じ順序で 1 項目 1 文（「修复：」の接頭辞はアイコンで示すため省略）
-// 翻訳がないバージョン、または項目数が異なるバージョンは中国語の原文で表示します
+// Japanese translations of CHANGELOG.md, by version, one string per bullet in the same order.
+// The "Fix: " prefix is shown as an icon, so it is left out here.
+// A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
   'v0.5.1': [

@@ -1,6 +1,6 @@
-// Русский · Перевод CHANGELOG.md по версиям: одна строка на пункт, в том же порядке.
-// Префикс «修复：» (Исправление) показывается значком и здесь опущен.
-// Версия без перевода (или с другим числом пунктов) показывается на китайском оригинале.
+// Russian translations of CHANGELOG.md, by version, one string per bullet in the same order.
+// The "Fix: " prefix is shown as an icon, so it is left out here.
+// A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
   'v0.5.1': [

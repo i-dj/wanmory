@@ -176,11 +176,11 @@ function chipStyle(v: string, color = colorOf(v)): CSSProperties {
 function ReleaseRow({ r, latest }: { r: Release; latest: boolean }) {
   const t = usePage<ReleasesDict>()
   const { c, changelog, locale } = useI18n()
-  // 更新说明的译文按版本号存在语言文件 changelog.ts 里；还没翻译的新版本先显示 CHANGELOG.md 的中文原文
+  // 更新说明的译文按版本号存在语言文件 changelog.ts 里；还没翻译的新版本先显示 CHANGELOG.md 的英文原文
   const tr = changelog?.[r.version]
-  const translated = locale === 'zh' || (tr && tr.length === r.notes.length)
+  const translated = locale === 'en' || (tr && tr.length === r.notes.length)
   const text = (k: number) => (translated && tr ? tr[k] : r.notes[k].text)
-  const lang = translated ? undefined : 'zh-CN'
+  const lang = translated ? undefined : 'en'
   const fixes = r.notes.filter((n) => n.fix).length
   const features = r.notes.length - fixes
   return (

@@ -1,0 +1,36 @@
+# Keep the notes of existing GitHub Releases in sync with CHANGELOG.md.
+# New releases get their notes when the Images workflow publishes them; this updates the ones already
+# published whenever a section is reworded (and once by hand from the Actions tab).
+name: Release notes
+
+on:
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update existing releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for tag in $(grep -oE '^## v[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | cut -c4-); do
+            gh release view "$tag" >/dev/null 2>&1 || continue
+            awk -v tag="## $tag" '
+              $0 == tag || index($0, tag " ") == 1 { on = 1; next }
+              on && /^## / { exit }
+              on { print }
+            ' CHANGELOG.md > notes.md
+            [ -s notes.md ] || continue
+            if [ "$(gh release view "$tag" --json body -q .body)" != "$(cat notes.md)" ]; then
+              gh release edit "$tag" --notes-file notes.md
+              echo "updated $tag"
+            fi
+          done

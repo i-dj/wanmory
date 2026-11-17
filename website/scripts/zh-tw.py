@@ -1,4 +1,4 @@
-# 由简体中文（src/i18n/locales/zh）和 CHANGELOG.md 生成繁体中文（台湾）的语言文件 src/i18n/locales/zh-tw/*.ts。
+# 由简体中文（src/i18n/locales/zh，包括更新说明 changelog.ts）生成繁体中文（台湾）的语言文件 src/i18n/locales/zh-tw/*.ts。
 # 用 OpenCC 的 s2twp（台湾用语）转换，再按下面 FIX 表换成台湾常用说法（相簿、登入、網域、權杖……）。
 # 简体中文改了、或 CHANGELOG.md 有新版本时，在 website/ 目录运行：
 #   python3 -m venv .venv && .venv/bin/pip install opencc-python-reimplemented && .venv/bin/python scripts/zh-tw.py
@@ -58,16 +58,16 @@ for name, typ in TYPES.items():
     open(f'{dst}/{name}.ts','w').write(s)
 print('ok')
 
-# 更新说明：从 CHANGELOG.md 转成繁体
+# 更新说明：把简体中文的译文（src/i18n/locales/zh/changelog.ts）转成繁体
 import json
 cl = {}
 cur = None
-for line in open('../CHANGELOG.md'):
-    m = re.match(r'^## (v\d+\.\d+\.\d+) — ', line)
+for line in open(f'{src}/changelog.ts'):
+    m = re.match(r"^  '(v\d+\.\d+\.\d+)': \[", line)
     if m:
         cur = m.group(1); cl[cur] = []
-    elif cur and line.startswith('- '):
-        cl[cur].append(re.sub(r'^修复：', '', line[2:].strip()))
+    elif cur and line.startswith('    "'):
+        cl[cur].append(json.loads(line.strip().rstrip(',')))
 out = []
 for v, notes in cl.items():
     items = []
@@ -76,6 +76,6 @@ for v, notes in cl.items():
         for a, b in FIX: t = t.replace(a, b)
         items.append('    ' + json.dumps(t, ensure_ascii=False) + ',')
     out.append("  '%s': [\n%s\n  ]," % (v, "\n".join(items)))
-head = "// 繁體中文（台灣）· CHANGELOG.md 的譯文：按版本號，每條一句，順序與原文一致（「修復：」前綴用圖示表示，這裡不寫）\n// 版本缺少譯文或條數不一致時顯示簡體中文原文\n\n"
+head = "// Traditional Chinese (Taiwan) translations of CHANGELOG.md, by version, one string per bullet in the same order.\n// The \"Fix: \" prefix is shown as an icon, so it is left out here.\n// A version missing here (or with a different number of bullets) falls back to the English original.\n\n"
 open(f'{dst}/changelog.ts', 'w').write(head + "const changelog: Record<string, string[]> = {\n" + "\n".join(out) + "\n}\n\nexport default changelog\n")
 print('changelog ok')

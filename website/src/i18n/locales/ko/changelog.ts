@@ -1,5 +1,6 @@
-// 한국어 · CHANGELOG.md 번역. 버전별로 원문과 같은 순서로 항목당 한 문장(「修复：」 접두어는 아이콘으로 표시하므로 생략)
-// 번역이 없거나 항목 수가 다른 버전은 중국어 원문으로 표시합니다
+// Korean translations of CHANGELOG.md, by version, one string per bullet in the same order.
+// The "Fix: " prefix is shown as an icon, so it is left out here.
+// A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
   'v0.5.1': [

@@ -73,6 +73,8 @@ export async function initI18n() {
   if (current !== 'zh-CN') [dict, fallback] = await Promise.all([load(current), current === 'en' ? {} : load('en')])
   plural = new Intl.PluralRules(current)
   document.documentElement.lang = current
+  // 标签页标题：中文界面带上中文名（万象 / 萬象），其他语言只写 Wanmory
+  document.title = current.startsWith('zh') ? `Wanmory ${t('万象')}` : 'Wanmory'
 }
 
 export const locale = () => current

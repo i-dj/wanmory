@@ -1,6 +1,6 @@
 import raw from '../../CHANGELOG.md?raw'
 
-// 版本数据：构建时直接读仓库根目录的 CHANGELOG.md（每次发布 GitHub Release 用的也是它），
+// 版本数据：构建时直接读仓库根目录的 CHANGELOG.md（英文，每次发布 GitHub Release 用的也是它；各语言的译文在 locales/<语言>/changelog.ts），
 // 不在浏览器里请求 GitHub API：内容预渲染进 HTML 利于搜索引擎收录，也不受 API 频率限制
 
 export type Release = {
@@ -18,7 +18,7 @@ for (const line of raw.split('\n')) {
     releases.push(cur)
   } else if (cur && line.startsWith('- ')) {
     const text = line.slice(2).trim()
-    cur.notes.push({ text: text.replace(/^修复：/, ''), fix: text.startsWith('修复') })
+    cur.notes.push({ text: text.replace(/^Fix:\s*/, ''), fix: /^Fix:/.test(text) })
   }
 }
 

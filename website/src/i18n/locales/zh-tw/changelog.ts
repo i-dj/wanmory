@@ -1,5 +1,6 @@
-// 繁體中文（台灣）· CHANGELOG.md 的譯文：按版本號，每條一句，順序與原文一致（「修復：」前綴用圖示表示，這裡不寫）
-// 版本缺少譯文或條數不一致時顯示簡體中文原文
+// Traditional Chinese (Taiwan) translations of CHANGELOG.md, by version, one string per bullet in the same order.
+// The "Fix: " prefix is shown as an icon, so it is left out here.
+// A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
   'v0.5.1': [

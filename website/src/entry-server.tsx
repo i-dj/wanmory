@@ -33,14 +33,18 @@ export async function render(page: PageKey, locale: Locale): Promise<string> {
 }
 
 // releaseNotes 是相册「系统设置 → 系统更新」用的更新说明译文（写成 dist/releases.json）：
-// { "v0.4.9": { "en": [...], "ja": [...] } }，语言代码和相册网页的一样；条数和 CHANGELOG.md 对不上的版本不写
-const APP_LOCALE: Partial<Record<Locale, string>> = { pt: 'pt-BR', 'zh-tw': 'zh-TW' }
+// { "v0.4.9": { "en": [...], "zh-CN": [...], "ja": [...] } }，语言代码和相册网页的一样；条数和 CHANGELOG.md 对不上的版本不写
+const APP_LOCALE: Partial<Record<Locale, string>> = { zh: 'zh-CN', pt: 'pt-BR', 'zh-tw': 'zh-TW' }
 
 export async function releaseNotes(): Promise<Record<string, Record<string, string[]>>> {
   const out: Record<string, Record<string, string[]>> = {}
   for (const locale of LOCALES) {
-    if (locale === 'zh') continue
     const { changelog } = await loadBundle(locale, 'releases')
+    if (locale === 'en') {
+      // 英文就是 CHANGELOG.md 原文（去掉「Fix: 」前缀，网页按自己的语言补上）：早期版本的 GitHub Release 是中文写的，也能换成英文
+      for (const r of releases) (out[r.version] ??= {}).en = r.notes.map((n) => n.text)
+      continue
+    }
     for (const r of releases) {
       const tr = changelog?.[r.version]
       if (tr?.length === r.notes.length) (out[r.version] ??= {})[APP_LOCALE[locale] ?? locale] = tr

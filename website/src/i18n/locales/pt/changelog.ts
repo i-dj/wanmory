@@ -1,6 +1,6 @@
-// Português (Brasil) · Tradução do CHANGELOG.md, por versão, uma frase por item na mesma ordem.
-// O prefixo "修复：" (Correção) aparece como ícone e é omitido aqui.
-// Versões ausentes (ou com número de itens diferente) aparecem no chinês original.
+// Portuguese (Brazil) translations of CHANGELOG.md, by version, one string per bullet in the same order.
+// The "Fix: " prefix is shown as an icon, so it is left out here.
+// A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
   'v0.5.1': [

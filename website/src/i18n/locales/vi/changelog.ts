@@ -1,5 +1,6 @@
-// Tiếng Việt · Bản dịch CHANGELOG.md theo từng phiên bản, mỗi mục một câu, đúng thứ tự bản gốc (tiền tố «修复：» hiển thị bằng biểu tượng nên bỏ ở đây)
-// Phiên bản chưa có bản dịch hoặc số mục khác bản gốc sẽ hiển thị bản gốc tiếng Trung
+// Vietnamese translations of CHANGELOG.md, by version, one string per bullet in the same order.
+// The "Fix: " prefix is shown as an icon, so it is left out here.
+// A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
   'v0.5.1': [
