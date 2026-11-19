@@ -1,0 +1,70 @@
+{
+  "不用了": "Nicht jetzt",
+  "例如 192.168.1.10:8080 或 https://photos.example.com": "Zum Beispiel 192.168.1.10:8080 oder https://photos.example.com",
+  "开启": "Einschalten",
+  "指纹": "Fingerabdruck",
+  "服务器地址": "Serveradresse",
+  "服务器版本太旧，请先升级万象服务器": "Dieser Server ist zu alt. Bitte aktualisiere zuerst Wanmory auf dem Server",
+  "用{name}解锁": "Mit {name} entsperren",
+  "用{name}解锁？": "Mit {name} entsperren?",
+  "登录会保存在这台设备上。开启后，每次打开万象都要先验证{name}。": "Du bleibst auf diesem Gerät angemeldet. Wenn das eingeschaltet ist, fragt Wanmory bei jedem Öffnen nach {name}.",
+  "解锁万象": "Wanmory entsperren",
+  "触控 ID": "Touch ID",
+  "请输入服务器地址": "Gib die Serveradresse ein",
+  "输入身份验证器里的 6 位验证码": "Gib den 6-stelligen Code aus deiner Authenticator-App ein",
+  "这个地址不是万象服务器": "Diese Adresse ist kein Wanmory-Server",
+  "这个服务器还没有管理员，请先在网页上创建": "Dieser Server hat noch keinen Admin. Lege zuerst auf der Webseite einen an",
+  "连不上服务器，请检查地址和网络": "Server nicht erreichbar. Prüfe die Adresse und dein Netzwerk",
+  "面容 ID": "Face ID",
+  "面部识别": "Gesichtserkennung",
+  "{a}与{b}": "{a} & {b}",
+  "{n} 个视频": {
+    "one": "{n} Video",
+    "other": "{n} Videos"
+  },
+  "地图很快就来": "Die Karte kommt bald",
+  "精选": "Highlights",
+  "还没有相册": "Noch keine Alben",
+  "还没有认出人物": "Noch keine Personen erkannt",
+  "那年今日": "An diesem Tag",
+  "已添加 {n} 项": {
+    "one": "{n} Element hinzugefügt",
+    "other": "{n} Elemente hinzugefügt"
+  },
+  "建好后可以从图库添加照片": "Danach kannst du Fotos aus der Mediathek hinzufügen",
+  "{n} 分钟": {
+    "one": "{n} Min.",
+    "other": "{n} Min."
+  },
+  "{n} 项无法上传（格式不支持，或还在 iCloud 里没下载下来）": {
+    "one": "{n} Element konnte nicht hochgeladen werden (Format nicht unterstützt oder noch in iCloud)",
+    "other": "{n} Elemente konnten nicht hochgeladen werden (Format nicht unterstützt oder noch in iCloud)"
+  },
+  "仅在 Wi-Fi 下上传": "Nur über WLAN hochladen",
+  "全部已同步": "Alles synchronisiert",
+  "包括视频": "Videos einbeziehen",
+  "去设置": "Einstellungen öffnen",
+  "同步暂停：": "Synchronisierung pausiert: ",
+  "同步相册": "Album-Synchronisierung",
+  "在系统设置里允许万象访问照片后才能同步": "Erlaube Wanmory in den Einstellungen den Zugriff auf Fotos, um zu synchronisieren",
+  "已同步": "Synchronisiert",
+  "把手机里的照片和视频上传到万象，已经上传过的不会重复上传": "Lädt die Fotos und Videos auf diesem Telefon zu Wanmory hoch. Bereits Hochgeladenes wird nicht erneut hochgeladen",
+  "未同步": "Nicht synchronisiert",
+  "正在上传 {name}": "{name} wird hochgeladen",
+  "正在估算…": "Wird geschätzt…",
+  "正在读取手机相册…": "Mediathek wird gelesen…",
+  "没有访问手机相册的权限": "Kein Zugriff auf die Mediathek",
+  "立即同步": "Jetzt synchronisieren",
+  "等待连接 Wi-Fi": "Warte auf WLAN",
+  "自动上传手机相册": "Mediathek automatisch hochladen",
+  "预计还需": "Verbleibend",
+  "读取手机相册失败": "Mediathek konnte nicht gelesen werden",
+  "{n} 项已交给系统在后台上传": {
+    "one": "{n} Element wird vom System im Hintergrund hochgeladen",
+    "other": "{n} Elemente werden vom System im Hintergrund hochgeladen"
+  },
+  "退到后台也会继续上传。在多任务界面把万象划掉会中断上传，下次打开万象时继续。": "Uploads laufen im Hintergrund weiter. Wenn du Wanmory im App-Umschalter wegwischst, werden sie unterbrochen und beim nächsten Öffnen fortgesetzt.",
+  "上传者": "Hochgeladen von",
+  "我": "ich",
+  "筛选结果": "Gefiltert"
+}
