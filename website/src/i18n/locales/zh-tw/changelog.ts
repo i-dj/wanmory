@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.2': [
+    "伺服器支援 App 登入：登入請求帶上 `\"bearer\": true` 時會同時回傳登入權杖，App 之後用 `Authorization: Bearer <權杖>` 取代瀏覽器的 cookie。這是為萬象 iOS / Android 手機 App 做的準備，App 正在儲存庫的 `mobile/` 目錄中開發",
+    "GitHub Releases 上的更新說明改為英文撰寫，各語言譯文放在官網；先前各版本的說明也一併更新",
+  ],
   'v0.5.1': [
     "系統設定新增「新建人物的門檻」：同一個人至少出現在幾張照片裡才在「人物」裡列出來，可選 2、3、5、10 張，預設 3 張；改大後照片不夠數、沒取名字的人物會拆掉，改小後沒歸人物的臉會重新歸一遍。升級後第一次啟動依 3 張整理一次",
     "同一張照片裡的兩張臉、「最近刪除」裡的照片也算進新建人物要的張數，只有 2 張照片的人還是會被列出來",

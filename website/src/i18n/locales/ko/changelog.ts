@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.2': [
+    "서버가 앱 로그인을 지원합니다: 로그인 요청에 `\"bearer\": true`를 넣으면 세션 토큰도 함께 돌려주며, 앱은 브라우저 쿠키 대신 `Authorization: Bearer <토큰>`을 보냅니다. 저장소의 `mobile/` 폴더에서 개발 중인 Wanmory iOS / Android 앱을 위한 준비입니다",
+    "GitHub Releases의 업데이트 내용을 영어로 작성하고 각 언어 번역은 공식 사이트에 두었습니다. 이전 버전의 내용도 함께 업데이트했습니다",
+  ],
   'v0.5.1': [
     "시스템 설정에 「인물로 묶는 최소 사진 수」 추가: 몇 장의 사진에 나와야 「인물」에 표시할지 2·3·5·10장 중에서 고를 수 있습니다(기본 3장). 늘리면 이름이 없고 사진이 부족한 인물은 해제되고, 줄이면 인물에 속하지 않은 얼굴을 다시 묶습니다. 업그레이드 후 처음 시작할 때 3장 기준으로 한 번 정리합니다",
     "같은 사진 속 두 얼굴과 「최근 삭제된 항목」의 사진도 새 인물에 필요한 사진 수에 포함되어, 사진이 2장뿐인 사람도 표시되었습니다",

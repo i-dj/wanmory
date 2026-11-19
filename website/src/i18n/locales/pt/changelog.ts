@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.2': [
+    "O servidor agora permite login a partir de apps: com `\"bearer\": true` na solicitação de login ele também devolve o token de sessão, que os apps enviam como `Authorization: Bearer <token>` no lugar do cookie do navegador. É a base do app Wanmory para iOS e Android, em desenvolvimento na pasta `mobile/` do repositório",
+    "As notas de versão no GitHub Releases agora são escritas em inglês, com as traduções no site; as notas das versões anteriores também foram atualizadas",
+  ],
   'v0.5.1': [
     "Novo em Configurações do sistema: “Mínimo de fotos por pessoa” — em quantas fotos alguém precisa aparecer para constar em Pessoas: 2, 3, 5 ou 10, padrão 3. Ao aumentar, pessoas sem nome com poucas fotos são desfeitas; ao diminuir, rostos sem pessoa são reagrupados. A primeira inicialização após a atualização aplica o padrão de 3 uma vez",
     "Dois rostos na mesma foto e fotos em “Apagados recentemente” contavam para as fotos necessárias a uma nova pessoa, então pessoas com só 2 fotos continuavam listadas",

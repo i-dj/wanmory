@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.2': [
+    "Le serveur peut désormais connecter des applications : avec `\"bearer\": true` dans la demande de connexion, il renvoie aussi le jeton de session, que les applications envoient ensuite en `Authorization: Bearer <jeton>` à la place du cookie du navigateur. C'est la base de l'application mobile Wanmory pour iOS et Android, en cours de développement dans le dossier `mobile/` du dépôt",
+    "Les notes de version sur GitHub Releases sont désormais rédigées en anglais, avec les traductions sur le site ; les notes des versions précédentes ont été mises à jour",
+  ],
   'v0.5.1': [
     "Nouveau dans Paramètres système : « Photos minimum par personne » — dans combien de photos une personne doit apparaître pour figurer dans Personnes : 2, 3, 5 ou 10, 3 par défaut. En l’augmentant, les personnes sans nom qui n’ont pas assez de photos sont défaites ; en le baissant, les visages non attribués sont regroupés à nouveau. Le premier démarrage après la mise à jour applique une fois la valeur par défaut de 3",
     "Deux visages dans la même photo et les photos de « Supprimés récemment » comptaient parmi les photos nécessaires à une nouvelle personne, si bien que des personnes avec seulement 2 photos restaient listées",

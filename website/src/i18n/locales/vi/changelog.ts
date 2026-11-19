@@ -3,6 +3,10 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.5.2': [
+    "Máy chủ giờ hỗ trợ đăng nhập từ ứng dụng: khi yêu cầu đăng nhập có `\"bearer\": true`, máy chủ trả về cả mã phiên, ứng dụng sau đó gửi `Authorization: Bearer <mã>` thay cho cookie của trình duyệt. Đây là bước chuẩn bị cho ứng dụng Wanmory trên iOS và Android, đang được phát triển trong thư mục `mobile/` của kho mã",
+    "Ghi chú phát hành trên GitHub Releases nay được viết bằng tiếng Anh, bản dịch đặt trên trang web; ghi chú của các phiên bản trước cũng đã được cập nhật",
+  ],
   'v0.5.1': [
     "Cài đặt hệ thống có mục mới “Số ảnh tối thiểu cho mỗi người”: một người phải xuất hiện trong bao nhiêu ảnh mới được liệt kê trong Mọi người — 2, 3, 5 hoặc 10, mặc định 3. Tăng lên thì những người chưa đặt tên và không đủ ảnh sẽ bị tách ra; giảm xuống thì các khuôn mặt chưa thuộc ai sẽ được gom lại. Lần khởi động đầu tiên sau khi nâng cấp sẽ áp dụng mức mặc định 3 một lần",
     "Hai khuôn mặt trong cùng một ảnh và ảnh trong “Đã xóa gần đây” cũng được tính vào số ảnh cần để tạo người mới, nên người chỉ có 2 ảnh vẫn bị liệt kê",

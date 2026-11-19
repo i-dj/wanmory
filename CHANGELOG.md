@@ -4,6 +4,11 @@ Each version's section becomes the notes of its GitHub Release, which Settings �
 Newest first; headings look like `## v0.5.1 — 2026-11-17`. Fixes start with `Fix: `.
 Translations live in `website/src/i18n/locales/<lang>/changelog.ts`, one string per bullet in the same order.
 
+## v0.5.2 — 2026-11-18
+
+- The server can now sign in apps: with `"bearer": true` in the sign-in request it also returns the session token, which apps then send as `Authorization: Bearer <token>` instead of the browser cookie. This is groundwork for the Wanmory mobile app for iOS and Android, now in development in the `mobile/` folder of the repository
+- Release notes on GitHub Releases are now written in English, with the translations on the website, and the notes of earlier releases were updated to match
+
 ## v0.5.1 — 2026-11-17
 
 - System settings has a new “Minimum photos per person”: how many photos someone must appear in before they are listed in People — 2, 3, 5 or 10, default 3. Raising it takes apart unnamed people with too few photos; lowering it regroups unassigned faces. The first start after upgrading applies the default of 3 once
