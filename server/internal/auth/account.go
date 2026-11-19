@@ -57,7 +57,12 @@ const touchEvery = 5 * time.Minute
 
 var touched sync.Map // 会话令牌 → 上次写最近使用时间的时候
 
+// currentToken returns the session token of the request: the mobile app sends it as
+// "Authorization: Bearer <token>", the web page as the wanmory_session cookie.
 func currentToken(r *http.Request) string {
+	if h := r.Header.Get("Authorization"); len(h) > 7 && strings.EqualFold(h[:7], "Bearer ") {
+		return strings.TrimSpace(h[7:])
+	}
 	if c, err := r.Cookie(CookieName); err == nil {
 		return c.Value
 	}

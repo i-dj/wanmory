@@ -27,6 +27,7 @@ type loginTicket struct {
 	user     uuid.UUID
 	name     string
 	remember bool
+	bearer   bool
 	expires  time.Time
 	tries    int
 }
@@ -36,7 +37,7 @@ var tickets = struct {
 	m map[string]*loginTicket
 }{m: map[string]*loginTicket{}}
 
-func newTicket(u *User, remember bool) (string, error) {
+func newTicket(u *User, remember, bearer bool) (string, error) {
 	b := make([]byte, 24)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
@@ -50,7 +51,7 @@ func newTicket(u *User, remember bool) (string, error) {
 			delete(tickets.m, k)
 		}
 	}
-	tickets.m[id] = &loginTicket{user: u.ID, name: u.Name, remember: remember, expires: now.Add(ticketTTL)}
+	tickets.m[id] = &loginTicket{user: u.ID, name: u.Name, remember: remember, bearer: bearer, expires: now.Add(ticketTTL)}
 	return id, nil
 }
 
@@ -130,7 +131,7 @@ func (s *Service) loginTOTP(w http.ResponseWriter, r *http.Request) {
 	s.noteLogin(r.Context(), r, u.Name, true)
 	log.Printf("auth: %q signed in with two-step verification", u.Name)
 	s.issueCookie(w, r, token, t.remember)
-	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
+	httpx.JSON(w, http.StatusOK, loginResponse(u, token, t.bearer))
 }
 
 // totpRoutes：自己的两步验证。开启分两步（setup 拿密钥和二维码，enable 输对一次验证码），关掉要输登录密码

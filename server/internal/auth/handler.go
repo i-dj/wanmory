@@ -18,6 +18,8 @@ import (
 //	GET    /api/auth/state     还要不要建管理员、现在是谁登录着（没登录时 user 是 null）
 //	POST   /api/auth/setup     第一次打开时建管理员，建好直接登录
 //	POST   /api/auth/login     {"name", "password"} 登录
+//	                           Mobile app: with "bearer": true the token is also returned in the body,
+//	                           and later requests send "Authorization: Bearer <token>" instead of the cookie
 //	POST   /api/auth/logout    退出登录
 //	PUT    /api/auth/password  {"old", "new"} 改自己的密码
 //	PUT    /api/auth/avatar    {"asset_id"} 用一张照片当自己的头像（null 是不用照片）
@@ -104,20 +106,20 @@ func guestAllowed(r *http.Request) bool {
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/api/") || public[r.URL.Path] {
-			if c, err := r.Cookie(CookieName); err == nil {
-				if u, _ := s.UserBySession(r.Context(), c.Value); u != nil {
+			if token := currentToken(r); token != "" {
+				if u, _ := s.UserBySession(r.Context(), token); u != nil {
 					r = r.WithContext(WithUser(r.Context(), u))
 				}
 			}
 			next.ServeHTTP(w, r)
 			return
 		}
-		c, err := r.Cookie(CookieName)
-		if err != nil {
+		token := currentToken(r)
+		if token == "" {
 			s.guestOr401(w, r, next, "请先登录")
 			return
 		}
-		u, err := s.UserBySession(r.Context(), c.Value)
+		u, err := s.UserBySession(r.Context(), token)
 		if err != nil {
 			httpx.InternalError(w, err)
 			return
@@ -126,7 +128,7 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			s.guestOr401(w, r, next, "登录已过期，请重新登录")
 			return
 		}
-		s.noteDevice(r.Context(), c.Value, r)
+		s.noteDevice(r.Context(), token, r)
 		if IsDemo(u) { // 演示账号不能改密码、退出其他设备、删除东西（刚传的照片、刚建的相册除外），见 demo.go
 			blocked, del := demoBlocked(r)
 			if !blocked && (len(del.assets) > 0 || del.album != "") {
@@ -185,6 +187,9 @@ type credentials struct {
 	Password string `json:"password"`
 	// Remember 是「记住登录状态」：不带或 true 时记住 90 天；false 时（别人的电脑）关了浏览器就退出
 	Remember *bool `json:"remember"`
+	// Bearer is set by the mobile app: the session token is also returned in the JSON body
+	// so the app can send it as "Authorization: Bearer". Web pages never ask for it (the cookie is HttpOnly).
+	Bearer bool `json:"bearer"`
 }
 
 func (c credentials) remember() bool { return c.Remember == nil || *c.Remember }
@@ -207,7 +212,7 @@ func (s *Service) setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("auth: created admin %q", u.Name)
-	s.startSession(w, r, c.Name, c.Password, true)
+	s.startSession(w, r, c.Name, c.Password, true, c.Bearer)
 }
 
 func (s *Service) login(w http.ResponseWriter, r *http.Request) {
@@ -215,12 +220,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &c) {
 		return
 	}
-	s.startSession(w, r, c.Name, c.Password, c.remember())
+	s.startSession(w, r, c.Name, c.Password, c.remember(), c.Bearer)
 }
 
 // startSession 登录并发 cookie。remember 时 cookie 和会话都记 90 天；不记住时 cookie 不写过期时间
 // （浏览器关了就没了），服务器上的会话也只留 12 小时
-func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, password string, remember bool) {
+func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, password string, remember, bearer bool) {
 	ttl := sessionTTL
 	if !remember {
 		ttl = shortTTL
@@ -250,7 +255,7 @@ func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, pas
 			httpx.InternalError(w, err)
 			return
 		}
-		ticket, err := newTicket(u, remember)
+		ticket, err := newTicket(u, remember, bearer)
 		if err != nil {
 			httpx.InternalError(w, err)
 			return
@@ -261,7 +266,16 @@ func (s *Service) startSession(w http.ResponseWriter, r *http.Request, name, pas
 	logins.succeed(ip, name)
 	s.noteLogin(r.Context(), r, u.Name, true)
 	s.issueCookie(w, r, token, remember)
-	httpx.JSON(w, http.StatusOK, map[string]any{"user": u})
+	httpx.JSON(w, http.StatusOK, loginResponse(u, token, bearer))
+}
+
+// loginResponse is the body of a successful sign-in; the token is only included for the mobile app.
+func loginResponse(u *User, token string, bearer bool) map[string]any {
+	resp := map[string]any{"user": u}
+	if bearer {
+		resp["token"] = token
+	}
+	return resp
 }
 
 // issueCookie 发登录 cookie。remember 时记 90 天；不记住时不写过期时间（浏览器关了就没了）
@@ -283,8 +297,8 @@ func (s *Service) issueCookie(w http.ResponseWriter, r *http.Request, token stri
 }
 
 func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
-	if c, err := r.Cookie(CookieName); err == nil {
-		if err := s.Logout(r.Context(), c.Value); err != nil {
+	if token := currentToken(r); token != "" {
+		if err := s.Logout(r.Context(), token); err != nil {
 			httpx.InternalError(w, err)
 			return
 		}
@@ -311,8 +325,7 @@ func (s *Service) changePassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "原来的密码不对")
 		return
 	}
-	c, _ := r.Cookie(CookieName)
-	if s.fail(w, s.SetPassword(r.Context(), u.ID, req.New, c.Value)) {
+	if s.fail(w, s.SetPassword(r.Context(), u.ID, req.New, currentToken(r))) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
