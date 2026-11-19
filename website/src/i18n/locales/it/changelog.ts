@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.0': [
+    "Le foto ora sono private per impostazione predefinita: ogni membro vede solo le foto che ha caricato e quelle condivise con lui, nella libreria, in Persone, Luoghi, categorie, ricerca e album. Le foto esistenti diventano private di chi le ha caricate; quelle senza autore (importate dalla cartella delle foto o caricate prima degli account) restano visibili a tutti, e gli amministratori possono vedere e gestire le foto di tutti",
+    "Condividi con la famiglia: seleziona le foto e fai clic su «Condividi con i membri», oppure attiva «Condividi la mia libreria» in Il mio account per condividere tutto ciò che carichi, anche in futuro; mettere le tue foto in un album condiviso le condivide anche con chi può vedere l'album. Le foto condivise con te mostrano l'avatar di chi le ha condivise prima del titolo, e il menu dei filtri elenca te e chi condivide con te",
+    "Eliminare, recuperare, nascondere, aggiungere a un album e condividere ora mostrano una breve notifica in basso a sinistra; «Condividi…» nel menu Altro ora è «Condividi all'esterno…»",
+    "Ordinando per data di aggiunta, la linea temporale a destra spariva se tutte le foto erano state aggiunte nello stesso mese; ora mostra i giorni",
+    "L'app mobile in sviluppo sincronizza i video grandi in parti riprendibili e mantiene la coda di caricamento dopo un riavvio; basta accedere una volta (niente più blocco con Face ID)",
+  ],
   'v0.5.2': [
     "Il server ora consente l'accesso dalle app: con `\"bearer\": true` nella richiesta di accesso restituisce anche il token di sessione, che le app inviano poi come `Authorization: Bearer <token>` al posto del cookie del browser. È la base dell'app Wanmory per iOS e Android, in sviluppo nella cartella `mobile/` del repository",
     "Le note di rilascio su GitHub Releases sono ora scritte in inglese, con le traduzioni sul sito; anche le note delle versioni precedenti sono state aggiornate",

@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.0': [
+    "Fotos sind jetzt standardmäßig privat: Jedes Mitglied sieht nur die Fotos, die es selbst hochgeladen hat, und die, die mit ihm geteilt wurden – in Mediathek, Personen, Orten, Kategorien, Suche und Alben. Vorhandene Fotos gehören privat dem, der sie hochgeladen hat; Fotos ohne Uploader (aus dem Fotoordner importiert oder vor den Konten hochgeladen) bleiben für alle sichtbar, und Admins können die Fotos aller sehen und verwalten",
+    "Mit der Familie teilen: Fotos auswählen und auf „Mit Mitgliedern teilen“ klicken, oder unter „Mein Konto“ „Meine Mediathek teilen“ einschalten, um alles zu teilen, was du hochlädst, auch künftige Uploads; eigene Fotos in einem geteilten Album werden ebenfalls mit allen geteilt, die das Album sehen. Mit dir geteilte Fotos zeigen das Profilbild der teilenden Person vor dem Titel, und das Filtermenü listet dich und alle, die mit dir teilen",
+    "Löschen, Wiederherstellen, Ausblenden, Zu einem Album hinzufügen und Teilen bestätigen jetzt mit einem kurzen Hinweis unten links; „Teilen …“ im Menü „Mehr“ heißt jetzt „Extern teilen …“",
+    "Beim Sortieren nach Hinzufügedatum verschwand die Zeitleiste rechts, wenn alle Fotos im selben Monat hinzugefügt wurden; sie zeigt jetzt Tage",
+    "Die mobile App in Entwicklung lädt große Videos bei der Albumsynchronisierung in fortsetzbaren Teilen hoch und behält ihre Upload-Warteschlange nach einem Neustart; einmal anmelden reicht (keine Face-ID-Sperre mehr)",
+  ],
   'v0.5.2': [
     "Der Server kann jetzt Apps anmelden: Mit `\"bearer\": true` in der Anmeldung gibt er zusätzlich das Sitzungstoken zurück, das Apps statt des Browser-Cookies als `Authorization: Bearer <Token>` senden. Das ist die Grundlage für die Wanmory-App für iOS und Android, die gerade im Ordner `mobile/` des Repositorys entsteht",
     "Die Versionshinweise auf GitHub Releases sind jetzt auf Englisch, die Übersetzungen stehen auf der Website; die Hinweise früherer Versionen wurden angepasst",

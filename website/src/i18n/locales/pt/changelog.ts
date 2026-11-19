@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.0': [
+    "As fotos agora são privadas por padrão: cada membro vê apenas as fotos que enviou e as compartilhadas com ele, na fototeca, em Pessoas, Lugares, categorias, busca e álbuns. As fotos existentes passam a ser privadas de quem as enviou; as sem autor (importadas da pasta de fotos ou enviadas antes das contas) continuam visíveis para todos, e os administradores podem ver e gerenciar as fotos de todos",
+    "Compartilhar com a família: selecione fotos e clique em \"Compartilhar com membros\", ou ative \"Compartilhar minha fototeca\" em Minha conta para compartilhar tudo o que você enviar, inclusive no futuro; colocar suas próprias fotos num álbum compartilhado também as compartilha com quem vê o álbum. Fotos compartilhadas com você mostram o avatar de quem compartilhou antes do título, e o menu de filtros lista você e quem compartilha com você",
+    "Apagar, recuperar, ocultar, adicionar a um álbum e compartilhar agora são confirmados com um aviso curto no canto inferior esquerdo; \"Compartilhar…\" no menu Mais agora é \"Compartilhar externamente…\"",
+    "Ao ordenar por data de adição, a linha do tempo à direita sumia quando todas as fotos tinham sido adicionadas no mesmo mês; agora ela mostra dias",
+    "O app móvel em desenvolvimento sincroniza vídeos grandes em partes retomáveis e mantém a fila de envio ao reiniciar; basta entrar uma vez (sem bloqueio por Face ID)",
+  ],
   'v0.5.2': [
     "O servidor agora permite login a partir de apps: com `\"bearer\": true` na solicitação de login ele também devolve o token de sessão, que os apps enviam como `Authorization: Bearer <token>` no lugar do cookie do navegador. É a base do app Wanmory para iOS e Android, em desenvolvimento na pasta `mobile/` do repositório",
     "As notas de versão no GitHub Releases agora são escritas em inglês, com as traduções no site; as notas das versões anteriores também foram atualizadas",

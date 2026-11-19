@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.0': [
+    "Las fotos ahora son privadas por defecto: cada miembro ve solo las fotos que subió y las que le compartieron, en la fototeca, Personas, Lugares, categorías, búsqueda y álbumes. Las fotos existentes pasan a ser privadas de quien las subió; las que no tienen autor (importadas de la carpeta de fotos o subidas antes de las cuentas) siguen visibles para todos, y los administradores pueden ver y gestionar las fotos de todos",
+    "Compartir con la familia: selecciona fotos y pulsa «Compartir con miembros», o activa «Compartir mi fototeca» en Mi cuenta para compartir todo lo que subes, incluido lo que subas después; poner tus propias fotos en un álbum compartido también las comparte con quienes ven ese álbum. Las fotos que te compartieron muestran el avatar de quien las compartió antes del título, y el menú de filtros te muestra a ti y a quienes comparten contigo",
+    "Eliminar, recuperar, ocultar, añadir a un álbum y compartir ahora se confirman con un breve aviso abajo a la izquierda; «Compartir…» del menú Más ahora es «Compartir fuera…»",
+    "Al ordenar por fecha de adición, la línea de tiempo de la derecha desaparecía si todas las fotos se añadieron el mismo mes; ahora muestra días",
+    "La app móvil en desarrollo sincroniza los vídeos grandes en partes reanudables y conserva la cola de subida al reiniciarse; basta con iniciar sesión una vez (ya no hay bloqueo con Face ID)",
+  ],
   'v0.5.2': [
     "El servidor ya puede iniciar sesión desde apps: con `\"bearer\": true` en la solicitud de inicio de sesión también devuelve el token de sesión, que las apps envían luego como `Authorization: Bearer <token>` en lugar de la cookie del navegador. Es la base de la app móvil de Wanmory para iOS y Android, en desarrollo en la carpeta `mobile/` del repositorio",
     "Las notas de versión en GitHub Releases ahora se escriben en inglés, con las traducciones en el sitio web; también se actualizaron las notas de versiones anteriores",

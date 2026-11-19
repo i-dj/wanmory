@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.0': [
+    "Ảnh giờ mặc định là riêng tư: mỗi thành viên chỉ thấy ảnh mình tải lên và ảnh người khác chia sẻ với mình, trong thư viện, Người, Dấu chân, danh mục, tìm kiếm và album. Ảnh hiện có trở thành ảnh riêng của người đã tải lên; ảnh không có người tải lên (nhập từ thư mục ảnh hoặc tải lên trước khi có tài khoản) vẫn cả nhà xem được, và quản trị viên có thể xem và quản lý ảnh của mọi người",
+    "Chia sẻ với gia đình: chọn ảnh rồi bấm \"Chia sẻ với thành viên\", hoặc bật \"Chia sẻ thư viện của tôi\" trong Tài khoản của tôi để chia sẻ mọi ảnh bạn tải lên, kể cả sau này; đưa ảnh của bạn vào album chia sẻ cũng là chia sẻ với những người xem được album đó. Ảnh được chia sẻ với bạn hiện ảnh đại diện của người chia sẻ trước tiêu đề, và menu lọc liệt kê bạn cùng những người chia sẻ với bạn",
+    "Sau khi xóa, khôi phục, ẩn, thêm vào album và chia sẻ, góc dưới bên trái hiện một thông báo ngắn; \"Chia sẻ…\" trong menu Thêm đổi thành \"Chia sẻ ra ngoài…\"",
+    "Khi sắp xếp theo ngày thêm, dòng thời gian bên phải biến mất nếu mọi ảnh đều được thêm trong cùng một tháng; giờ nó hiển thị theo ngày",
+    "Ứng dụng di động đang phát triển đồng bộ video lớn theo từng phần có thể tiếp tục và giữ hàng đợi tải lên sau khi khởi động lại; chỉ cần đăng nhập một lần (không còn khóa Face ID)",
+  ],
   'v0.5.2': [
     "Máy chủ giờ hỗ trợ đăng nhập từ ứng dụng: khi yêu cầu đăng nhập có `\"bearer\": true`, máy chủ trả về cả mã phiên, ứng dụng sau đó gửi `Authorization: Bearer <mã>` thay cho cookie của trình duyệt. Đây là bước chuẩn bị cho ứng dụng Wanmory trên iOS và Android, đang được phát triển trong thư mục `mobile/` của kho mã",
     "Ghi chú phát hành trên GitHub Releases nay được viết bằng tiếng Anh, bản dịch đặt trên trang web; ghi chú của các phiên bản trước cũng đã được cập nhật",

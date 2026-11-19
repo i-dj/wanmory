@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.0': [
+    "Les photos sont désormais privées par défaut : chaque membre ne voit que les photos qu'il a importées et celles partagées avec lui, dans la photothèque, Personnes, Lieux, catégories, recherche et albums. Les photos existantes deviennent privées pour la personne qui les a importées ; celles sans auteur (importées du dossier photos ou envoyées avant les comptes) restent visibles par tous, et les administrateurs peuvent voir et gérer les photos de chacun",
+    "Partager avec la famille : sélectionnez des photos et cliquez sur « Partager avec des membres », ou activez « Partager ma photothèque » dans Mon compte pour partager tout ce que vous importez, y compris à l'avenir ; mettre vos propres photos dans un album partagé les partage aussi avec ceux qui voient l'album. Les photos partagées avec vous affichent l'avatar de la personne avant le titre, et le menu de filtre vous liste avec ceux qui partagent avec vous",
+    "Supprimer, restaurer, masquer, ajouter à un album et partager sont désormais confirmés par une courte notification en bas à gauche ; « Partager… » dans le menu Plus devient « Partager à l'extérieur… »",
+    "Le tri par date d'ajout masquait la frise chronologique à droite quand toutes les photos avaient été ajoutées le même mois ; elle affiche désormais les jours",
+    "L'application mobile en développement synchronise les grandes vidéos en morceaux reprenables et garde sa file d'envoi après un redémarrage ; une seule connexion suffit (plus de verrouillage Face ID)",
+  ],
   'v0.5.2': [
     "Le serveur peut désormais connecter des applications : avec `\"bearer\": true` dans la demande de connexion, il renvoie aussi le jeton de session, que les applications envoient ensuite en `Authorization: Bearer <jeton>` à la place du cookie du navigateur. C'est la base de l'application mobile Wanmory pour iOS et Android, en cours de développement dans le dossier `mobile/` du dépôt",
     "Les notes de version sur GitHub Releases sont désormais rédigées en anglais, avec les traductions sur le site ; les notes des versions précédentes ont été mises à jour",
