@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/wanmory/wanmory/server/internal/auth"
+	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
@@ -47,8 +49,9 @@ func (s *Service) bursts(w http.ResponseWriter, r *http.Request) {
 		FROM assets a
 		LEFT JOIN clip_embeddings e ON e.asset_id = a.id AND e.model_id = $1
 		WHERE `+scopeConditions[ScopeNormal]+` AND a.type = 'image' AND a.taken_at IS NOT NULL AND NOT a.burst_reviewed
+		  AND `+db.Visible("a", "$2")+`
 		WINDOW w AS (PARTITION BY COALESCE(a.exif->>'Model', '') ORDER BY a.taken_at, a.id)
-		ORDER BY model, a.taken_at, a.id`, s.clipModel())
+		ORDER BY model, a.taken_at, a.id`, s.clipModel(), auth.UserID(ctx))
 	if err != nil {
 		httpx.InternalError(w, err)
 		return
@@ -168,6 +171,25 @@ func (s *Service) reviewBursts(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil || len(req.IDs) == 0 {
 		httpx.Error(w, http.StatusBadRequest, "请求格式不对")
 		return
+	}
+	// 只动自己看得到的；放进「最近删除」只能是自己传的（和批量删除一样，管理员不限）
+	var err error
+	if req.IDs, err = s.visibleOnly(r.Context(), req.IDs); err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
+	if req.Trash, err = s.visibleOnly(r.Context(), req.Trash); err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
+	if u := auth.UserFrom(r.Context()); len(req.Trash) > 0 && !u.IsAdmin {
+		if n, err := s.store.othersCount(r.Context(), u.ID, req.Trash); err != nil {
+			httpx.InternalError(w, err)
+			return
+		} else if n > 0 {
+			httpx.Error(w, http.StatusForbidden, ErrNotYourDelete.Error())
+			return
+		}
 	}
 	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {

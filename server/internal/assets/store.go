@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/geo"
 )
 
@@ -269,6 +270,9 @@ type Filter struct {
 	smart      *SmartRules // 相册是自动同步的智能相册时，按它的条件筛（resolveAlbum 填）
 	ownPrivate bool        // 相册是 User 自己的私有相册（resolveAlbum 填）
 	blocked    bool        // 相册是别人的私有相册，User 看不到（resolveAlbum 填）
+	// 看的是自动同步的共享智能相册：主人符合条件的照片在相册里大家都看得到（它们不在 album_assets 里，
+	// db.Visible 管不到；resolveAlbum 填）
+	smartOwner *uuid.UUID
 	// 只要拍摄时间在 [From, To) 之间的，网页上在日历里点了某年、某月、某天时用。为空表示不限
 	From, To *time.Time
 }
@@ -442,6 +446,14 @@ func (f Filter) where(args *[]any) string {
 	if f.blocked { // 看的是别人的私有相册：什么都没有
 		sql += ` AND false`
 	}
+	// 只有自己看得到的：自己传的、别人分享给自己的、全家共用的（见 db.Visible）
+	*args = append(*args, f.User)
+	visible := db.Visible("assets", fmt.Sprintf("$%d", len(*args)))
+	if f.smartOwner != nil {
+		*args = append(*args, *f.smartOwner)
+		visible = fmt.Sprintf(`(%s OR uploaded_by = $%d)`, visible, len(*args))
+	}
+	sql += ` AND ` + visible
 	if f.Scope == ScopeHidden { // 每个人的「已隐藏」只有自己隐藏的；隐藏的照片别人哪里都看不到（ScopeNormal 本来就不要）
 		*args = append(*args, f.User)
 		sql += fmt.Sprintf(` AND hidden_by = $%d`, len(*args))
@@ -807,10 +819,18 @@ func (s *Store) UpdateMany(ctx context.Context, user uuid.UUID, admin bool, ids 
 	return res.RowsAffected()
 }
 
-// SetUploader 记下照片是谁传的（重复上传已有的照片不改原来的上传者）
-func (s *Store) SetUploader(ctx context.Context, id, user uuid.UUID) error {
+// SetUploader 记下照片是谁传的。重复上传已有的照片（dup）不改原来的上传者：别人传过的，等于分享给了
+// 这次传的人（他手上本来就有这张，照片应该出现在他的图库里）；没有上传人的本来就全家都看得到
+func (s *Store) SetUploader(ctx context.Context, id, user uuid.UUID, dup bool) error {
 	if user == uuid.Nil {
 		return nil
+	}
+	if dup {
+		_, err := s.db.ExecContext(ctx, `
+			INSERT INTO asset_shares (asset_id, user_id)
+			SELECT id, $2 FROM assets WHERE id = $1 AND uploaded_by IS NOT NULL AND uploaded_by <> $2
+			ON CONFLICT DO NOTHING`, id, user)
+		return err
 	}
 	_, err := s.db.ExecContext(ctx, `UPDATE assets SET uploaded_by = $2 WHERE id = $1 AND uploaded_by IS NULL`, id, user)
 	return err
@@ -850,9 +870,9 @@ func (s *Store) Stats(ctx context.Context, user uuid.UUID) (Stats, error) {
 			count(*) FILTER (WHERE a.thumbnail_path IS NULL AND f.asset_id IS NOT NULL),
 			count(*) FILTER (WHERE NOT a.hidden AND a.`+recentCondition+`),
 			(SELECT count(*) FROM jobs WHERE type = 'clip' AND status IN ('pending', 'running')),
-			(SELECT count(*) FROM assets WHERE deleted_at IS NOT NULL)
+			(SELECT count(*) FROM assets WHERE deleted_at IS NOT NULL AND `+db.Visible("assets", "$1")+`)
 		FROM assets a LEFT JOIN failed f ON f.asset_id = a.id
-		WHERE a.deleted_at IS NULL`, user,
+		WHERE a.deleted_at IS NULL AND `+db.Visible("a", "$1"), user,
 	).Scan(&st.Total, &st.Hidden, &st.Processing, &st.Failed, &st.Recent, &st.ClipQueued, &st.Deleted)
 	if err != nil {
 		return st, err
@@ -860,7 +880,7 @@ func (s *Store) Stats(ctx context.Context, user uuid.UUID) (Stats, error) {
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT rating, count(*), count(*) FILTER (WHERE favorite)
-		FROM assets WHERE `+scopeConditions[ScopeNormal]+` GROUP BY rating`)
+		FROM assets WHERE `+scopeConditions[ScopeNormal]+` AND `+db.Visible("assets", "$1")+` GROUP BY rating`, user)
 	if err != nil {
 		return st, err
 	}

@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
+
+	"github.com/wanmory/wanmory/server/internal/db"
 )
 
 // PurgeSummary 是清空前的统计，用来让用户确认。
@@ -81,16 +83,16 @@ func removeFiles(files []string, res *PurgeResult) {
 
 // PurgeDeleted 永久删除「最近删除」里的照片：ids 为空时是全部，不为空时只删这些（不在「最近删除」里的跳过）。
 // 先在一个事务里删掉数据库记录（相册里的、任务、语义向量跟着级联删除），提交后再删原始文件、缩略图和预览图。
-// owner 不为空时只删这个人传的（成员清空自己的「最近删除」）
-func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID, owner *uuid.UUID) (PurgeResult, error) {
+// owner 不为空时只删这个人传的（成员清空自己的「最近删除」）；viewer 是谁在删，只删他看得到的（管理员也一样）
+func (s *Store) PurgeDeleted(ctx context.Context, ids []uuid.UUID, owner *uuid.UUID, viewer uuid.UUID) (PurgeResult, error) {
 	var res PurgeResult
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return res, err
 	}
 	defer tx.Rollback()
-	query := `DELETE FROM assets WHERE deleted_at IS NOT NULL`
-	args := []any{}
+	query := `DELETE FROM assets WHERE deleted_at IS NOT NULL AND ` + db.Visible("assets", "$1")
+	args := []any{viewer}
 	if len(ids) > 0 {
 		args = append(args, uuidStrings(ids))
 		query += fmt.Sprintf(` AND id = ANY($%d::uuid[])`, len(args))

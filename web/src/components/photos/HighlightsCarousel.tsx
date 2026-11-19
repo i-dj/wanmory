@@ -14,6 +14,7 @@ import { cx } from '@/lib/cx'
 import { showError } from '@/lib/dialog'
 import { cameraName, formatExposure, lensName, viewerDate } from '@/lib/format'
 import { useCurrentUser } from '@/lib/session'
+import SharerAvatar from './SharerAvatar'
 import { t as tr } from '@/i18n'
 
 const INTERVAL = 6000 // 每张停多久
@@ -289,8 +290,9 @@ function Caption({ asset, n }: { asset: Asset; n: number }) {
             {place ? when.day : when.weekday} {when.time}
           </span>
         </div>
-        <h2 className="mt-3 truncate text-[28px] leading-tight font-bold tracking-tight text-shadow-sm md:text-[40px]">
-          {place ?? when.day}
+        <h2 className="mt-3 flex min-w-0 items-center gap-3 text-[28px] leading-tight font-bold tracking-tight text-shadow-sm md:text-[40px]">
+          <SharerAvatar asset={asset} className="size-8 text-body ring-2 ring-white/80 md:size-10" />
+          <span className="truncate">{place ?? when.day}</span>
         </h2>
         <div className="mt-3.5 hidden flex-wrap gap-2 sm:flex">
           {[camera, lens, exposure].filter(Boolean).map((t) => (

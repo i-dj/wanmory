@@ -63,7 +63,7 @@ func (s *Service) upload(w http.ResponseWriter, r *http.Request) {
 			res := uploadResult{FileName: part.FileName()}
 			res.Asset, res.Duplicate, err = s.saveUpload(r.Context(), part, lastModified)
 			if err == nil && res.Asset != nil {
-				_ = s.store.SetUploader(r.Context(), res.Asset.ID, auth.UserID(r.Context()))
+				_ = s.store.SetUploader(r.Context(), res.Asset.ID, auth.UserID(r.Context()), res.Duplicate)
 			}
 			if errors.Is(err, errUnsupported) {
 				res.Error = err.Error()

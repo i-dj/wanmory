@@ -65,7 +65,7 @@ import { cx } from '@/lib/cx'
 import { unlockAudio } from '@/lib/musicLibrary'
 import { formatCounts } from '@/lib/format'
 import { groupByDay, groupByMonth, type Section } from '@/lib/groups'
-import { showError } from '@/lib/dialog'
+import { showAlert, showError } from '@/lib/dialog'
 import { albumAddPath, albumPath, LIBRARY, personPath, type Route, type View } from '@/lib/views'
 import { t } from '@/i18n'
 
@@ -213,7 +213,12 @@ export default function PhotosPage({
     () => (sorted ? { ...view.filter, sort: sort.by } : view.filter),
     [view.filter, sorted, sort.by],
   )
-  const counts = useMonthCounts(monthFilter, showScrubber, status.stats?.total ?? 0, byUploadDay ? 'day' : 'month')
+  const version = status.stats?.total ?? 0
+  const monthCounts = useMonthCounts(monthFilter, showScrubber && !byUploadDay, version, 'month')
+  // 照片都在同一个月里（例如按添加日期排，而照片是一次传上来的）时，只有一个月的时间线没法拖，改成按天分
+  const byDay = byUploadDay || monthCounts.length === 1
+  const dayCounts = useMonthCounts(monthFilter, showScrubber && byDay, version, 'day')
+  const counts = byDay ? dayCounts : monthCounts
   // 服务器给的是从新到旧；照片从旧到新排时倒过来，时间线上的位置才对得上
   const months = useMemo(
     () => (sorted && sort.dir === 'asc' ? [...counts].reverse() : counts),
@@ -328,6 +333,11 @@ export default function PhotosPage({
     run(async () => {
       applyChanges(await updateAssets(ids, patch)) // 删除、隐藏了的从列表里拿掉，选中的也跟着拿掉
       void refresh()
+      const n = ids.length
+      if (patch.deleted === true) toast.show(t('已删除 {n} 项，可以在「最近删除」里恢复', { n }))
+      else if (patch.deleted === false) toast.show(t('已恢复 {n} 项', { n }))
+      else if (patch.hidden === true) toast.show(t('已隐藏 {n} 项', { n }))
+      else if (patch.hidden === false) toast.show(t('已取消隐藏 {n} 项', { n }))
     })
   const addTo = (target: Album, ids: string[]) =>
     run(async () => {
@@ -659,7 +669,7 @@ export default function PhotosPage({
       {showScrubber && (
         <TimelineScrubber
           months={months}
-          unit={byUploadDay ? 'day' : 'month'}
+          unit={byDay ? 'day' : 'month'}
           visible={visible}
           loaded={timeline.assets.length}
           onScrub={scrubTo}
@@ -752,18 +762,6 @@ export default function PhotosPage({
           }
         />
       )}
-      {toast.message && (
-        <div
-          role="status"
-          // 大图查看器开着时放在缩略图条上面
-          className={cx(
-            'popover-card fixed left-1/2 z-50 -translate-x-1/2 rounded-full bg-fg px-4 py-2 text-body font-medium text-page shadow-lg',
-            viewing ? 'bottom-28' : 'bottom-6',
-          )}
-        >
-          {toast.message}
-        </div>
-      )}
     </div>
   )
 }
@@ -791,16 +789,9 @@ function PickActions({
 }
 
 // useToast 是页面底部一闪而过的提示，例如「已添加到「旅行」」
+// useToast：做完一件事的一句提示（「已添加到…」「已删除 3 项」），和出错提示一样显示在左下角，几秒后自己消失
 function useToast() {
-  const [message, setMessage] = useState<string | null>(null)
-  const timer = useRef<number>(undefined)
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-  const show = useCallback((text: string) => {
-    setMessage(text)
-    window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setMessage(null), 2200)
-  }, [])
-  return { message, show }
+  return useMemo(() => ({ show: (text: string) => showAlert(text) }), [])
 }
 
 // useDateRange 是在日历里选的一段时间，换分类（key 变了）时自动清掉。

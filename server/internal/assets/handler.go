@@ -243,7 +243,7 @@ const (
 // serveFile 返回照片的某个文件。http.ServeFile 会处理缓存头和 Range 请求，视频可以拖动进度。
 func (s *Service) serveFile(kind fileKind) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		a, ok := s.loadAsset(w, r)
+		a, ok := s.loadAssetAs(w, r, kind == fileThumbnail)
 		if !ok {
 			return
 		}
@@ -281,6 +281,11 @@ func safeType(mime string) string {
 }
 
 func (s *Service) loadAsset(w http.ResponseWriter, r *http.Request) (*Asset, bool) {
+	return s.loadAssetAs(w, r, false)
+}
+
+// loadAssetAs：avatar 为 true 时，被成员用作头像的照片谁都能看（只给缩略图用：头像要显示给全家）
+func (s *Service) loadAssetAs(w http.ResponseWriter, r *http.Request, avatar bool) (*Asset, bool) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, "照片 ID 格式不对")
@@ -295,7 +300,15 @@ func (s *Service) loadAsset(w http.ResponseWriter, r *http.Request) (*Asset, boo
 		httpx.InternalError(w, err)
 		return nil, false
 	}
-	if !visibleTo(a, auth.UserFrom(r.Context())) {
+	ok, err := s.store.CanSee(r.Context(), a, auth.UserID(r.Context()))
+	if err == nil && !ok && avatar {
+		ok, err = s.store.IsAvatar(r.Context(), a.ID)
+	}
+	if err != nil {
+		httpx.InternalError(w, err)
+		return nil, false
+	}
+	if !ok || !visibleTo(a, auth.UserFrom(r.Context())) { // 别人没分享给自己的、别人隐藏的都当作没有
 		httpx.Error(w, http.StatusNotFound, ErrNotFound.Error())
 		return nil, false
 	}

@@ -454,7 +454,13 @@ async function send<T>(method: string, url: string, body?: unknown): Promise<T> 
   })
   if (!url.startsWith('/api/auth/')) checkAuth(res) // 登录接口自己的 401 是「密码不对」，不是过期
   const text = await res.text()
-  const data = text ? JSON.parse(text) : undefined
+  // 不是 JSON（例如后端还是旧版本、没有这个接口时回的纯文字），按状态码报错，不把解析错误甩给用户
+  let data: { error?: unknown } | undefined
+  try {
+    data = text ? JSON.parse(text) : undefined
+  } catch {
+    throw new Error(res.ok ? t('服务器回答的格式不对') : `HTTP ${res.status}`)
+  }
   if (!res.ok) throw new Error(serverText(data?.error) ?? `HTTP ${res.status}`)
   return data as T
 }
@@ -542,6 +548,30 @@ export async function uploadAvatar(image: Blob): Promise<{ user: User }> {
 export const avatarFileUrl = (userId: string, style: string) =>
   `/api/users/${userId}/avatar?v=${encodeURIComponent(style.slice('file:'.length))}`
 export const listUsers = () => getJSON<User[]>('/api/users')
+
+// 分享（见 server/internal/assets/sharing.go）：照片默认只有上传的人看得到，分享给谁谁才看得到。
+// 只能分享自己传的；shareAssets 返回实际分享了几张（别人传的跳过）
+export const shareWithMembers = (ids: string[], users: string[]) =>
+  send<{ shared: number }>('POST', '/api/assets/share', { ids, users })
+// users 为空时取消分享给所有人
+export const unshareFromMembers = (ids: string[], users: string[] = []) =>
+  send<void>('POST', '/api/assets/unshare', { ids, users })
+// 这些照片（自己传的）各分享给了谁：成员 ID → 其中几张
+export const assetShares = (ids: string[]) =>
+  send<{ users: Record<string, number> }>('POST', '/api/assets/shares', { ids })
+// Sharer 是把照片分享给我的人，和我看得到他的几张
+export interface Sharer {
+  id: string
+  name: string
+  count: number
+}
+export interface SharingState {
+  library_to: string[] // 我把传的全部（包括以后传的）分享给了谁
+  library_from: string[] // 谁把他传的全部分享给了我
+  sharers: Sharer[]
+}
+export const getSharing = () => getJSON<SharingState>('/api/sharing')
+export const setLibrarySharing = (users: string[]) => send<SharingState>('PUT', '/api/sharing/library', { users })
 // admin 时新成员也是管理员（能管成员、改系统设置）
 export const addUser = (name: string, password: string, admin = false) =>
   send<User>('POST', '/api/users', { name, password, admin })

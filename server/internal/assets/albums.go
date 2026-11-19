@@ -17,12 +17,14 @@ import (
 
 	"github.com/wanmory/wanmory/server/internal/ai"
 	"github.com/wanmory/wanmory/server/internal/auth"
+	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
 var (
 	ErrAlbumNotFound = errors.New("相册不存在")
 	ErrAlbumSynced   = errors.New("这个智能相册按条件自动同步，不能手动添加或移除照片")
+	ErrNotShareable  = errors.New("别人分享给你的照片不能放进共享相册，只能放进私有相册")
 	ErrAlbumNotOwner = errors.New("只有建这个相册的人能改它")
 )
 
@@ -86,7 +88,8 @@ func (s *Store) queryAlbums(ctx context.Context, user uuid.UUID, cond string, ar
 	if cond != "" {
 		where += ` AND ` + cond
 	}
-	visible := `a.deleted_at IS NULL AND (NOT a.hidden OR (al.private AND al.owner_id = ` + u + ` AND a.hidden_by = ` + u + `))`
+	visible := `a.deleted_at IS NULL AND (NOT a.hidden OR (al.private AND al.owner_id = ` + u + ` AND a.hidden_by = ` + u + `))
+		AND ` + db.Visible("a", u)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT al.id, al.name, al.kind, al.rules, al.auto_sync, al.created_at,
 		       al.owner_id, COALESCE((SELECT name FROM users WHERE id = al.owner_id), ''), al.private, al.hide_mine,
@@ -150,7 +153,14 @@ func (s *Store) smartStats(ctx context.Context, a *Album, user uuid.UUID) error 
 		args = append(args, user)
 		scope = `deleted_at IS NULL AND (NOT hidden OR hidden_by = $1)`
 	}
-	where := ` WHERE ` + scope + ` AND ` + a.Rules.SQL(&args)
+	// 看得到的，加上（共享相册）主人符合条件的照片，和打开相册时一样（见 Filter.smartOwner）
+	args = append(args, user)
+	visible := db.Visible("assets", fmt.Sprintf("$%d", len(args)))
+	if !a.Private && a.Owner != nil {
+		args = append(args, *a.Owner)
+		visible = fmt.Sprintf(`(%s OR uploaded_by = $%d)`, visible, len(args))
+	}
+	where := ` WHERE ` + scope + ` AND ` + visible + ` AND ` + a.Rules.SQL(&args)
 	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM assets`+where, args...).Scan(&a.Count); err != nil {
 		return err
 	}
@@ -167,22 +177,32 @@ func (s *Store) smartStats(ctx context.Context, a *Album, user uuid.UUID) error 
 }
 
 // CountMatching 是有多少张照片符合条件，新建智能相册时实时显示「N 项符合」
-func (s *Store) CountMatching(ctx context.Context, rules SmartRules) (int, error) {
-	args := []any{}
+// （只数 user 看得到的）
+func (s *Store) CountMatching(ctx context.Context, rules SmartRules, user uuid.UUID) (int, error) {
+	args := []any{user}
 	var n int
 	err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM assets WHERE `+scopeConditions[ScopeNormal]+
-		` AND `+rules.SQL(&args), args...).Scan(&n)
+		` AND `+db.Visible("assets", "$1")+` AND `+rules.SQL(&args), args...).Scan(&n)
 	return n, err
 }
 
-// snapshot 把现在符合条件的照片放进相册（不自动同步的智能相册建好、改了条件时用），原来的先清掉
+// addable 是照片 a 能不能由 who 放进相册 al（a、al 是表别名，who 是 SQL 表达式）：私有相册里放自己看得到的；
+// 共享相册里只放自己传的和全家共用的——放进共享相册就分享给了能看相册的人，别人分享给自己的不能这样转出去
+func addable(a, al, who string) string {
+	return `(CASE WHEN ` + al + `.private THEN ` + db.Visible(a, who) +
+		` ELSE (` + a + `.uploaded_by IS NULL OR ` + a + `.uploaded_by = ` + who + `) END)`
+}
+
+// snapshot 把现在符合条件的照片放进相册（不自动同步的智能相册建好、改了条件时用），原来的先清掉。
+// 只放主人能放的（见 addable）
 func snapshot(ctx context.Context, tx *sql.Tx, album uuid.UUID, rules SmartRules) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM album_assets WHERE album_id = $1`, album); err != nil {
 		return err
 	}
 	args := []any{album}
 	_, err := tx.ExecContext(ctx, `INSERT INTO album_assets (album_id, asset_id)
-		SELECT $1, id FROM assets WHERE `+scopeConditions[ScopeNormal]+` AND `+rules.SQL(&args), args...)
+		SELECT $1, assets.id FROM assets JOIN albums al ON al.id = $1
+		WHERE `+scopeConditions[ScopeNormal]+` AND `+addable("assets", "al", "al.owner_id")+` AND `+rules.SQL(&args), args...)
 	return err
 }
 
@@ -211,7 +231,7 @@ func (s *Store) CreateAlbum(ctx context.Context, owner uuid.UUID, share Sharing,
 	if rules != nil && !autoSync {
 		err = snapshot(ctx, tx, id, *rules)
 	} else if rules == nil {
-		err = addToAlbum(ctx, tx, id, assets)
+		err = addToAlbum(ctx, tx, id, owner, assets)
 	}
 	if err != nil {
 		return uuid.Nil, err
@@ -336,6 +356,9 @@ func (s *Store) resolveAlbum(ctx context.Context, f *Filter) error {
 	f.ownPrivate = acc.Private
 	rules, err := s.albumRules(ctx, *f.Album)
 	f.smart = rules
+	if rules != nil && !acc.Private {
+		f.smartOwner = acc.Owner
+	}
 	return err
 }
 
@@ -490,7 +513,18 @@ func (s *Store) AddToAlbum(ctx context.Context, album uuid.UUID, assets []uuid.U
 	if err := s.checkManual(ctx, album); err != nil {
 		return err
 	}
-	if err := addToAlbum(ctx, s.db, album, assets); err != nil {
+	// 共享相册里放了别人分享给自己的照片：不放，告诉用户
+	var refused int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT count(*) FROM assets a JOIN albums al ON al.id = $1
+		WHERE a.id = ANY($2::uuid[]) AND NOT `+addable("a", "al", "$3"), album, uuidStrings(assets), auth.UserID(ctx)).
+		Scan(&refused); err != nil {
+		return err
+	}
+	if refused > 0 {
+		return ErrNotShareable
+	}
+	if err := addToAlbum(ctx, s.db, album, auth.UserID(ctx), assets); err != nil {
 		return err
 	}
 	// 私有相册开着「同时隐藏」：新放进来的主人自己传的照片也隐藏
@@ -532,7 +566,8 @@ type execer interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-func addToAlbum(ctx context.Context, db execer, album uuid.UUID, assets []uuid.UUID) error {
+// addToAlbum 把 who 能放的照片（见 addable）放进相册
+func addToAlbum(ctx context.Context, db execer, album, who uuid.UUID, assets []uuid.UUID) error {
 	if len(assets) == 0 {
 		return nil
 	}
@@ -540,12 +575,13 @@ func addToAlbum(ctx context.Context, db execer, album uuid.UUID, assets []uuid.U
 	// 新放进去的照片顺便更新 updated_at，打开着这个相册的网页增量刷新时就能拿到它们
 	_, err := db.ExecContext(ctx, `
 		WITH added AS (
-			INSERT INTO album_assets (album_id, asset_id)
-			SELECT $1, id FROM assets WHERE id = ANY($2::uuid[])
+			INSERT INTO album_assets (album_id, asset_id, added_by)
+			SELECT $1, a.id, NULLIF($3::uuid, '00000000-0000-0000-0000-000000000000'::uuid) FROM assets a JOIN albums al ON al.id = $1
+			WHERE a.id = ANY($2::uuid[]) AND `+addable("a", "al", "$3")+`
 			ON CONFLICT DO NOTHING
 			RETURNING asset_id
 		)
-		UPDATE assets SET updated_at = now() WHERE id IN (SELECT asset_id FROM added)`, album, uuidStrings(assets))
+		UPDATE assets SET updated_at = now() WHERE id IN (SELECT asset_id FROM added)`, album, uuidStrings(assets), who)
 	if isForeignKeyViolation(err) {
 		return ErrAlbumNotFound
 	}
@@ -777,7 +813,7 @@ func albumResult(w http.ResponseWriter, err error) bool {
 		httpx.Error(w, http.StatusNotFound, err.Error())
 	case errors.Is(err, ErrAlbumSynced):
 		httpx.Error(w, http.StatusConflict, err.Error())
-	case errors.Is(err, ErrAlbumNotOwner):
+	case errors.Is(err, ErrAlbumNotOwner), errors.Is(err, ErrNotShareable):
 		httpx.Error(w, http.StatusForbidden, err.Error())
 	default:
 		httpx.InternalError(w, err)
@@ -828,7 +864,7 @@ func (s *Service) previewSmart(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &rules) || !validRules(w, &rules) {
 		return
 	}
-	n, err := s.store.CountMatching(r.Context(), rules)
+	n, err := s.store.CountMatching(r.Context(), rules, auth.UserID(r.Context()))
 	if err != nil {
 		httpx.InternalError(w, err)
 		return
@@ -848,7 +884,8 @@ func (s *Service) fieldValues(w http.ResponseWriter, r *http.Request) {
 	}
 	expr := smartFields[field].expr
 	rows, err := s.db.QueryContext(r.Context(), `SELECT DISTINCT `+expr+` AS v FROM assets
-		WHERE `+scopeConditions[ScopeNormal]+` AND `+expr+` <> '' ORDER BY v LIMIT 500`)
+		WHERE `+scopeConditions[ScopeNormal]+` AND `+db.Visible("assets", "$1")+` AND `+expr+` <> '' ORDER BY v LIMIT 500`,
+		auth.UserID(r.Context()))
 	if err != nil {
 		httpx.InternalError(w, err)
 		return

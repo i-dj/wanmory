@@ -5,7 +5,8 @@ import Tooltip from '@/components/ui/Tooltip'
 import UserAvatar from '@/components/ui/UserAvatar'
 import type { GridLayout } from '@/hooks/useGridLayout'
 import { cx } from '@/lib/cx'
-import { listUsers, type MediaKind, type User } from '@/lib/api'
+import { getSharing, listUsers, type MediaKind, type User } from '@/lib/api'
+import { useCurrentUser } from '@/lib/session'
 import { MEDIA_KINDS } from '@/lib/views'
 import { t } from '@/i18n'
 
@@ -68,7 +69,8 @@ export function SortMenu({
 
 // FilterMenu：全部、照片、视频、动图。照片、视频、动图可以多选，点一下勾上、再点取消；
 // 「全部」是都不筛（三种都勾上也算全部）。多选时菜单不收起，方便接着勾
-// 下面一组是成员：和「全部」一样，先是「所有人」、一条分隔线，再是各个家庭成员（可以多选，前面是头像）；家里只有一个人时不显示这一组。
+// 下面一组是谁的照片：和「全部」一样，先是「所有人」、一条分隔线，再是我自己和分享了照片给我的人（可以多选，前面是头像）。
+// 照片默认只有上传的人看得到，所以这里只列看得到他照片的人；没人分享给我时不显示这一组。
 // 竖着一人一行：名字长短不一、人多了也放得下，和上面照片、视频那几行一样
 export function FilterMenu({
   value,
@@ -81,16 +83,26 @@ export function FilterMenu({
   onChange: (value: MediaKind[]) => void
   uploaders: string[]
   onUploaders: (ids: string[]) => void
-  membersOnly?: boolean // 只有「成员」一组，没有全部、照片、视频、动图（足迹用）；家里只有一个人时整个按钮都不显示
+  membersOnly?: boolean // 只有「成员」一组，没有全部、照片、视频、动图（足迹用）；没人分享给我时整个按钮都不显示
 }) {
+  const { user, guest } = useCurrentUser()
   const [members, setMembers] = useState<User[]>([])
   useEffect(() => {
+    if (guest) return
     let alive = true
-    void listUsers().then((list) => alive && setMembers(list))
+    void Promise.all([listUsers(), getSharing()]).then(([users, sharing]) => {
+      if (!alive) return
+      // 我在最前，后面是分享给我的人（分享得多的在前）
+      const byId = new Map(users.map((u) => [u.id, u]))
+      const list = [byId.get(user.id) ?? user]
+      for (const s of sharing.sharers)
+        list.push(byId.get(s.id) ?? { ...user, id: s.id, name: s.name, avatar: null, avatar_style: '' })
+      setMembers(list)
+    })
     return () => {
       alive = false
     }
-  }, [])
+  }, [guest, user])
   const toggle = (kind: MediaKind) => {
     const next = value.includes(kind) ? value.filter((k) => k !== kind) : [...value, kind]
     onChange(next.length === MEDIA_KINDS.length ? [] : MEDIA_KINDS.map((k) => k.kind).filter((k) => next.includes(k)))
@@ -140,7 +152,7 @@ export function FilterMenu({
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <UserAvatar user={m} className="size-5.5 text-micro" />
-                    <span className="truncate">{m.name}</span>
+                    <span className="truncate">{m.id === user.id ? t('我') : m.name}</span>
                   </span>
                 </Item>
               ))}

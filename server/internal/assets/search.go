@@ -4,6 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/google/uuid"
+	"github.com/wanmory/wanmory/server/internal/auth"
+	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
@@ -34,7 +37,7 @@ func (s *Service) searchOptions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	resp := map[string][]Option{"categories": {}, "cameras": {}, "lenses": {}}
 	for _, c := range s.categories {
-		f := Filter{Tag: c.Key}
+		f := Filter{Tag: c.Key, User: auth.UserID(ctx)}
 		var n int
 		args := []any{}
 		if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM assets`+f.where(&args), args...).Scan(&n); err != nil {
@@ -46,7 +49,7 @@ func (s *Service) searchOptions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	for key, field := range map[string]string{"cameras": "camera", "lenses": "lens"} {
-		list, err := s.countBy(ctx, smartFields[field].expr)
+		list, err := s.countBy(ctx, smartFields[field].expr, auth.UserID(ctx))
 		if err != nil {
 			httpx.InternalError(w, err)
 			return
@@ -57,11 +60,11 @@ func (s *Service) searchOptions(w http.ResponseWriter, r *http.Request) {
 }
 
 // countBy 按 expr 的值数照片（平时能看见的），多的在前，最多 50 个
-func (s *Service) countBy(ctx context.Context, expr string) ([]Option, error) {
+func (s *Service) countBy(ctx context.Context, expr string, user uuid.UUID) ([]Option, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT `+expr+` AS v, count(*) FROM assets
-		WHERE `+scopeConditions[ScopeNormal]+` AND `+expr+` IS NOT NULL AND `+expr+` <> ''
-		GROUP BY v ORDER BY count(*) DESC, v LIMIT 50`)
+		WHERE `+scopeConditions[ScopeNormal]+` AND `+db.Visible("assets", "$1")+` AND `+expr+` IS NOT NULL AND `+expr+` <> ''
+		GROUP BY v ORDER BY count(*) DESC, v LIMIT 50`, user)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,8 @@ import { useMarks } from '@/hooks/useMarks'
 import { type Asset, assetPlace, type GeoPlace, localGeo } from '@/lib/api'
 import { cx } from '@/lib/cx'
 import Tooltip from '@/components/ui/Tooltip'
+import { useCurrentUser } from '@/lib/session'
+import SharerAvatar, { ownerLabel, sharedByOther } from './SharerAvatar'
 import { t as tr } from '@/i18n'
 
 const CITY_DELAY_MS = 150 // 库里还没有城市时，鼠标停这么久才让服务器去查，划过一排照片时不会每张都排队问
@@ -29,7 +31,10 @@ export default function TileActions({
   const { favorite, save } = useMarks(asset, onChanged)
   const reveal = 'opacity-0 group-hover:opacity-100'
   const city = useCity(asset, hovered && !compact)
-  const lines = captionLines(asset, city)
+  const { user } = useCurrentUser()
+  const shared = sharedByOther(asset, user.id)
+  // 别人分享的照片标题前有分享人的头像；没有地点、说明时标题写他的名字
+  const lines = captionLines(asset, city) ?? (shared ? [ownerLabel(asset.uploader_name ?? '', user.is_admin)] : null)
 
   return (
     <>
@@ -77,7 +82,10 @@ export default function TileActions({
             reveal,
           )}
         >
-          <p className="truncate text-body font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{lines[0]}</p>
+          <p className="flex min-w-0 items-center gap-1.5 text-body font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+            <SharerAvatar asset={asset} className="size-5 text-micro ring-1 ring-white/70" />
+            <span className="truncate">{lines[0]}</span>
+          </p>
           {lines[1] && (
             <p className="truncate text-caption text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{lines[1]}</p>
           )}

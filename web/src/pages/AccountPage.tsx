@@ -4,6 +4,7 @@ import PageHeader, { HeaderTitle } from '@/components/layout/PageHeader'
 import AvatarPicker from '@/components/settings/AvatarPicker'
 import LanguagePicker from '@/components/settings/LanguagePicker'
 import SettingsCard from '@/components/settings/SettingsCard'
+import SharingCard from '@/components/settings/SharingCard'
 import TwoStepCard from '@/components/settings/TwoStepCard'
 import Field from '@/components/ui/Field'
 import { Button } from '@/components/ui/Modal'
@@ -41,6 +42,7 @@ export default function AccountPage() {
       <div className="mx-auto mt-8 max-w-[960px] space-y-6 pb-12">
         <AvatarCard account={account} onChanged={updateUser} />
         <NameCard onChanged={updateUser} />
+        <SharingCard />
         <PasswordCard onChanged={load} />
         <TwoStepCard totp={account?.totp ?? null} onChanged={load} />
         <DevicesCard devices={account?.devices ?? null} onChanged={load} />

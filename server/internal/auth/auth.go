@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/wanmory/wanmory/server/internal/db"
 )
 
 const (
@@ -280,7 +282,7 @@ func (s *Service) SetAvatar(ctx context.Context, id uuid.UUID, asset *uuid.UUID)
 		var ok bool
 		if err := s.db.QueryRowContext(ctx, `
 			SELECT EXISTS (SELECT 1 FROM assets WHERE id = $1 AND deleted_at IS NULL AND thumbnail_path IS NOT NULL
-			               AND (NOT hidden OR hidden_by = $2))`, *asset, id).Scan(&ok); err != nil {
+			               AND (NOT hidden OR hidden_by = $2) AND `+db.Visible("assets", "$2")+`)`, *asset, id).Scan(&ok); err != nil {
 			return err
 		}
 		if !ok {

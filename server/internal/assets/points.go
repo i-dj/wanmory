@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/wanmory/wanmory/server/internal/auth"
+	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
@@ -17,7 +18,7 @@ func (s *Service) points(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.db.QueryContext(r.Context(), `
 		SELECT id, extract(epoch FROM `+takenExpr+`)::bigint, latitude, longitude,
 		       CASE WHEN type = 'video' THEN 1 WHEN mime_type = 'image/gif' THEN 2 ELSE 0 END, place_name, uploaded_by FROM assets
-		WHERE deleted_at IS NULL AND (NOT hidden OR hidden_by = $1)
+		WHERE deleted_at IS NULL AND (NOT hidden OR hidden_by = $1) AND `+db.Visible("assets", "$1")+`
 		  AND latitude IS NOT NULL AND longitude IS NOT NULL AND NOT (latitude = 0 AND longitude = 0)
 		ORDER BY `+takenExpr+`, id`, auth.UserID(r.Context()))
 	if err != nil {

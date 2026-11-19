@@ -69,6 +69,11 @@ func (s *Service) batch(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "没有要修改的内容")
 		return
 	}
+	// 只改自己看得到的（别人没分享给自己的照片当作没有）
+	if req.IDs, err = s.visibleOnly(r.Context(), req.IDs); err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
 	defer s.KickHiddenSync() // 收藏、星级、时间等变了，私有智能相册的「同时隐藏」可能要跟着变
 	if req.Patch != (Patch{}) {
 		u := auth.UserFrom(r.Context())
@@ -135,7 +140,7 @@ func (s *Service) purge(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	res, err := s.store.PurgeDeleted(r.Context(), req.IDs, owner)
+	res, err := s.store.PurgeDeleted(r.Context(), req.IDs, owner, u.ID)
 	if err != nil {
 		httpx.InternalError(w, err)
 		return
@@ -174,10 +179,15 @@ func (s *Service) download(w http.ResponseWriter, r *http.Request) {
 			httpx.InternalError(w, err)
 			return
 		}
-		// 只打包自己看得到的（别人隐藏的照片不能靠 ID 下载，见 visibleTo）
+		// 只打包自己看得到的（别人没分享的、隐藏的照片不能靠 ID 下载，见 visibleTo、CanSee）
 		u := auth.UserFrom(r.Context())
+		seen, err := s.store.VisibleIDs(r.Context(), ids, auth.UserID(r.Context()))
+		if err != nil {
+			httpx.InternalError(w, err)
+			return
+		}
 		for _, a := range all {
-			if visibleTo(a, u) {
+			if seen[a.ID] && visibleTo(a, u) {
 				list = append(list, a)
 			}
 		}

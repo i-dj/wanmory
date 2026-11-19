@@ -19,6 +19,7 @@ import (
 
 	"github.com/wanmory/wanmory/server/internal/assets"
 	"github.com/wanmory/wanmory/server/internal/auth"
+	"github.com/wanmory/wanmory/server/internal/db"
 	"github.com/wanmory/wanmory/server/internal/httpx"
 )
 
@@ -71,8 +72,9 @@ func coverFace(u string) string {
 // visibleTo 是「照片 a 看的人 u 看得到」：没删除，而且没隐藏、或者是他自己隐藏的。
 // 人物是全家共用的（名字、合并大家都看得到），但照片数、封面、人物页按各人看得到的照片算：
 // 只出现在 A 隐藏的照片里的人，只有 A 的人物页里有
+// 照片还得是分享给了他的（见 db.Visible）。
 func visibleTo(a, u string) string {
-	return a + `.deleted_at IS NULL AND (NOT ` + a + `.hidden OR ` + a + `.hidden_by = ` + u + `)`
+	return a + `.deleted_at IS NULL AND (NOT ` + a + `.hidden OR ` + a + `.hidden_by = ` + u + `) AND ` + db.Visible(a, u)
 }
 
 const dateLayout = "2006-01-02"
@@ -215,6 +217,17 @@ func (s *Service) faceThumbnail(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, "人脸 ID 格式不对")
+		return
+	}
+	// 只给看得到这张照片的人（人脸小图也是照片的一部分）
+	var ok bool
+	if err := s.db.QueryRowContext(r.Context(), `SELECT EXISTS (SELECT 1 FROM faces f JOIN assets a ON a.id = f.asset_id
+		WHERE f.id = $1 AND `+visibleTo("a", "$2")+`)`, id, auth.UserID(r.Context())).Scan(&ok); err != nil {
+		httpx.InternalError(w, err)
+		return
+	}
+	if !ok {
+		httpx.Error(w, http.StatusNotFound, "人脸不存在")
 		return
 	}
 	portrait := r.URL.Query().Get("shape") == "portrait"

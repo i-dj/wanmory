@@ -16,6 +16,7 @@ import {
   UserPlus,
   UserRound,
   UserRoundCog,
+  UsersRound,
 } from 'lucide-react'
 import { type ReactNode, useCallback, useRef, useState } from 'react'
 import Popover, { MenuDivider, MenuItem, menuItemClass, ToolbarButton } from '@/components/ui/Popover'
@@ -33,7 +34,10 @@ import {
 import { cx } from '@/lib/cx'
 import { shareAssets } from '@/lib/share'
 import { useCurrentUser } from '@/lib/session'
+import { useMembers } from '@/hooks/useMembers'
+import { showAlert } from '@/lib/dialog'
 import DeleteConfirm from './DeleteConfirm'
+import ShareDialog from './ShareDialog'
 import { t } from '@/i18n'
 
 type Scope = 'normal' | 'hidden' | 'deleted'
@@ -77,6 +81,15 @@ export default function SelectionActions({
   onEditLocation?: () => void // 批量修改位置
   menuExtra?: (close: () => void) => ReactNode // 放在「更多」菜单最上面的几项（大图查看器的照片信息等），close 收起菜单
 }) {
+  const [sharing, setSharing] = useState(false)
+  const { user } = useCurrentUser()
+  const members = useMembers()
+  // 分享给成员：没有别的成员、选的都是别人分享给我的，就只在左下角说一句，不弹窗口
+  const openShare = () => {
+    if (![...members.keys()].some((id) => id !== user.id)) showAlert(t('暂无成员可分享'))
+    else if (!assets.some((a) => a.uploaded_by === user.id)) showAlert(t('只能分享自己上传的照片'))
+    else setSharing(true)
+  }
   if (scope === 'deleted') {
     return (
       <div className="flex items-center gap-0.5">
@@ -102,6 +115,8 @@ export default function SelectionActions({
       />
       <RatingButton rating={rating} disabled={busy} onRate={(r) => onApply({ rating: r })} />
       <AlbumButton albums={albums} current={album} disabled={busy} onAdd={onAddToAlbum} onCreate={onCreateAlbum} />
+      <ToolbarButton icon={UsersRound} label={t('分享给成员')} disabled={busy} onClick={openShare} />
+      {sharing && <ShareDialog assets={assets} onClose={() => setSharing(false)} />}
       {person && onMovePerson && (
         <PersonButton person={person} people={people ?? []} disabled={busy} onMove={onMovePerson} />
       )}
@@ -411,7 +426,7 @@ function MoreButton({
               label={count > 1 ? t('下载 {count} 项', { count }) : t('下载原图')}
               onClick={pick(onDownload)}
             />
-            <MenuItem icon={Share} label={t('分享…')} onClick={pick(onShare)} />
+            <MenuItem icon={Share} label={t('外部分享…')} onClick={pick(onShare)} />
             {onEditDate && (
               <MenuItem
                 icon={CalendarClock}

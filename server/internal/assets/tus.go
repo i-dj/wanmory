@@ -187,7 +187,7 @@ func (s *Service) finishUpload(hook tusd.HookEvent) (tusd.HTTPResponse, error) {
 		return tusd.HTTPResponse{}, tusd.NewError("ERR_INGEST", "保存照片失败", http.StatusInternalServerError)
 	}
 
-	if err := s.store.SetUploader(ctx, a.ID, auth.UserID(hook.Context)); err != nil {
+	if err := s.store.SetUploader(ctx, a.ID, auth.UserID(hook.Context), dup); err != nil {
 		log.Printf("assets: cannot record who uploaded %s: %v", meta["filename"], err)
 	}
 
