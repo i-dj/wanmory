@@ -1,11 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:logging/logging.dart';
 
 import '../api/client.dart';
 import '../api/models.dart';
 import '../i18n.dart';
-import 'biometrics.dart';
 import 'session_store.dart';
 
 final _log = Logger('auth');
@@ -20,8 +18,6 @@ enum AuthStatus {
   /// Password accepted; waiting for the two-step verification code.
   needsCode,
 
-  /// Signed in, but Face ID / fingerprint unlock is on and hasn't happened yet.
-  locked,
   signedIn,
 }
 
@@ -33,9 +29,6 @@ class AuthState {
     this.user,
     this.api,
     this.message,
-    this.biometricLabel,
-    this.biometricFace = false,
-    this.biometrics,
   });
 
   final AuthStatus status;
@@ -47,20 +40,11 @@ class AuthState {
   final String lastName;
   final User? user;
 
-  /// Client carrying the session token (signed in or locked).
+  /// Client carrying the session token.
   final ApiClient? api;
 
   /// Why the user was signed out (a Chinese source string for `t()`), shown once on the form.
   final String? message;
-
-  /// "Face ID", "fingerprint"... when the device has biometrics set up.
-  final String? biometricLabel;
-
-  /// The biometric is the face rather than a fingerprint (picks the icon).
-  final bool biometricFace;
-
-  /// Whether biometric unlock is on; null when the user hasn't been asked yet.
-  final bool? biometrics;
 
   AuthState copyWith({
     AuthStatus? status,
@@ -69,7 +53,6 @@ class AuthState {
     User? user,
     ApiClient? api,
     String? message,
-    bool? biometrics,
   }) => AuthState(
     status: status ?? this.status,
     server: server ?? this.server,
@@ -77,14 +60,10 @@ class AuthState {
     user: user ?? this.user,
     api: api ?? this.api,
     message: message,
-    biometricLabel: biometricLabel,
-    biometricFace: biometricFace,
-    biometrics: biometrics ?? this.biometrics,
   );
 }
 
 final sessionStoreProvider = Provider((ref) => SessionStore());
-final biometricsProvider = Provider((ref) => Biometrics());
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
 
@@ -102,25 +81,18 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> _restore() async {
     final saved = await _store.load();
-    final label = await ref.read(biometricsProvider).label();
     final base = AuthState(
       status: AuthStatus.signedOut,
       server: saved.server ?? '',
       lastName: saved.lastName ?? '',
-      biometricLabel: label,
-      biometricFace: ref.read(biometricsProvider).face,
-      biometrics: saved.biometrics,
     );
     if (saved.token == null || saved.server == null || saved.user == null) {
       state = base;
       return;
     }
     await setLocale(saved.user!.locale);
+    // Signing in once is enough: the saved sign-in opens the app directly.
     final api = ApiClient(saved.server!, token: saved.token);
-    if (saved.biometrics == true && label != null) {
-      state = base.copyWith(status: AuthStatus.locked, user: saved.user, api: api);
-      return;
-    }
     state = base.copyWith(status: AuthStatus.signedIn, user: saved.user, api: api);
     await refreshUser();
   }
@@ -195,27 +167,6 @@ class AuthNotifier extends Notifier<AuthState> {
     );
   }
 
-  Future<bool> unlock() async {
-    if (!await ref.read(biometricsProvider).authenticate()) return false;
-    state = state.copyWith(status: AuthStatus.signedIn);
-    await refreshUser();
-    return true;
-  }
-
-  /// Locks the app again (after it has been in the background for a while).
-  void lock() {
-    if (state.status == AuthStatus.signedIn && state.biometrics == true && state.biometricLabel != null) {
-      state = state.copyWith(status: AuthStatus.locked);
-    }
-  }
-
-  IconData get biometricIcon => state.biometricFace ? Icons.face : Icons.fingerprint;
-
-  Future<void> setBiometrics(bool on) async {
-    await _store.setBiometrics(on);
-    state = state.copyWith(biometrics: on);
-  }
-
   Future<void> signOut() async {
     try {
       await state.api?.logout();
@@ -238,9 +189,6 @@ class AuthNotifier extends Notifier<AuthState> {
       server: state.server,
       lastName: state.lastName,
       message: message,
-      biometricLabel: state.biometricLabel,
-      biometricFace: state.biometricFace,
-      biometrics: state.biometrics,
     );
   }
 }

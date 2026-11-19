@@ -1,6 +1,5 @@
 package com.wanmory.wanmory
 
-import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.android.FlutterActivity
 
-// local_auth needs a FragmentActivity for the fingerprint / face prompt.
-class MainActivity : FlutterFragmentActivity()
+class MainActivity : FlutterActivity()

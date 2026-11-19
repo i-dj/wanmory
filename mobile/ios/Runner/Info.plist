@@ -4,8 +4,6 @@
 <dict>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Wanmory uploads your photos and videos to your own photo server when album sync is on.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Unlock Wanmory with Face ID.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Wanmory connects to your photo server on the local network.</string>
 	<key>NSAppTransportSecurity</key>

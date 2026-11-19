@@ -110,3 +110,153 @@ Outcome outcome(TaskStatusUpdate u) {
   if (code == 400 || code == 413 || code == 415) return Outcome.refused;
   return Outcome.retry;
 }
+
+/// Files bigger than this upload in pieces of this size (see [ChunkedUpload]). A single request
+/// for a 17 GB drone video starts over from zero whenever the connection drops, and never gets
+/// through; with pieces, a dropped connection costs at most one piece.
+const chunkBytes = 256 << 20;
+
+/// A big file sent with resumable tus: the app creates the upload (a POST without a body), then
+/// sends it piece by piece as background PATCH uploads, each starting where the server's copy
+/// ends. Kept in the settings between pieces, so it survives the app being closed.
+class ChunkedUpload {
+  ChunkedUpload({
+    required this.asset,
+    required this.name,
+    required this.file,
+    required this.bytes,
+    required this.video,
+    required this.takenMs,
+    this.location,
+  });
+
+  factory ChunkedUpload.fromJson(Map<String, dynamic> j) => ChunkedUpload(
+    asset: j['asset'] as String,
+    name: j['name'] as String,
+    file: j['file'] as String,
+    bytes: j['bytes'] as int,
+    video: j['video'] as bool,
+    takenMs: j['taken'] as int,
+    location: j['location'] as String?,
+  );
+
+  /// The phone's photo ID.
+  final String asset;
+  final String name;
+
+  /// The copy in [backupDir].
+  final String file;
+  final int bytes;
+  final bool video;
+  final int takenMs;
+
+  /// The upload's address on the server; null until created (or after it expired).
+  String? location;
+
+  /// Bytes the server has; null when unknown (ask with HEAD before the next piece).
+  int? offset;
+
+  /// The piece being sent, as 0–1.
+  double progress = 0;
+  int pieceBytes = 0;
+
+  /// Pieces that failed in a row, and when the last one did (to back off).
+  int failures = 0;
+  DateTime? failedAt;
+
+  int get sent => (offset ?? 0) + (pieceBytes * progress).round();
+
+  QueuedAsset get info => QueuedAsset(asset: asset, name: name, bytes: bytes, video: video);
+
+  Map<String, dynamic> toJson() => {
+    'asset': asset,
+    'name': name,
+    'file': file,
+    'bytes': bytes,
+    'video': video,
+    'taken': takenMs,
+    'location': ?location,
+  };
+}
+
+/// Task ID prefix of the pieces of chunked uploads.
+const chunkTaskPrefix = 'backup-chunk:';
+
+/// The file holding the piece being sent of [c].
+String chunkFileName(ChunkedUpload c) => '${c.file}.part';
+
+/// One piece of [c], starting at [offset], as a background PATCH upload.
+UploadTask chunkTask({
+  required ApiClient api,
+  required ChunkedUpload c,
+  required int offset,
+  required int length,
+  required bool wifiOnly,
+}) => UploadTask(
+  taskId: '$chunkTaskPrefix${c.asset}:$offset',
+  url: c.location!,
+  baseDirectory: BaseDirectory.applicationSupport,
+  directory: backupDir,
+  filename: chunkFileName(c),
+  httpRequestMethod: 'PATCH',
+  post: 'binary',
+  mimeType: 'application/offset+octet-stream',
+  headers: {
+    ...api.authHeaders,
+    'Tus-Resumable': '1.0.0',
+    'Upload-Offset': '$offset',
+    'Content-Disposition': '',
+  },
+  group: backupGroup,
+  updates: Updates.statusAndProgress,
+  requiresWiFi: wifiOnly,
+  // A retry would resend from the same offset, which the server refuses once part of the piece
+  // arrived; album sync asks the server where to go on instead.
+  retries: 0,
+  priority: 0,
+  metaData: jsonEncode({'asset': c.asset, 'offset': offset, 'length': length}),
+);
+
+enum ChunkOutcome {
+  /// The last piece: the file is stored on the server ([ChunkResult.offset] is its size).
+  finished,
+
+  /// The server has the piece; send the next one from [ChunkResult.offset].
+  next,
+
+  /// The server refuses the file: don't try again.
+  refused,
+  unauthorized,
+
+  /// The upload is gone on the server (expired or cleaned up): start a new one.
+  gone,
+
+  /// Network trouble, or the offsets didn't match: ask the server where it is and resend.
+  retry,
+}
+
+typedef ChunkResult = ({ChunkOutcome outcome, int? offset});
+
+/// Reads a finished piece's result.
+ChunkResult chunkOutcome(TaskStatusUpdate u) {
+  final h = u.responseHeaders ?? const {};
+  final offset = int.tryParse(h['upload-offset'] ?? '');
+  if (u.status == TaskStatus.complete) {
+    final code = u.responseStatusCode ?? 204;
+    if (code >= 200 && code < 300 && offset != null) {
+      final done = (h['wanmory-asset-id'] ?? '').isNotEmpty;
+      return (outcome: done ? ChunkOutcome.finished : ChunkOutcome.next, offset: offset);
+    }
+    return (outcome: _chunkFailure(code), offset: null);
+  }
+  final e = u.exception;
+  final code = e is TaskHttpException ? e.httpResponseCode : (u.responseStatusCode ?? 0);
+  return (outcome: _chunkFailure(code), offset: null);
+}
+
+ChunkOutcome _chunkFailure(int code) => switch (code) {
+  401 => ChunkOutcome.unauthorized,
+  404 || 410 => ChunkOutcome.gone,
+  400 || 413 || 415 => ChunkOutcome.refused,
+  _ => ChunkOutcome.retry,
+};

@@ -241,6 +241,56 @@ class ApiClient {
   Future<void> addToAlbum(String albumId, List<String> assetIds) =>
       _send('POST', '/api/albums/$albumId/assets', {'ids': assetIds});
 
+  /// Sends a request with headers only (the tus calls of chunked uploads).
+  Future<http.Response> _bare(String method, Uri uri, Map<String, String> headers) async {
+    final req = http.Request(method, uri)
+      ..headers.addAll({...authHeaders, 'Tus-Resumable': '1.0.0', ...headers});
+    try {
+      return await http.Response.fromStream(await _http.send(req).timeout(_timeout));
+    } on Exception catch (e) {
+      _log.warning('$method $uri failed', e);
+      throw ApiException(0, '连不上服务器，请检查地址和网络');
+    }
+  }
+
+  /// Creates a resumable (tus) upload of [length] bytes and returns its address; the data
+  /// follows with PATCH requests. Throws [ApiException] with the server's status on refusal.
+  Future<String> createUpload({required int length, required String metadata}) async {
+    final res = await _bare('POST', url('/api/uploads/'), {
+      'Upload-Length': '$length',
+      'Upload-Metadata': metadata,
+      'Content-Length': '0',
+    });
+    final location = res.headers['location'];
+    if (res.statusCode != 201 || location == null) {
+      // tus errors are plain text: "ERR_DISK_FULL: <message>".
+      final text = utf8.decode(res.bodyBytes, allowMalformed: true).trim();
+      final i = text.indexOf(': ');
+      throw ApiException(res.statusCode, i > 0 ? text.substring(i + 2) : '服务器内部错误');
+    }
+    return Uri.parse(baseUrl).resolve(location).toString();
+  }
+
+  /// Where a resumable upload stands: the bytes the server has, and the asset ID once it is
+  /// stored. Null when the upload is gone (expired or never existed).
+  Future<({int offset, String? assetId})?> uploadStatus(String location) async {
+    final res = await _bare('HEAD', Uri.parse(location), const {});
+    if (res.statusCode == 404 || res.statusCode == 410) return null;
+    final offset = int.tryParse(res.headers['upload-offset'] ?? '');
+    if (res.statusCode != 200 || offset == null) throw ApiException(res.statusCode, '服务器内部错误');
+    final id = res.headers['wanmory-asset-id'];
+    return (offset: offset, assetId: id == null || id.isEmpty ? null : id);
+  }
+
+  /// Drops an unfinished upload on the server (frees its space); errors are ignored.
+  Future<void> deleteUpload(String location) async {
+    try {
+      await _bare('DELETE', Uri.parse(location), const {});
+    } on ApiException {
+      // the server cleans up stale uploads by itself
+    }
+  }
+
   String thumbnailUrl(String assetId) => '$baseUrl/api/assets/$assetId/thumbnail';
   String previewUrl(String assetId) => '$baseUrl/api/assets/$assetId/preview';
   String facePortraitUrl(String faceId) => '$baseUrl/api/faces/$faceId/thumbnail?shape=portrait';

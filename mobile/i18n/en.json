@@ -1,22 +1,12 @@
 {
-  "不用了": "Not now",
   "例如 192.168.1.10:8080 或 https://photos.example.com": "For example 192.168.1.10:8080 or https://photos.example.com",
-  "开启": "Turn on",
-  "指纹": "fingerprint",
   "服务器地址": "Server address",
   "服务器版本太旧，请先升级万象服务器": "This server is too old. Please update Wanmory on the server first",
-  "用{name}解锁": "Unlock with {name}",
-  "用{name}解锁？": "Unlock with {name}?",
-  "登录会保存在这台设备上。开启后，每次打开万象都要先验证{name}。": "You'll stay signed in on this device. When this is on, Wanmory asks for {name} each time it opens.",
-  "解锁万象": "Unlock Wanmory",
-  "触控 ID": "Touch ID",
   "请输入服务器地址": "Enter the server address",
   "输入身份验证器里的 6 位验证码": "Enter the 6-digit code from your authenticator app",
   "这个地址不是万象服务器": "This address isn't a Wanmory server",
   "这个服务器还没有管理员，请先在网页上创建": "This server has no admin yet. Create one on the web page first",
   "连不上服务器，请检查地址和网络": "Can't reach the server. Check the address and your network",
-  "面容 ID": "Face ID",
-  "面部识别": "face unlock",
   "{a}与{b}": "{a} & {b}",
   "{n} 个视频": {
     "one": "{n} video",
@@ -66,5 +56,6 @@
   "退到后台也会继续上传。在多任务界面把万象划掉会中断上传，下次打开万象时继续。": "Uploads continue in the background. Swiping Wanmory away in the app switcher interrupts them; they continue the next time you open Wanmory.",
   "上传者": "Uploaded by",
   "我": "me",
-  "筛选结果": "Filtered"
+  "筛选结果": "Filtered",
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "The server's disk is too full for {name}; it will continue once space is freed"
 }

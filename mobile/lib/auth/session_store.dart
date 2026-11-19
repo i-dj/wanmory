@@ -14,7 +14,6 @@ class SessionStore {
   static const _token = 'token';
   static const _user = 'user';
   static const _name = 'last_name';
-  static const _biometrics = 'biometrics';
 
   Future<SavedSession> load() async {
     final all = await _s.readAll();
@@ -27,17 +26,7 @@ class SessionStore {
         user = null;
       }
     }
-    return SavedSession(
-      server: all[_server],
-      token: all[_token],
-      user: user,
-      lastName: all[_name],
-      biometrics: switch (all[_biometrics]) {
-        'on' => true,
-        'off' => false,
-        _ => null,
-      },
-    );
+    return SavedSession(server: all[_server], token: all[_token], user: user, lastName: all[_name]);
   }
 
   Future<void> saveSignIn(String server, String token, User user) async {
@@ -55,8 +44,6 @@ class SessionStore {
     await _s.delete(key: _user);
   }
 
-  Future<void> setBiometrics(bool on) => _s.write(key: _biometrics, value: on ? 'on' : 'off');
-
   static Map<String, dynamic> _userJson(User u) => {
     'id': u.id,
     'name': u.name,
@@ -68,13 +55,10 @@ class SessionStore {
 }
 
 class SavedSession {
-  SavedSession({this.server, this.token, this.user, this.lastName, this.biometrics});
+  SavedSession({this.server, this.token, this.user, this.lastName});
 
   final String? server;
   final String? token;
   final User? user;
   final String? lastName;
-
-  /// Whether to unlock with Face ID / fingerprint; null when the user hasn't been asked yet.
-  final bool? biometrics;
 }

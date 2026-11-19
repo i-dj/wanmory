@@ -9,7 +9,6 @@ Built with Flutter (Dart), Riverpod for state, go_router for navigation and `cac
 - Sign in with the server address, name and password
 - Two-step verification: the 6-digit authenticator code, or a recovery code
 - Sign-in kept on the device (iOS Keychain / Android Keystore), 90 days like "Keep me signed in" on the web
-- Optional Face ID / Touch ID / fingerprint unlock, offered after the first sign-in and switchable in the account sheet; the app locks again after one minute in the background
 - Library: photo and video counts, the featured carousel (the server's highlights) with "Play film" as a slideshow, a Year / Month / Day / All photos switch that stays pinned, a filter for photos, videos and favorites, and month sections titled with the cities in them
 - Search by what is in a photo (the server's CLIP search)
 - Albums and People tabs; tapping one opens its photos. Places is a placeholder for now

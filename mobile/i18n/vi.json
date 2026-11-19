@@ -1,22 +1,12 @@
 {
-  "不用了": "Để sau",
   "例如 192.168.1.10:8080 或 https://photos.example.com": "Ví dụ 192.168.1.10:8080 hoặc https://photos.example.com",
-  "开启": "Bật",
-  "指纹": "vân tay",
   "服务器地址": "Địa chỉ máy chủ",
   "服务器版本太旧，请先升级万象服务器": "Máy chủ này quá cũ. Hãy cập nhật Wanmory trên máy chủ trước",
-  "用{name}解锁": "Mở khóa bằng {name}",
-  "用{name}解锁？": "Mở khóa bằng {name}?",
-  "登录会保存在这台设备上。开启后，每次打开万象都要先验证{name}。": "Bạn sẽ luôn đăng nhập trên thiết bị này. Khi bật, Wanmory sẽ yêu cầu {name} mỗi lần mở.",
-  "解锁万象": "Mở khóa Wanmory",
-  "触控 ID": "Touch ID",
   "请输入服务器地址": "Nhập địa chỉ máy chủ",
   "输入身份验证器里的 6 位验证码": "Nhập mã 6 chữ số từ ứng dụng xác thực",
   "这个地址不是万象服务器": "Địa chỉ này không phải máy chủ Wanmory",
   "这个服务器还没有管理员，请先在网页上创建": "Máy chủ này chưa có quản trị viên. Hãy tạo trên trang web trước",
   "连不上服务器，请检查地址和网络": "Không kết nối được máy chủ. Kiểm tra địa chỉ và mạng",
-  "面容 ID": "Face ID",
-  "面部识别": "nhận diện khuôn mặt",
   "{a}与{b}": "{a} và {b}",
   "{n} 个视频": "{n} video",
   "地图很快就来": "Bản đồ sắp ra mắt",
@@ -51,5 +41,6 @@
   "退到后台也会继续上传。在多任务界面把万象划掉会中断上传，下次打开万象时继续。": "Việc tải lên vẫn tiếp tục khi chạy nền. Vuốt tắt Wanmory trong trình chuyển ứng dụng sẽ làm gián đoạn; lần mở Wanmory tiếp theo sẽ tiếp tục.",
   "上传者": "Người tải lên",
   "我": "tôi",
-  "筛选结果": "Đã lọc"
+  "筛选结果": "Đã lọc",
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Ổ đĩa máy chủ không đủ chỗ cho {name}; sẽ tự tiếp tục khi có thêm dung lượng"
 }

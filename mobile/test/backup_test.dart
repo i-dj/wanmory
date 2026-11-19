@@ -75,4 +75,59 @@ void main() {
     // 6 MB queued + 2 photos (4 MB) + 1 video (20 MB) = 30 MB at 2 MB/s.
     expect(eta.estimate(queuedBytesLeft: 6000000, photosLeft: 2, videosLeft: 1), const Duration(seconds: 15));
   });
+
+  group('big files in pieces', () {
+    final c = ChunkedUpload(
+      asset: 'V/L0/001',
+      name: 'DJI_0080.MP4',
+      file: 'V_L0_001.mp4',
+      bytes: 17189308928,
+      video: true,
+      takenMs: 1,
+      location: 'http://s/api/uploads/abc',
+    );
+    final task = chunkTask(api: api, c: c, offset: chunkBytes, length: chunkBytes, wifiOnly: true);
+
+    test('a piece is a PATCH from where the server is', () {
+      expect(task.url, 'http://s/api/uploads/abc');
+      expect(task.httpRequestMethod, 'PATCH');
+      expect(task.post, 'binary');
+      expect(task.filename, 'V_L0_001.mp4.part');
+      expect(task.headers['Upload-Offset'], '$chunkBytes');
+      expect(task.headers['Tus-Resumable'], '1.0.0');
+      expect(task.headers['Authorization'], 'Bearer tok');
+      expect(task.retries, 0);
+      expect(task.taskId.startsWith(chunkTaskPrefix), isTrue);
+      expect((jsonDecode(task.metaData) as Map)['asset'], 'V/L0/001');
+    });
+
+    test('the settings round trip keeps the upload address', () {
+      final back = ChunkedUpload.fromJson(jsonDecode(jsonEncode(c.toJson())) as Map<String, dynamic>);
+      expect((back.asset, back.file, back.bytes, back.location), (c.asset, c.file, c.bytes, c.location));
+    });
+
+    TaskStatusUpdate done(int code, Map<String, String> headers) =>
+        TaskStatusUpdate(task, TaskStatus.complete, null, null, headers, code);
+    TaskStatusUpdate failed(int code) =>
+        TaskStatusUpdate(task, TaskStatus.failed, TaskHttpException('error', code));
+
+    test('outcomes', () {
+      expect(chunkOutcome(done(204, {'upload-offset': '536870912'})), (
+        outcome: ChunkOutcome.next,
+        offset: 536870912,
+      ));
+      expect(
+        chunkOutcome(done(204, {'upload-offset': '17189308928', 'wanmory-asset-id': 'a1'})).outcome,
+        ChunkOutcome.finished,
+      );
+      expect(chunkOutcome(failed(409)).outcome, ChunkOutcome.retry);
+      expect(chunkOutcome(failed(404)).outcome, ChunkOutcome.gone);
+      expect(chunkOutcome(failed(415)).outcome, ChunkOutcome.refused);
+      expect(chunkOutcome(failed(401)).outcome, ChunkOutcome.unauthorized);
+      expect(
+        chunkOutcome(TaskStatusUpdate(task, TaskStatus.failed, TaskConnectionException('offline'))).outcome,
+        ChunkOutcome.retry,
+      );
+    });
+  });
 }

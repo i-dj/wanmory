@@ -140,6 +140,13 @@ class _StatusCard extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
+          if (s.noRoomFor != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              t('服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续', {'name': s.noRoomFor!}),
+              style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
+            ),
+          ],
           if (s.failed > 0) ...[
             const SizedBox(height: 8),
             Text(

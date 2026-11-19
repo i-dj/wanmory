@@ -22,7 +22,7 @@ class AccountButton extends ConsumerWidget {
   }
 }
 
-/// Who is signed in where, the biometric unlock switch and sign out.
+/// Who is signed in where, settings and sign out.
 void showAccountSheet(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
@@ -41,13 +41,6 @@ void showAccountSheet(BuildContext context) {
                 title: Text(s.user!.name),
                 subtitle: Text(Uri.tryParse(s.server)?.authority ?? s.server),
               ),
-              if (s.biometricLabel != null)
-                SwitchListTile(
-                  secondary: Icon(notifier.biometricIcon),
-                  title: Text(t('用{name}解锁', {'name': s.biometricLabel!})),
-                  value: s.biometrics == true,
-                  onChanged: notifier.setBiometrics,
-                ),
               ListTile(
                 leading: const Icon(Icons.settings_outlined),
                 title: Text(t('设置')),
@@ -72,25 +65,4 @@ void showAccountSheet(BuildContext context) {
       },
     ),
   );
-}
-
-/// After the first sign-in on a device with Face ID / fingerprint, asks once whether to use it.
-Future<void> offerBiometrics(BuildContext context, WidgetRef ref) async {
-  final s = ref.read(authProvider);
-  if (s.biometrics != null || s.biometricLabel == null) return;
-  final notifier = ref.read(authProvider.notifier);
-  final on = await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      icon: Icon(notifier.biometricIcon, size: 32),
-      title: Text(t('用{name}解锁？', {'name': s.biometricLabel!})),
-      content: Text(t('登录会保存在这台设备上。开启后，每次打开万象都要先验证{name}。', {'name': s.biometricLabel!})),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('不用了'))),
-        FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(t('开启'))),
-      ],
-    ),
-  );
-  if (on != null) await notifier.setBiometrics(on);
 }

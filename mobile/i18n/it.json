@@ -1,22 +1,12 @@
 {
-  "不用了": "Non ora",
   "例如 192.168.1.10:8080 或 https://photos.example.com": "Ad esempio 192.168.1.10:8080 o https://photos.example.com",
-  "开启": "Attiva",
-  "指纹": "impronta digitale",
   "服务器地址": "Indirizzo del server",
   "服务器版本太旧，请先升级万象服务器": "Questo server è troppo vecchio. Aggiorna prima Wanmory sul server",
-  "用{name}解锁": "Sblocca con {name}",
-  "用{name}解锁？": "Sbloccare con {name}?",
-  "登录会保存在这台设备上。开启后，每次打开万象都要先验证{name}。": "Resterai connesso su questo dispositivo. Se attivo, Wanmory chiede {name} a ogni apertura.",
-  "解锁万象": "Sblocca Wanmory",
-  "触控 ID": "Touch ID",
   "请输入服务器地址": "Inserisci l'indirizzo del server",
   "输入身份验证器里的 6 位验证码": "Inserisci il codice a 6 cifre dell'app di autenticazione",
   "这个地址不是万象服务器": "Questo indirizzo non è un server Wanmory",
   "这个服务器还没有管理员，请先在网页上创建": "Questo server non ha ancora un amministratore. Crealo prima dalla pagina web",
   "连不上服务器，请检查地址和网络": "Impossibile raggiungere il server. Controlla l'indirizzo e la rete",
-  "面容 ID": "Face ID",
-  "面部识别": "riconoscimento del volto",
   "{a}与{b}": "{a} e {b}",
   "{n} 个视频": {
     "one": "{n} video",
@@ -66,5 +56,6 @@
   "退到后台也会继续上传。在多任务界面把万象划掉会中断上传，下次打开万象时继续。": "I caricamenti continuano in background. Chiudere Wanmory con uno swipe nel selettore app li interrompe; riprendono alla prossima apertura.",
   "上传者": "Caricato da",
   "我": "io",
-  "筛选结果": "Filtrato"
+  "筛选结果": "Filtrato",
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Il disco del server è troppo pieno per {name}; riprenderà automaticamente quando si libera spazio"
 }

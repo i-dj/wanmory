@@ -106,4 +106,26 @@ void main() {
     final api = ApiClient('http://s', client: MockClient((_) async => http.Response('<html>', 200)));
     await expectLater(api.probe(), throwsA(anything));
   });
+
+  test('resumable uploads: create, ask where it stands, gone', () async {
+    final seen = <String>[];
+    final api = ApiClient(
+      'http://s',
+      token: 'tok',
+      client: MockClient((req) async {
+        seen.add('${req.method} ${req.url.path} ${req.headers['Upload-Length'] ?? ''}');
+        expect(req.headers['Tus-Resumable'], '1.0.0');
+        expect(req.headers['Authorization'], 'Bearer tok');
+        if (req.method == 'POST') return http.Response('', 201, headers: {'location': '/api/uploads/abc'});
+        if (req.url.path.endsWith('/gone')) return http.Response('', 404);
+        return http.Response('', 200, headers: {'upload-offset': '268435456'});
+      }),
+    );
+    final loc = await api.createUpload(length: 999, metadata: 'filename eA==');
+    expect(loc, 'http://s/api/uploads/abc');
+    final st = await api.uploadStatus(loc);
+    expect((st!.offset, st.assetId), (268435456, null));
+    expect(await api.uploadStatus('http://s/api/uploads/gone'), isNull);
+    expect(seen.first, 'POST /api/uploads/ 999');
+  });
 }

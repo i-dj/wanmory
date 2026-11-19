@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 
 import '../backup/backup.dart';
 import '../i18n.dart';
-import '../widgets/account_sheet.dart';
 import 'albums_tab.dart';
 import 'library_tab.dart';
 import 'people_tab.dart';
@@ -31,7 +30,6 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => offerBiometrics(context, ref));
     _lifecycle = AppLifecycleListener(
       onResume: () {
         setState(() => _refresh(_tab));
