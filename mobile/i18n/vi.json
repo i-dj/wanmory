@@ -42,5 +42,6 @@
   "上传者": "Người tải lên",
   "我": "tôi",
   "筛选结果": "Đã lọc",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Ổ đĩa máy chủ không đủ chỗ cho {name}; sẽ tự tiếp tục khi có thêm dung lượng"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Ổ đĩa máy chủ không đủ chỗ cho {name}; sẽ tự tiếp tục khi có thêm dung lượng",
+  "还有 {n} 项": "Còn {n} mục"
 }

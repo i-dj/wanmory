@@ -57,5 +57,6 @@
   "上传者": "Hochgeladen von",
   "我": "ich",
   "筛选结果": "Gefiltert",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Auf dem Server ist nicht genug Speicherplatz für {name}; es geht automatisch weiter, sobald Platz frei ist"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Auf dem Server ist nicht genug Speicherplatz für {name}; es geht automatisch weiter, sobald Platz frei ist",
+  "还有 {n} 项": "Noch {n} Objekte"
 }

@@ -94,6 +94,16 @@ enum Outcome {
   retry,
 }
 
+/// The result of an upload the app sent itself ([ApiClient.uploadStream]); status 0 is a
+/// network error.
+Outcome outcomeOf(int status, Map<String, String> headers) {
+  if (status == 401) return Outcome.unauthorized;
+  final stored = (headers['wanmory-asset-id'] ?? '').isNotEmpty;
+  if (status >= 200 && status < 300 && stored) return Outcome.uploaded;
+  if (status == 400 || status == 413 || status == 415) return Outcome.refused;
+  return Outcome.retry;
+}
+
 /// Reads a finished upload's result.
 Outcome outcome(TaskStatusUpdate u) {
   if (u.status == TaskStatus.complete) {
@@ -236,6 +246,16 @@ enum ChunkOutcome {
 }
 
 typedef ChunkResult = ({ChunkOutcome outcome, int? offset});
+
+/// The result of a piece the app sent itself ([ApiClient.uploadPiece]); status 0 is a network error.
+ChunkResult chunkResultOf(int status, Map<String, String> headers) {
+  final offset = int.tryParse(headers['upload-offset'] ?? '');
+  if (status >= 200 && status < 300 && offset != null) {
+    final done = (headers['wanmory-asset-id'] ?? '').isNotEmpty;
+    return (outcome: done ? ChunkOutcome.finished : ChunkOutcome.next, offset: offset);
+  }
+  return (outcome: _chunkFailure(status), offset: null);
+}
 
 /// Reads a finished piece's result.
 ChunkResult chunkOutcome(TaskStatusUpdate u) {

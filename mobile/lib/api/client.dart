@@ -282,6 +282,61 @@ class ApiClient {
     return (offset: offset, assetId: id == null || id.isEmpty ? null : id);
   }
 
+  /// Uploads a whole file as one tus "creation with upload" POST from the app itself (album
+  /// sync in the background, see backup/continued.dart). Returns the status and the headers.
+  Future<({int status, Map<String, String> headers})> uploadStream({
+    required Stream<List<int>> body,
+    required int length,
+    required String metadata,
+  }) => _stream(
+    'POST',
+    url('/api/uploads/'),
+    {'Upload-Length': '$length', 'Upload-Metadata': metadata},
+    body,
+    length,
+  );
+
+  /// Sends one piece of a resumable upload from [offset] (PATCH), from the app itself.
+  Future<({int status, Map<String, String> headers})> uploadPiece({
+    required String location,
+    required int offset,
+    required Stream<List<int>> body,
+    required int length,
+  }) => _stream('PATCH', Uri.parse(location), {'Upload-Offset': '$offset'}, body, length);
+
+  Future<({int status, Map<String, String> headers})> _stream(
+    String method,
+    Uri uri,
+    Map<String, String> headers,
+    Stream<List<int>> body,
+    int length,
+  ) async {
+    final req = http.StreamedRequest(method, uri)
+      ..headers.addAll({
+        ...authHeaders,
+        'Tus-Resumable': '1.0.0',
+        ...headers,
+        'Content-Type': 'application/offset+octet-stream',
+      })
+      ..contentLength = length;
+    body.listen(
+      req.sink.add,
+      onDone: req.sink.close,
+      onError: (Object e) {
+        req.sink.addError(e);
+        req.sink.close();
+      },
+      cancelOnError: true,
+    );
+    try {
+      final res = await http.Response.fromStream(await _http.send(req).timeout(const Duration(minutes: 10)));
+      return (status: res.statusCode, headers: res.headers);
+    } on Exception catch (e) {
+      _log.info('upload failed: $e');
+      return (status: 0, headers: <String, String>{});
+    }
+  }
+
   /// Drops an unfinished upload on the server (frees its space); errors are ignored.
   Future<void> deleteUpload(String location) async {
     try {

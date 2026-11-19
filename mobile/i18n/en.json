@@ -57,5 +57,6 @@
   "上传者": "Uploaded by",
   "我": "me",
   "筛选结果": "Filtered",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "The server's disk is too full for {name}; it will continue once space is freed"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "The server's disk is too full for {name}; it will continue once space is freed",
+  "还有 {n} 项": "{n} items left"
 }

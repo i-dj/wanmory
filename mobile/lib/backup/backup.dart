@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding;
+import 'package:flutter/widgets.dart' show AppLifecycleListener, AppLifecycleState, WidgetsBinding;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/client.dart';
 import '../auth/auth.dart';
 import '../i18n.dart';
+import 'continued.dart';
 import 'upload_task.dart';
 
 final _log = Logger('backup');
@@ -223,6 +224,9 @@ class BackupNotifier extends Notifier<BackupState> {
 
   /// Big files skipped while both piece slots are busy (copied again once one frees up).
   final Set<String> _deferred = {};
+
+  /// Photos that couldn't be read (still in iCloud without a connection) during this run.
+  final Set<String> _unreadable = {};
   final _eta = EtaEstimator();
   int _sentBytes = 0;
   int _photosLeft = 0, _videosLeft = 0;
@@ -231,14 +235,21 @@ class BackupNotifier extends Notifier<BackupState> {
   bool _refilling = false;
   bool _again = false;
   bool _watching = false;
+
+  /// Uploading by itself while the app runs in the background (see [ContinuedSync]).
+  bool _direct = false;
+  late final _cont = ContinuedSync(onStarted: _maybeDirect, onExpired: _continuedExpired);
   StreamSubscription<TaskUpdate>? _updates;
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
 
   @override
   BackupState build() {
+    // Leaving the app (or locking the phone): keep uploading while iOS lets the app run.
+    final lifecycle = AppLifecycleListener(onHide: _maybeDirect);
     ref.onDispose(() {
       _updates?.cancel();
       _connectivity?.cancel();
+      lifecycle.dispose();
     });
     // Runs while signed in; stops on sign-out.
     ref.listen(authProvider.select((s) => s.status), (_, status) {
@@ -477,6 +488,7 @@ class BackupNotifier extends Notifier<BackupState> {
   }
 
   Future<void> _cancelAll({bool keepChunked = false}) async {
+    if (!keepChunked) _cont.finish();
     await FileDownloader().cancelAll(group: backupGroup);
     _queued.clear();
     _chunkTasks.clear();
@@ -511,6 +523,7 @@ class BackupNotifier extends Notifier<BackupState> {
   void start() {
     if (!_ready || !state.enabled || _api == null) return;
     _watch();
+    if (_direct) return; // uploading by itself in the background; the queue waits
     if (_refilling) {
       _again = true;
       return;
@@ -535,6 +548,121 @@ class BackupNotifier extends Notifier<BackupState> {
       } while (_again && state.enabled);
     } finally {
       _refilling = false;
+    }
+    _maybeDirect();
+  }
+
+  /// Starts uploading by itself if the app is in the background with a continued task running.
+  void _maybeDirect() {
+    if (_cont.active && _inBackground && state.enabled && !_direct && !_refilling && _api != null) {
+      unawaited(_directLoop());
+    }
+  }
+
+  /// iOS ended the continued task: hand what is left to the system's background queue.
+  void _continuedExpired() => start();
+
+  /// Copies and uploads the photos one by one with the app's own connection, as long as the
+  /// app is in the background and iOS keeps the continued task running. Big files still go to
+  /// the piece-by-piece queue. Back in the foreground the system queue takes over again.
+  Future<void> _directLoop() async {
+    final api = _api;
+    if (api == null || (state.wifiOnly && !await _onWifi())) return;
+    _direct = true;
+    _log.info('uploading in the background');
+    var failures = 0;
+    var idle = false; // a whole pass sent nothing: what is left can't be sent now
+    bool going() => _cont.active && _inBackground && state.enabled && _api == api;
+    try {
+      while (going() && !idle) {
+        final before = state.synced;
+        failures = 0;
+        await _directPass(api, () => going() && failures < 3, (o) {
+          failures = o == Outcome.retry ? failures + 1 : 0;
+        });
+        final pieces = going() && await _directPieces(api);
+        // Uploads still in the system queue (handed over while the app was open) keep going and
+        // report back while the app runs: wait for them instead of ending the task
+        if (state.synced == before && !pieces && _queued.isEmpty && _chunkTasks.isEmpty) {
+          idle = true;
+        } else if (state.synced == before && !pieces) {
+          // (without reading the whole library again every few seconds)
+          for (var i = 0; i < 12 && going() && state.synced == before; i++) {
+            await Future<void>.delayed(const Duration(seconds: 5));
+          }
+        }
+      }
+      await PhotoManager.clearFileCache();
+    } on PlatformException catch (e) {
+      _log.warning('cannot read the photo library', e);
+    } on FileSystemException catch (e) {
+      _log.warning('cannot copy a photo', e);
+    } finally {
+      _direct = false;
+    }
+    await _driveChunked();
+    await _updatePhase();
+    // Nothing more the app can send right now (the rest waits for the network, the server or
+    // iCloud): end the task as done instead of letting iOS end it as stalled ("failed").
+    if (idle || state.pending == 0) {
+      _log.info('background upload finished, ${state.pending} left');
+      _cont.finish();
+    }
+    // Back in the foreground, or the task ended: the system queue takes over.
+    if (!_cont.active || !_inBackground) start();
+  }
+
+  /// One pass over the phone's library, uploading what isn't on the server yet one by one.
+  /// [result] hears each upload's outcome; the pass stops when [going] turns false.
+  Future<void> _directPass(ApiClient api, bool Function() going, void Function(Outcome) result) async {
+    final all = await _localAssets();
+    final done = await _done();
+    final skip = {for (final q in _queued.values) q.asset, ..._chunked.keys, ..._deferred, ..._unreadable};
+    var failures = 0;
+    for (final asset in all) {
+      if (!going()) break;
+      if (done.contains(asset.id) || skip.contains(asset.id)) continue;
+      final p = await _prepare(asset);
+      if (p == null) {
+        _unreadable.add(asset.id); // still in iCloud: try again on the next run, not every pass
+        state = state.copyWith(failed: state.failed + 1);
+        continue;
+      }
+      final info = p.info;
+      if (info.bytes > chunkBytes) {
+        if (!await _addChunked(p)) {
+          _deferred.add(asset.id);
+          await _deleteFile(p.copy);
+        }
+        continue;
+      }
+      state = state.copyWith(phase: BackupPhase.uploading, current: info.name, currentProgress: 0);
+      final r = await api.uploadStream(
+        body: p.copy.openRead(),
+        length: info.bytes,
+        metadata: tusMetadata({
+          'filename': info.name,
+          'lastModified': '${asset.createDateTime.millisecondsSinceEpoch}',
+        }),
+      );
+      await _deleteFile(p.copy);
+      final o = outcomeOf(r.status, r.headers);
+      final why = r.status == 0 ? 'network error' : 'HTTP ${r.status}';
+      final signedOut = await _recordOutcome(
+        o,
+        info,
+        duplicate: r.headers['wanmory-duplicate'] == 'true',
+        code: r.status,
+        why: why,
+      );
+      if (signedOut) return;
+      result(o);
+      if (o == Outcome.retry) {
+        // The server or the network is down: wait a little (the caller stops after 3)
+        await Future<void>.delayed(Duration(seconds: 5 * ++failures));
+      } else {
+        failures = 0;
+      }
     }
   }
 
@@ -642,7 +770,22 @@ class BackupNotifier extends Notifier<BackupState> {
   Future<void> _updatePhase() async {
     if (_queuedCount == 0 && state.pending == 0) {
       state = state.copyWith(phase: BackupPhase.done, clearCurrent: true, clearEta: true);
-    } else if (_queuedCount > 0 && state.wifiOnly && !await _onWifi()) {
+      _cont.finish();
+      return;
+    }
+    // Something is left: ask iOS to let the app keep uploading after the user leaves it
+    // (asked while the app is in the foreground; the progress shows on the lock screen).
+    if (state.pending > 0 && !_inBackground && state.enabled) {
+      unawaited(
+        _cont.start(
+          title: t('同步相册'),
+          subtitle: t('还有 {n} 项', {'n': state.pending}),
+          total: state.total * 100,
+          done: state.synced * 100,
+        ),
+      );
+    }
+    if (_queuedCount > 0 && state.wifiOnly && !await _onWifi()) {
       state = state.copyWith(phase: BackupPhase.waitingWifi);
     } else if (_queuedCount > 0) {
       state = state.copyWith(phase: BackupPhase.uploading);
@@ -744,6 +887,31 @@ class BackupNotifier extends Notifier<BackupState> {
   /// queues it.
   Future<void> _nextPiece(ApiClient api, ChunkedUpload c) async {
     if (!state.enabled || !_chunked.containsKey(c.asset)) return;
+    if (!await _locate(api, c)) return;
+    final offset = c.offset!;
+    final length = min(chunkBytes, c.bytes - offset);
+    try {
+      await _cutPiece(c, offset, length);
+      await _readableWhileLocked('${await _dir()}/${chunkFileName(c)}');
+      final task = chunkTask(api: api, c: c, offset: offset, length: length, wifiOnly: state.wifiOnly);
+      c
+        ..pieceBytes = length
+        ..progress = 0;
+      _chunkTasks[task.taskId] = c.asset;
+      await FileDownloader().enqueue(task);
+      state = state.copyWith(
+        queued: _queuedCount,
+        phase: BackupPhase.uploading,
+        clearNoRoom: state.noRoomFor == c.name,
+      );
+    } on FileSystemException catch (e) {
+      _pieceFailed(c, '$e');
+    }
+  }
+
+  /// Makes sure [c] has an upload on the server and knows where it stands. False when it can't
+  /// go on now: it failed (tried again later), finished, or the server refused it.
+  Future<bool> _locate(ApiClient api, ChunkedUpload c) async {
     try {
       if (c.location == null) {
         c.location = await api.createUpload(
@@ -759,32 +927,21 @@ class BackupNotifier extends Notifier<BackupState> {
           // Expired on the server: start a new upload.
           c.location = null;
           await _saveChunked();
-          return await _nextPiece(api, c);
+          return await _locate(api, c);
         }
-        if (st.assetId != null) return await _chunkedDone(c, uploaded: true);
+        if (st.assetId != null) {
+          await _chunkedDone(c, uploaded: true);
+          return false;
+        }
         c.offset = st.offset;
       }
-      final offset = c.offset!;
-      final length = min(chunkBytes, c.bytes - offset);
-      if (length <= 0) {
+      if (c.offset! >= c.bytes) {
         // All data arrived but the server couldn't store it: send it again later.
         c.location = null;
         _pieceFailed(c, 'stored nothing after the last piece');
-        return;
+        return false;
       }
-      await _cutPiece(c, offset, length);
-      await _readableWhileLocked('${await _dir()}/${chunkFileName(c)}');
-      final task = chunkTask(api: api, c: c, offset: offset, length: length, wifiOnly: state.wifiOnly);
-      c
-        ..pieceBytes = length
-        ..progress = 0;
-      _chunkTasks[task.taskId] = c.asset;
-      await FileDownloader().enqueue(task);
-      state = state.copyWith(
-        queued: _queuedCount,
-        phase: BackupPhase.uploading,
-        clearNoRoom: state.noRoomFor == c.name,
-      );
+      return true;
     } on ApiException catch (e) {
       if (e.status == 507) state = state.copyWith(noRoomFor: c.name);
       if (e.unauthorized) {
@@ -795,9 +952,78 @@ class BackupNotifier extends Notifier<BackupState> {
       } else {
         _pieceFailed(c, e.message);
       }
-    } on FileSystemException catch (e) {
-      _pieceFailed(c, '$e');
+      return false;
     }
+  }
+
+  /// Sends the pieces of big files with the app's own connection while it runs in the
+  /// background (pieces queued in the system's background session would wait for the charger).
+  /// True when any piece went through.
+  Future<bool> _directPieces(ApiClient api) async {
+    var sent = false;
+    final dir = await _dir();
+    for (final c in _chunked.values.toList()) {
+      if (_chunkTasks.containsValue(c.asset)) continue; // the system is sending a piece of it
+      while (_cont.active && _inBackground && state.enabled && _chunked.containsKey(c.asset)) {
+        if (!await _locate(api, c)) break;
+        final offset = c.offset!;
+        final length = min(chunkBytes, c.bytes - offset);
+        c
+          ..pieceBytes = length
+          ..progress = 0;
+        state = state.copyWith(
+          phase: BackupPhase.uploading,
+          current: c.name,
+          currentProgress: c.sent / c.bytes,
+        );
+        final r = await api.uploadPiece(
+          location: c.location!,
+          offset: offset,
+          length: length,
+          body: File('$dir/${c.file}').openRead(offset, offset + length),
+        );
+        final res = chunkResultOf(r.status, r.headers);
+        switch (res.outcome) {
+          case ChunkOutcome.finished:
+            await _chunkedDone(c, uploaded: true);
+            sent = true;
+          case ChunkOutcome.next:
+            _sentBytes += length;
+            c
+              ..offset = res.offset
+              ..progress = 0
+              ..failures = 0;
+            sent = true;
+            _reportProgress();
+          case ChunkOutcome.refused:
+            _log.info('server refused ${c.name}');
+            await _chunkedDone(c, uploaded: false);
+          case ChunkOutcome.unauthorized:
+            await ref.read(authProvider.notifier).sessionExpired();
+            return sent;
+          case ChunkOutcome.gone:
+            c.location = null;
+            _pieceFailed(c, 'upload gone on the server');
+            await _saveChunked();
+          case ChunkOutcome.retry:
+            _pieceFailed(c, r.status == 0 ? 'network error' : 'HTTP ${r.status}');
+        }
+        if (c.failures > 2) break;
+        if (c.failures > 0) await Future<void>.delayed(Duration(seconds: 5 * c.failures));
+      }
+    }
+    return sent;
+  }
+
+  /// Tells iOS how far sync is (the progress on the lock screen); big files count by how much
+  /// of them is sent, so the progress keeps moving while one uploads.
+  void _reportProgress() {
+    final inBig = _chunked.values.fold<double>(0, (s, c) => s + c.sent / c.bytes);
+    _cont.progress(
+      total: state.total * 100,
+      done: (state.synced * 100 + inBig * 100).round(),
+      subtitle: t('还有 {n} 项', {'n': state.pending}),
+    );
   }
 
   Future<void> _cutPiece(ChunkedUpload c, int offset, int length) async {
@@ -960,7 +1186,14 @@ class BackupNotifier extends Notifier<BackupState> {
           ..offset = r.offset
           ..progress = 0
           ..failures = 0;
-        await _nextPiece(api, c);
+        _reportProgress();
+        // In the background with the continued task the app sends the next piece itself (a piece
+        // queued now would wait for the charger); otherwise the system queue takes it
+        if (_cont.active && _inBackground) {
+          _maybeDirect();
+        } else {
+          await _nextPiece(api, c);
+        }
       case ChunkOutcome.refused:
         _log.info('server refused ${c.name}');
         await _chunkedDone(c, uploaded: false);
@@ -1001,8 +1234,39 @@ class BackupNotifier extends Notifier<BackupState> {
   }
 
   /// Records a finished upload; true when the server signed us out.
-  Future<bool> _record(TaskStatusUpdate u, QueuedAsset q) async {
-    switch (outcome(u)) {
+  Future<bool> _record(TaskStatusUpdate u, QueuedAsset q) {
+    final e = u.exception;
+    return _recordOutcome(
+      outcome(u),
+      q,
+      duplicate: u.responseHeaders?['wanmory-duplicate'] == 'true',
+      code: e is TaskHttpException ? e.httpResponseCode : u.responseStatusCode,
+      why: e?.description,
+    );
+  }
+
+  Future<bool> _recordOutcome(
+    Outcome o,
+    QueuedAsset q, {
+    bool duplicate = false,
+    int? code,
+    String? why,
+  }) async {
+    try {
+      return await _applyOutcome(o, q, duplicate: duplicate, code: code, why: why);
+    } finally {
+      _reportProgress();
+    }
+  }
+
+  Future<bool> _applyOutcome(
+    Outcome o,
+    QueuedAsset q, {
+    required bool duplicate,
+    int? code,
+    String? why,
+  }) async {
+    switch (o) {
       case Outcome.uploaded:
         _sentBytes += q.bytes;
         if (state.noRoomFor != null && !_chunked.values.any((c) => c.name == state.noRoomFor)) {
@@ -1011,11 +1275,9 @@ class BackupNotifier extends Notifier<BackupState> {
         (await _done()).add(q.asset);
         await _saveDone();
         state = state.copyWith(synced: state.synced + 1, pending: state.pending - 1);
-        _log.info(
-          'uploaded ${u.responseHeaders?['wanmory-duplicate'] == 'true' ? '(already on the server) ' : ''}${q.name}',
-        );
+        _log.info('uploaded ${duplicate ? '(already on the server) ' : ''}${q.name}');
       case Outcome.refused:
-        _log.info('server refused ${q.name} (${u.responseStatusCode ?? u.exception})');
+        _log.info('server refused ${q.name} (${code ?? why})');
         (await _done()).add(q.asset);
         await _saveDone();
         state = state.copyWith(failed: state.failed + 1, pending: state.pending - 1);
@@ -1024,10 +1286,8 @@ class BackupNotifier extends Notifier<BackupState> {
         return true;
       case Outcome.retry:
         // The system already retried; queue it again on the next pass.
-        final e = u.exception;
-        final code = e is TaskHttpException ? e.httpResponseCode : u.responseStatusCode;
-        _log.info('upload of ${q.name} failed: ${code ?? e?.description}');
-        state = state.copyWith(message: e?.description, noRoomFor: code == 507 ? q.name : null);
+        _log.info('upload of ${q.name} failed: ${code ?? why}');
+        state = state.copyWith(message: why, noRoomFor: code == 507 ? q.name : null);
     }
     return false;
   }

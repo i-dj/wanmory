@@ -130,4 +130,13 @@ void main() {
       );
     });
   });
+
+  test('uploads the app sends itself', () {
+    expect(outcomeOf(201, {'wanmory-asset-id': 'a1'}), Outcome.uploaded);
+    expect(outcomeOf(201, {}), Outcome.retry);
+    expect(outcomeOf(0, {}), Outcome.retry);
+    expect(outcomeOf(507, {}), Outcome.retry);
+    expect(outcomeOf(415, {}), Outcome.refused);
+    expect(outcomeOf(401, {}), Outcome.unauthorized);
+  });
 }

@@ -57,5 +57,6 @@
   "上传者": "Enviado por",
   "我": "eu",
   "筛选结果": "Filtrado",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "O disco do servidor está cheio demais para {name}; o envio continua quando houver espaço"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "O disco do servidor está cheio demais para {name}; o envio continua quando houver espaço",
+  "还有 {n} 项": "Faltam {n} itens"
 }

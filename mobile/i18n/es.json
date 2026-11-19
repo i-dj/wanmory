@@ -57,5 +57,6 @@
   "上传者": "Subido por",
   "我": "yo",
   "筛选结果": "Filtrado",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "El disco del servidor no tiene espacio para {name}; continuará automáticamente cuando se libere espacio"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "El disco del servidor no tiene espacio para {name}; continuará automáticamente cuando se libere espacio",
+  "还有 {n} 项": "Quedan {n} elementos"
 }

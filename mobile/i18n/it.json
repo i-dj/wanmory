@@ -57,5 +57,6 @@
   "上传者": "Caricato da",
   "我": "io",
   "筛选结果": "Filtrato",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Il disco del server è troppo pieno per {name}; riprenderà automaticamente quando si libera spazio"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Il disco del server è troppo pieno per {name}; riprenderà automaticamente quando si libera spazio",
+  "还有 {n} 项": "Ancora {n} elementi"
 }

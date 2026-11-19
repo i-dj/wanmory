@@ -57,5 +57,6 @@
   "上传者": "Ajouté par",
   "我": "moi",
   "筛选结果": "Filtré",
-  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Le disque du serveur est trop plein pour {name} ; l'envoi reprendra dès que de l'espace sera libéré"
+  "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Le disque du serveur est trop plein pour {name} ; l'envoi reprendra dès que de l'espace sera libéré",
+  "还有 {n} 项": "Encore {n} éléments"
 }
