@@ -125,18 +125,28 @@ class _StatusCard extends StatelessWidget {
               ),
             ),
           ],
-          if (uploading) ...[
+          // The thin bar of the file being uploaded and the queued line keep their place while
+          // anything is left (they only fade), so the card doesn't jump as uploads come and go;
+          // the bar fills smoothly and starts over for each file.
+          if (s.pending > 0 || uploading) ...[
             const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: s.currentProgress,
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
+            AnimatedOpacity(
+              opacity: uploading ? 1 : 0,
+              duration: const Duration(milliseconds: 300),
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(s.current),
+                tween: Tween(end: s.currentProgress),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                builder: (context, v, _) =>
+                    LinearProgressIndicator(value: v, minHeight: 2, backgroundColor: Colors.transparent),
+              ),
             ),
           ],
-          if (s.queued > 0) ...[
+          if (s.pending > 0 || s.queued > 0) ...[
             const SizedBox(height: 8),
             Text(
-              t('{n} 项已交给系统在后台上传', {'n': s.queued}),
+              s.queued > 0 ? t('{n} 项已交给系统在后台上传', {'n': s.queued}) : ' ',
               style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
@@ -222,7 +232,8 @@ class _Card extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  maxLines: 2,
+                  // One line: the file name changes as uploads go, and the card must not jump
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall,
                 ),

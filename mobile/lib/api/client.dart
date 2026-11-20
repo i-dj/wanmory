@@ -198,6 +198,30 @@ class ApiClient {
     return [for (final a in r as List) Album.fromJson(a as Map<String, dynamic>)];
   }
 
+  /// A person's photos (with their face in each) and the people often in the same photos.
+  Future<({List<Moment> moments, List<Companion> companions})> profile(String personId) async {
+    final r = await _send('GET', '/api/people/$personId/profile') as Map<String, dynamic>;
+    return (
+      moments: [for (final m in r['moments'] as List? ?? []) Moment.fromJson(m as Map<String, dynamic>)],
+      companions: [
+        for (final c in r['companions'] as List? ?? []) Companion.fromJson(c as Map<String, dynamic>),
+      ],
+    );
+  }
+
+  /// Sets a person's birthday ("2024-05-01"), or removes it with null.
+  Future<void> setBirthday(String personId, String? birthday) =>
+      _send('PATCH', '/api/people/$personId', {'birthday': birthday ?? ''});
+
+  /// Names of the (named) people in a photo, biggest face first.
+  Future<List<String>> namesIn(String assetId) async {
+    final r = await _send('GET', '/api/assets/$assetId/details') as Map<String, dynamic>;
+    return [
+      for (final p in r['people'] as List? ?? [])
+        if (((p as Map)['name'] as String? ?? '').isNotEmpty) p['name'] as String,
+    ];
+  }
+
   /// Family members (for choosing who can see an album).
   Future<List<User>> users() async {
     final r = await _send('GET', '/api/users');

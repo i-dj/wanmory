@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -49,8 +51,9 @@ String monthLabel(DateTime d, {bool yearOnly = false}) {
   return d.year == DateTime.now().year ? DateFormat.MMMM(l).format(d) : DateFormat.yMMMM(l).format(d);
 }
 
-/// The scrubber on the right edge: a handle showing where you are in the whole library;
-/// dragging it moves through time, with the month in a bubble and the years along the track.
+/// The scrubber on the right edge, like Google Photos: a tab flush against the edge of the
+/// screen showing where you are in the whole library. It glides along as you scroll; dragging
+/// it moves through time, with the month in a bubble and the years along the track.
 class TimeScrubber extends StatefulWidget {
   const TimeScrubber({
     super.key,
@@ -76,7 +79,7 @@ class TimeScrubber extends StatefulWidget {
 }
 
 class _TimeScrubberState extends State<TimeScrubber> {
-  static const _handle = 46.0;
+  static const _handle = 52.0;
   double? _drag;
 
   int _indexAt(double f) => (f * (widget.index.total - 1)).round().clamp(0, widget.index.total - 1);
@@ -122,17 +125,20 @@ class _TimeScrubberState extends State<TimeScrubber> {
                 for (final (at, year) in years)
                   Positioned(
                     key: ValueKey(year),
-                    right: 52,
+                    right: 44,
                     top: at - 8,
                     child: Text(
                       '$year',
                       style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   ),
-                Positioned(
+                AnimatedPositioned(
                   // Keyed: the year labels inserted above it while dragging must not take over its
                   // element, or the drag gesture is lost halfway.
                   key: const ValueKey('handle'),
+                  // Follows the finger at once while dragging; glides while scrolling
+                  duration: Duration(milliseconds: dragging ? 0 : 180),
+                  curve: Curves.easeOutCubic,
                   right: 0,
                   top: y,
                   child: GestureDetector(
@@ -165,21 +171,7 @@ class _TimeScrubberState extends State<TimeScrubber> {
                               ),
                             ),
                           ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: SizedBox(
-                            width: 40,
-                            height: _handle,
-                            child: Glass(
-                              radius: 20,
-                              child: Icon(
-                                Icons.unfold_more,
-                                size: 22,
-                                color: dragging ? scheme.primary : scheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ),
+                        _EdgeTab(height: _handle, active: dragging),
                       ],
                     ),
                   ),
@@ -189,6 +181,45 @@ class _TimeScrubberState extends State<TimeScrubber> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The handle: a frosted tab against the right edge of the screen, rounded on the left only.
+class _EdgeTab extends StatelessWidget {
+  const _EdgeTab({required this.height, required this.active});
+
+  final double height;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const shape = BorderRadius.horizontal(left: Radius.circular(26));
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: active ? 40 : 34,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: shape,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(-2, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: shape,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: ColoredBox(
+            color: active ? scheme.primary : scheme.surfaceContainerHigh.withValues(alpha: 0.82),
+            child: Icon(
+              Icons.unfold_more_rounded,
+              size: 22,
+              color: active ? scheme.onPrimary : scheme.onSurface,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

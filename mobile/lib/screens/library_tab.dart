@@ -20,8 +20,11 @@ import '../widgets/hero_carousel.dart';
 import '../widgets/pinch_columns.dart';
 import '../widgets/time_scrubber.dart';
 import '../widgets/timeline.dart';
-import 'search_screen.dart';
 import 'viewer_screen.dart';
+
+/// Bumped when the Library tab is tapped while already open: back to the top, like in the
+/// Photos apps.
+final libraryToTop = ValueNotifier(0);
 
 /// What floats over the grid while scrolling: the month at the top and where that is in the
 /// whole library.
@@ -82,6 +85,7 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
       onUnauthorized: () => ref.read(authProvider.notifier).sessionExpired(),
     )..addListener(() => setState(() {}));
     _scroll.addListener(_onScroll);
+    libraryToTop.addListener(_toTop);
     _timeline.loadMore();
     _loadSummary();
     _loadMonths();
@@ -91,8 +95,16 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     });
   }
 
+  void _toTop() {
+    if (!_scroll.hasClients || _scroll.offset == 0) return;
+    // Far down, jump most of the way first so the animation stays short
+    if (_scroll.offset > 6000) _scroll.jumpTo(3000);
+    _scroll.animateTo(0, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+  }
+
   @override
   void dispose() {
+    libraryToTop.removeListener(_toTop);
     _hideTimer?.cancel();
     _scroll.dispose();
     _overlay.dispose();
@@ -168,6 +180,20 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
       _layoutKey = key;
     }
     return _layout!;
+  }
+
+  TimelineLayout _layoutFor(int columns) {
+    if (columns == _columns) return _currentLayout();
+    final (zoom, perRow) = resolveGrid(Zoom.all, columns, _width);
+    return TimelineLayout(_timeline.assets, zoom: zoom, columns: perRow, width: _width);
+  }
+
+  /// For pinching: where the photo at scroll offset [y] is with [to] columns instead of [from].
+  double _remap(double y, int from, int to) {
+    final start = _timelineStart();
+    if (start == null || y < start || _timeline.assets.isEmpty) return y;
+    final anchor = _layoutFor(from).anchorAt(y - start);
+    return start + _layoutFor(to).yOf(anchor);
   }
 
   /// Scroll offset where the timeline begins (below the header and the featured card).
@@ -319,6 +345,7 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
             onRefresh: _refresh,
             child: PinchColumns(
               controller: _scroll,
+              remap: _remap,
               builder: (context, columns, physics) {
                 _columns = columns;
                 _width = MediaQuery.sizeOf(context).width;
@@ -367,13 +394,6 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                            ),
-                            IconButton(
-                              tooltip: t('搜索照片'),
-                              onPressed: () =>
-                                  Navigator.of(context)
-                                      .push(MaterialPageRoute<void>(builder: (_) => const SearchScreen())),
-                              icon: const Icon(Icons.search),
                             ),
                           ],
                         ),

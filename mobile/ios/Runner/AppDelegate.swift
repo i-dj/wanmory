@@ -61,9 +61,41 @@ enum ContinuedSync {
   private static var total: Int64 = 1
   private static var done: Int64 = 0
 
+  /// One fixed identifier: asking again replaces a request still waiting, so there is never more
+  /// than one sync task (and one progress in the Dynamic Island).
+  private static let id = "\(Bundle.main.bundleIdentifier ?? "com.wanmory.wanmory").sync.album"
+
   static func register(messenger: FlutterBinaryMessenger) {
     let ch = FlutterMethodChannel(name: "wanmory/continued", binaryMessenger: messenger)
     channel = ch
+    if #available(iOS 26.0, *) {
+      // Requests left over from before the app was closed or updated (older builds used other
+      // identifiers)
+      BGTaskScheduler.shared.cancelAllTaskRequests()
+      BGTaskScheduler.shared.register(forTaskWithIdentifier: id, using: .main) { t in
+        submitted = false
+        guard let t = t as? BGContinuedProcessingTask else {
+          t.setTaskCompleted(success: false)
+          return
+        }
+        if task != nil {
+          // Already one running: this one is extra
+          t.setTaskCompleted(success: true)
+          return
+        }
+        task = t
+        t.progress.totalUnitCount = total
+        t.progress.completedUnitCount = done
+        t.expirationHandler = {
+          task = nil
+          // Not a failure for the user: what is left keeps uploading in the system queue and the
+          // next time the app runs (iOS would show "task failed" otherwise)
+          t.setTaskCompleted(success: true)
+          channel?.invokeMethod("expired", arguments: nil)
+        }
+        channel?.invokeMethod("started", arguments: nil)
+      }
+    }
     ch.setMethodCallHandler { call, result in
       guard #available(iOS 26.0, *) else {
         result(false)
@@ -96,24 +128,6 @@ enum ContinuedSync {
       progress(total: total, done: done, subtitle: subtitle)
       return true
     }
-    let id = "\(Bundle.main.bundleIdentifier ?? "com.wanmory.wanmory").sync.\(UUID().uuidString)"
-    let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: id, using: .main) { t in
-      submitted = false
-      guard let t = t as? BGContinuedProcessingTask else {
-        t.setTaskCompleted(success: false)
-        return
-      }
-      task = t
-      t.progress.totalUnitCount = self.total
-      t.progress.completedUnitCount = self.done
-      t.expirationHandler = {
-        task = nil
-        t.setTaskCompleted(success: false)
-        channel?.invokeMethod("expired", arguments: nil)
-      }
-      channel?.invokeMethod("started", arguments: nil)
-    }
-    guard registered else { return false }
     let request = BGContinuedProcessingTaskRequest(identifier: id, title: title, subtitle: subtitle)
     request.strategy = .fail
     do {
@@ -137,8 +151,13 @@ enum ContinuedSync {
   }
 
   private static func finish(success: Bool) {
+    guard #available(iOS 26.0, *) else { return }
+    if submitted && task == nil {
+      // Asked for but not started yet: take the request back
+      BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: id)
+    }
     submitted = false
-    guard #available(iOS 26.0, *), let t = task as? BGContinuedProcessingTask else { return }
+    guard let t = task as? BGContinuedProcessingTask else { return }
     task = nil
     t.progress.completedUnitCount = t.progress.totalUnitCount
     t.setTaskCompleted(success: success)

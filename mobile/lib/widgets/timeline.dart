@@ -195,6 +195,34 @@ class TimelineLayout {
     return (g.indexes[i], g.start);
   }
 
+  /// A point of the timeline that survives a change of layout (another column count): the
+  /// first photo of the row it is in, and how far into that row (negative: in the header above).
+  ({int index, double frac}) anchorAt(double y) {
+    final gi = _groupAt(y.clamp(0, double.infinity));
+    final g = _groups[gi];
+    final into = y - _starts[gi];
+    if (into < sectionHeaderHeight) {
+      return (index: g.indexes.first, frac: (into - sectionHeaderHeight) / sectionHeaderHeight);
+    }
+    final stride = _cell + _spacing;
+    final row = ((into - sectionHeaderHeight) / stride).floor();
+    final i = (row * _columns).clamp(0, g.indexes.length - 1);
+    return (index: g.indexes[i], frac: ((into - sectionHeaderHeight) - row * stride) / stride);
+  }
+
+  /// Where an [anchorAt] point is in this layout.
+  double yOf(({int index, double frac}) a) {
+    for (var gi = 0; gi < _groups.length; gi++) {
+      final g = _groups[gi];
+      if (a.index > g.indexes.last) continue;
+      final top = _starts[gi] + sectionHeaderHeight;
+      final within = (a.index - g.indexes.first).clamp(0, g.indexes.length - 1);
+      if (a.frac < 0) return top + a.frac * sectionHeaderHeight;
+      return top + (within ~/ _columns) * (_cell + _spacing) + a.frac * (_cell + _spacing);
+    }
+    return extent;
+  }
+
   /// Top of the section header above photo [index] if it starts its section, else of its row.
   double offsetOf(int index) {
     for (var gi = 0; gi < _groups.length; gi++) {

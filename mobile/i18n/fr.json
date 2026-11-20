@@ -58,5 +58,12 @@
   "我": "moi",
   "筛选结果": "Filtré",
   "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Le disque du serveur est trop plein pour {name} ; l'envoi reprendra dès que de l'espace sera libéré",
-  "还有 {n} 项": "Encore {n} éléments"
+  "还有 {n} 项": "Encore {n} éléments",
+  "合集": "Collections",
+  "{a} 和 {b}": "{a} et {b}",
+  "{n} 张合影": "{n} ensemble",
+  "还没有和别人的合影": "Pas encore de photos avec d'autres personnes",
+  "这些照片里没有位置信息": "Ces photos n'ont pas de lieu",
+  "这些照片里没有拍摄时间": "Ces photos n'ont pas de date de prise",
+  "正在同步相册 · 还有 {n} 项": "Synchronisation des albums · encore {n}"
 }

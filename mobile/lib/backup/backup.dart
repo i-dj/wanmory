@@ -636,9 +636,8 @@ class BackupNotifier extends Notifier<BackupState> {
         }
         continue;
       }
-      state = state.copyWith(phase: BackupPhase.uploading, current: info.name, currentProgress: 0);
       final r = await api.uploadStream(
-        body: p.copy.openRead(),
+        body: _counting(p.copy.openRead(), info.asset, info.name, info.bytes),
         length: info.bytes,
         metadata: tusMetadata({
           'filename': info.name,
@@ -971,16 +970,18 @@ class BackupNotifier extends Notifier<BackupState> {
         c
           ..pieceBytes = length
           ..progress = 0;
-        state = state.copyWith(
-          phase: BackupPhase.uploading,
-          current: c.name,
-          currentProgress: c.sent / c.bytes,
-        );
         final r = await api.uploadPiece(
           location: c.location!,
           offset: offset,
           length: length,
-          body: File('$dir/${c.file}').openRead(offset, offset + length),
+          body: _counting(
+            File('$dir/${c.file}').openRead(offset, offset + length),
+            c.asset,
+            c.name,
+            length,
+            before: offset,
+            total: c.bytes,
+          ),
         );
         final res = chunkResultOf(r.status, r.headers);
         switch (res.outcome) {
@@ -1055,6 +1056,7 @@ class BackupNotifier extends Notifier<BackupState> {
 
   /// [c] is finished: stored ([uploaded]) or refused by the server.
   Future<void> _chunkedDone(ChunkedUpload c, {required bool uploaded}) async {
+    _shownDone(c.asset);
     (await _done()).add(c.asset);
     await _saveDone();
     state = uploaded
@@ -1131,6 +1133,56 @@ class BackupNotifier extends Notifier<BackupState> {
       _queued.values.fold<int>(0, (s, q) => s + (q.bytes * q.progress).round()) +
       _chunked.values.fold<int>(0, (s, c) => s + (c.pieceBytes * c.progress).round());
 
+  // What the settings show as "uploading <name>" with the thin bar under it. Several files
+  // upload at once; showing whichever reported last made the name and the bar flicker between
+  // them. One file is followed until it finishes (or goes quiet), and the screen is updated a
+  // few times a second at most.
+  String? _shownKey;
+  DateTime _shownAt = DateTime(0);
+  DateTime _emittedAt = DateTime(0);
+
+  void _showProgress(String key, String name, double fraction) {
+    final now = DateTime.now();
+    if (key != _shownKey) {
+      final busy = _shownKey != null && now.difference(_shownAt) < const Duration(milliseconds: 1500);
+      if (busy) return;
+      _shownKey = key;
+    } else if (now.difference(_emittedAt) < const Duration(milliseconds: 250) && fraction < 1) {
+      _shownAt = now;
+      return;
+    }
+    _shownAt = now;
+    _emittedAt = now;
+    state = state.copyWith(
+      phase: BackupPhase.uploading,
+      current: name,
+      currentProgress: fraction.clamp(0, 1),
+      eta: _eta.estimate(queuedBytesLeft: _queuedBytesLeft, photosLeft: _photosLeft, videosLeft: _videosLeft),
+    );
+  }
+
+  /// The followed file finished: the next progress report may show another one at once.
+  void _shownDone(String key) {
+    if (_shownKey == key) _shownKey = null;
+  }
+
+  /// Reports how much of a file the app sends itself has gone out (for the thin bar).
+  Stream<List<int>> _counting(
+    Stream<List<int>> body,
+    String key,
+    String name,
+    int length, {
+    int before = 0,
+    int? total,
+  }) {
+    var sent = 0;
+    return body.map((chunk) {
+      sent += chunk.length;
+      _showProgress(key, name, (before + sent) / (total ?? length));
+      return chunk;
+    });
+  }
+
   void _onUpdate(TaskUpdate update) {
     if (update.task.group != backupGroup) return;
     switch (update) {
@@ -1140,26 +1192,18 @@ class BackupNotifier extends Notifier<BackupState> {
         final double fraction;
         final c = _chunked[_chunkTasks[update.task.taskId]];
         final q = _queued[update.task.taskId];
+        final String key;
         if (c != null) {
           c.progress = progress.clamp(0, 1);
-          (name, fraction) = (c.name, c.sent / c.bytes);
+          (name, fraction, key) = (c.name, c.sent / c.bytes, c.asset);
         } else if (q != null) {
           q.progress = progress.clamp(0, 1);
-          (name, fraction) = (q.name, q.progress);
+          (name, fraction, key) = (q.name, q.progress, q.asset);
         } else {
           return;
         }
         _eta.sample(_sentBytes + _inFlight, DateTime.now());
-        state = state.copyWith(
-          phase: BackupPhase.uploading,
-          current: name,
-          currentProgress: fraction,
-          eta: _eta.estimate(
-            queuedBytesLeft: _queuedBytesLeft,
-            photosLeft: _photosLeft,
-            videosLeft: _videosLeft,
-          ),
-        );
+        _showProgress(key, name, fraction);
       case TaskStatusUpdate(:final status):
         if (!status.isFinalState) return;
         unawaited(_finished(update));
@@ -1252,6 +1296,7 @@ class BackupNotifier extends Notifier<BackupState> {
     int? code,
     String? why,
   }) async {
+    _shownDone(q.asset);
     try {
       return await _applyOutcome(o, q, duplicate: duplicate, code: code, why: why);
     } finally {

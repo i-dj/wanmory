@@ -58,5 +58,13 @@
   "我": "me",
   "筛选结果": "Filtered",
   "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "The server's disk is too full for {name}; it will continue once space is freed",
-  "还有 {n} 项": "{n} items left"
+  "还有 {n} 项": "{n} items left",
+  "合集": "Collections",
+  "{a} 和 {b}": "{a} and {b}",
+  "{n} 张合影": "{n} together",
+  "还没有和别人的合影": "No photos with others yet",
+  "这些照片里没有位置信息": "These photos have no location",
+  "这些照片里没有拍摄时间": "These photos have no date taken",
+  "常和{name}一起出现在照片里的人，点一下看合影。": "People often in photos with {name}. Tap someone to see your photos together.",
+  "正在同步相册 · 还有 {n} 项": "Syncing albums · {n} left"
 }

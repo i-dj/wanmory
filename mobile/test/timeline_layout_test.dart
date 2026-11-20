@@ -60,4 +60,20 @@ void main() {
     expect(f.filtered, isTrue);
     expect(const AssetFilter().filtered, isFalse);
   });
+
+  test('pinching keeps the photo under the fingers', () {
+    // Halfway into the row of photos 3–5 with 3 per row
+    final y = sectionHeaderHeight + (cell + 2) * 1.5;
+    final a = layout.anchorAt(y);
+    expect(a.index, 3);
+    expect(a.frac, closeTo(0.5, 0.01));
+    expect(layout.yOf(a), closeTo(y, 0.01));
+    // With 1 per row, photo 3 is the fourth row of May
+    final one = TimelineLayout(assets, zoom: Zoom.all, columns: 1, width: 302);
+    expect(one.yOf(a), closeTo(sectionHeaderHeight + 3.5 * (302 + 2), 0.01));
+    // In a header it stays in that header
+    final h = layout.anchorAt(layout.offsetOf(7) + 10);
+    expect(h.frac, lessThan(0));
+    expect(one.yOf(h), closeTo(one.offsetOf(7) + 10, 0.01));
+  });
 }

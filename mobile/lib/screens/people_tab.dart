@@ -7,7 +7,7 @@ import '../api/models.dart';
 import '../auth/auth.dart';
 import '../i18n.dart';
 import '../widgets/account_sheet.dart';
-import 'timeline_screen.dart';
+import 'person_screen.dart';
 
 /// People found by face recognition; named people first.
 class PeopleTab extends ConsumerStatefulWidget {
@@ -78,14 +78,8 @@ class _PersonCard extends StatelessWidget {
     final theme = Theme.of(context);
     final name = person.name.isEmpty ? t('（没填名字）') : person.name;
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => TimelineScreen(
-            title: name,
-            filter: AssetFilter(person: person.id),
-          ),
-        ),
-      ),
+      onTap: () =>
+          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PersonScreen(person: person))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -132,21 +126,24 @@ class TabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Opened from Collections (pushed): a back button instead of the account button.
+    final pushed = Navigator.of(context).canPop();
     final scroll = CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 16, 16),
+            padding: EdgeInsets.fromLTRB(pushed ? 4 : 20, 8, 16, 16),
             child: Row(
               children: [
+                if (pushed) const BackButton(),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const Spacer(),
                 if (action != null) ...[action!, const SizedBox(width: 8)],
-                const AccountButton(),
+                if (!pushed) const AccountButton(),
               ],
             ),
           ),

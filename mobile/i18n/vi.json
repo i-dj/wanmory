@@ -43,5 +43,12 @@
   "我": "tôi",
   "筛选结果": "Đã lọc",
   "服务器磁盘空间不够，{name} 先不传，空出空间后会自动继续": "Ổ đĩa máy chủ không đủ chỗ cho {name}; sẽ tự tiếp tục khi có thêm dung lượng",
-  "还有 {n} 项": "Còn {n} mục"
+  "还有 {n} 项": "Còn {n} mục",
+  "合集": "Bộ sưu tập",
+  "{a} 和 {b}": "{a} và {b}",
+  "{n} 张合影": "{n} ảnh chụp chung",
+  "还没有和别人的合影": "Chưa có ảnh chụp chung với người khác",
+  "这些照片里没有位置信息": "Những ảnh này không có vị trí",
+  "这些照片里没有拍摄时间": "Những ảnh này không có thời gian chụp",
+  "正在同步相册 · 还有 {n} 项": "Đang đồng bộ album · còn {n} mục"
 }

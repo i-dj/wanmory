@@ -25,6 +25,9 @@ class _HeroCarouselState extends State<HeroCarousel> {
 
   final _pages = PageController();
   List<Asset> _items = [];
+
+  /// Names of the people in photos without a place, looked up as they come up.
+  final Map<String, String> _names = {};
   int _index = 0;
   Timer? _timer;
 
@@ -70,11 +73,26 @@ class _HeroCarouselState extends State<HeroCarousel> {
     return DateFormat.yMMMd(currentLocale.replaceAll('-', '_')).format(d);
   }
 
-  static String _title(Asset a) {
+  /// The big line: where it was taken ("不列颠哥伦比亚省 · Area C"), else who is in it, else the date.
+  String _title(Asset a) {
     final geo = a.geo;
-    if (geo == null) return t('精选照片');
-    final country = currentLocale.startsWith('zh') ? geo.country : null;
-    return country == null || country == geo.city ? geo.localCity : '$country · ${geo.localCity}';
+    if (geo != null) {
+      final region = geo.localState ?? (currentLocale.startsWith('zh') ? geo.country : null);
+      return region == null || region == geo.localCity ? geo.localCity : '$region · ${geo.localCity}';
+    }
+    final names = _names[a.id];
+    if (names != null && names.isNotEmpty) return names;
+    return _when(a);
+  }
+
+  /// Looks up who is in a photo without a place (once per photo).
+  void _lookUpNames(Asset a) {
+    if (a.geo != null || _names.containsKey(a.id)) return;
+    _names[a.id] = '';
+    widget.api.namesIn(a.id).then((names) {
+      if (!mounted || names.isEmpty) return;
+      setState(() => _names[a.id] = names.take(3).join('、'));
+    }, onError: (_) {});
   }
 
   @override
@@ -82,6 +100,9 @@ class _HeroCarouselState extends State<HeroCarousel> {
     if (_items.isEmpty) return const SizedBox.shrink();
     final api = widget.api;
     final a = _items[_index];
+    _lookUpNames(a);
+    final title = _title(a);
+    final when = _when(a);
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -129,49 +150,29 @@ class _HeroCarouselState extends State<HeroCarousel> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: scheme.primary,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${t('精选')} · ${(_index + 1).toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                              color: scheme.onPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                    if (title != when)
+                      Text(
+                        when,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            [
-                              _when(a),
-                              if (a.geo != null && _title(a) == t('精选照片')) a.geo!.localCity,
-                            ].join(' · '),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            _title(a),
+                            title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),

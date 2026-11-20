@@ -53,6 +53,8 @@ class Asset {
   factory Asset.fromJson(Map<String, dynamic> j) => Asset(
     id: j['id'] as String,
     type: j['type'] as String,
+    fileName: j['file_name'] as String? ?? '',
+    geo: j['geo'] == null ? null : Geo.fromJson(j['geo'] as Map<String, dynamic>),
     width: j['width'] as int?,
     height: j['height'] as int?,
     durationMs: j['duration_ms'] as int?,
@@ -87,14 +89,22 @@ class Asset {
 
 /// A city from reverse geocoding, with Chinese and English names.
 class Geo {
-  Geo({required this.city, this.cityEn, this.country, this.countryCode});
+  Geo({required this.city, this.cityEn, this.state, this.stateEn, this.country, this.countryCode});
 
   factory Geo.fromJson(Map<String, dynamic> j) => Geo(
     city: j['city'] as String,
     cityEn: j['city_en'] as String?,
+    state: j['state'] as String?,
+    stateEn: j['state_en'] as String?,
     country: j['country'] as String?,
     countryCode: j['country_code'] as String?,
   );
+
+  /// Province or state ("不列颠哥伦比亚省" / "British Columbia"), when known.
+  final String? state;
+  final String? stateEn;
+
+  String? get localState => _zh ? state : (stateEn ?? state);
 
   final String city;
   final String? cityEn;
@@ -125,14 +135,20 @@ class Summary {
 }
 
 class Person {
-  Person({required this.id, required this.name, required this.assets, this.cover});
+  Person({required this.id, required this.name, required this.assets, this.cover, this.birthday});
 
   factory Person.fromJson(Map<String, dynamic> j) => Person(
     id: j['id'] as String,
     name: j['name'] as String? ?? '',
     assets: j['assets'] as int? ?? 0,
     cover: j['cover'] as String?,
+    birthday: j['birthday'] as String?,
   );
+
+  /// "2024-05-01", or null when not set.
+  final String? birthday;
+
+  Person withBirthday(String? b) => Person(id: id, name: name, assets: assets, cover: cover, birthday: b);
 
   final String id;
 
@@ -189,6 +205,11 @@ class AssetFilter {
     this.album,
     this.notAlbum,
     this.uploaders = const [],
+    this.tag,
+    this.recent = false,
+    this.withPerson,
+    this.from,
+    this.to,
   });
 
   /// "photo", "video" or "gif"; null for all.
@@ -206,6 +227,19 @@ class AssetFilter {
   /// Only photos uploaded by these members; empty for everyone.
   final List<String> uploaders;
 
+  /// A category the AI sorted photos into ("scenery", "food"...).
+  final String? tag;
+
+  /// Uploaded in the last 30 days, newest upload first.
+  final bool recent;
+
+  /// Together with [person]: only photos both are in.
+  final String? withPerson;
+
+  /// Taken in [from, to).
+  final DateTime? from;
+  final DateTime? to;
+
   bool get filtered => kind != null || favorite || uploaders.isNotEmpty;
 
   bool get ranked => q != null;
@@ -219,6 +253,11 @@ class AssetFilter {
         album: album,
         notAlbum: notAlbum,
         uploaders: uploaders ?? this.uploaders,
+        tag: tag,
+        recent: recent,
+        withPerson: withPerson,
+        from: from,
+        to: to,
       );
 
   String get query {
@@ -230,6 +269,11 @@ class AssetFilter {
       'album': ?album,
       'not_album': ?notAlbum,
       if (uploaders.isNotEmpty) 'uploader': uploaders.join(','),
+      'tag': ?tag,
+      if (recent) 'view': 'recent',
+      'with': ?withPerson,
+      if (from != null) 'from': from!.toUtc().toIso8601String(),
+      if (to != null) 'to': to!.toUtc().toIso8601String(),
     };
     return Uri(queryParameters: p).query;
   }
@@ -254,4 +298,52 @@ class LoginResult {
   final User? user;
   final String? token;
   final String? ticket;
+}
+
+/// A photo a person is in (GET /api/people/{id}/profile): when and where, and their face in it.
+class Moment {
+  Moment({
+    required this.asset,
+    required this.face,
+    required this.quality,
+    required this.taken,
+    required this.dated,
+  });
+
+  factory Moment.fromJson(Map<String, dynamic> j) => Moment(
+    asset: j['asset'] as String,
+    face: j['face'] as String,
+    quality: (j['quality'] as num?)?.toDouble() ?? 0,
+    taken: DateTime.parse(j['taken'] as String).toLocal(),
+    dated: j['dated'] as bool? ?? false,
+  );
+
+  final String asset;
+  final String face;
+
+  /// How well the face shows (sharp, frontal, large): the best one represents an age.
+  final double quality;
+  final DateTime taken;
+
+  /// The file recorded when it was taken (screenshots and forwarded pictures don't).
+  final bool dated;
+}
+
+/// Someone often in the same photos.
+class Companion {
+  Companion({required this.id, required this.name, required this.shared, this.cover});
+
+  factory Companion.fromJson(Map<String, dynamic> j) => Companion(
+    id: j['id'] as String,
+    name: j['name'] as String? ?? '',
+    cover: j['cover'] as String?,
+    shared: j['shared'] as int? ?? 0,
+  );
+
+  final String id;
+  final String name;
+  final String? cover;
+
+  /// Photos they are in together.
+  final int shared;
 }
