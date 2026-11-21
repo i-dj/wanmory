@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../backup/backup.dart';
 import '../i18n.dart';
+import '../widgets/glass.dart';
 import 'albums_tab.dart';
 import 'collections_tab.dart';
 import 'library_tab.dart';
@@ -146,7 +146,7 @@ class _TabBar extends StatelessWidget {
   final ValueChanged<int> onTap;
   final VoidCallback onSearch;
 
-  static const _height = 62.0;
+  static const _height = 54.0;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +159,7 @@ class _TabBar extends StatelessWidget {
     return SafeArea(
       minimum: const EdgeInsets.only(bottom: 8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Row(
           children: [
             Expanded(
@@ -218,7 +218,7 @@ class _TabBar extends StatelessWidget {
                   radius: _height / 2,
                   child: SizedBox.square(
                     dimension: _height,
-                    child: Icon(Icons.search_rounded, size: 28, color: scheme.onSurface),
+                    child: Icon(Icons.search_rounded, size: 24, color: scheme.onSurface),
                   ),
                 ),
               ),
@@ -255,14 +255,14 @@ class _TabItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 24, color: color),
+              Icon(icon, size: 21, color: color),
               const SizedBox(height: 2),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 10.5,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: color,
                 ),
@@ -275,7 +275,7 @@ class _TabItem extends StatelessWidget {
   }
 }
 
-/// Frosted, see-through glass with a thin light edge and a soft shadow.
+/// The bar's glass: see-through "liquid glass" (see [LiquidGlass]).
 class _Frosted extends StatelessWidget {
   const _Frosted({required this.child, required this.radius});
 
@@ -283,36 +283,7 @@ class _Frosted extends StatelessWidget {
   final double radius;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? 0.35 : 0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: dark ? 0.55 : 0.6),
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.12 : 0.5), width: 0.8),
-            ),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => LiquidGlass(radius: radius, clear: true, child: child);
 }
 
 /// "Syncing albums · 5 left ›": opens the sync page.

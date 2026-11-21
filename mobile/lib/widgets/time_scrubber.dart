@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -51,9 +50,10 @@ String monthLabel(DateTime d, {bool yearOnly = false}) {
   return d.year == DateTime.now().year ? DateFormat.MMMM(l).format(d) : DateFormat.yMMMM(l).format(d);
 }
 
-/// The scrubber on the right edge, like Google Photos: a tab flush against the edge of the
-/// screen showing where you are in the whole library. It glides along as you scroll; dragging
-/// it moves through time, with the month in a bubble and the years along the track.
+/// The scrubber on the right edge, like the iPhone's scroll indicator: a thin, faint bar while
+/// scrolling that grows and turns solid under the finger, and can then be dragged through the
+/// whole library, with the month in a bubble, the years along the track and a tick of the
+/// haptic engine at every month.
 class TimeScrubber extends StatefulWidget {
   const TimeScrubber({
     super.key,
@@ -79,15 +79,23 @@ class TimeScrubber extends StatefulWidget {
 }
 
 class _TimeScrubberState extends State<TimeScrubber> {
-  static const _handle = 52.0;
+  static const _handle = 64.0; // the bar's touch area; the bar itself is drawn smaller
   double? _drag;
+  bool _touching = false;
+  int? _lastMonth; // for a tick of the haptic engine at every month passed while dragging
 
   int _indexAt(double f) => (f * (widget.index.total - 1)).round().clamp(0, widget.index.total - 1);
 
   void _update(double dy, double track) {
     final f = (dy / track).clamp(0.0, 1.0);
     setState(() => _drag = f);
-    widget.onScrub(_indexAt(f));
+    final i = _indexAt(f);
+    final month = widget.index.monthOf(i);
+    if (month != _lastMonth) {
+      if (_lastMonth != null) HapticFeedback.selectionClick();
+      _lastMonth = month;
+    }
+    widget.onScrub(i);
   }
 
   @override
@@ -125,7 +133,7 @@ class _TimeScrubberState extends State<TimeScrubber> {
                 for (final (at, year) in years)
                   Positioned(
                     key: ValueKey(year),
-                    right: 44,
+                    right: 26,
                     top: at - 8,
                     child: Text(
                       '$year',
@@ -141,38 +149,46 @@ class _TimeScrubberState extends State<TimeScrubber> {
                   curve: Curves.easeOutCubic,
                   right: 0,
                   top: y,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onVerticalDragStart: (d) {
-                      widget.onDragging(true);
-                      _update(y + d.localPosition.dy - _handle / 2, track);
-                    },
-                    onVerticalDragUpdate: (d) => _update((_drag ?? f) * track + d.delta.dy, track),
-                    onVerticalDragEnd: (_) {
-                      setState(() => _drag = null);
-                      widget.onDragging(false);
-                    },
-                    onVerticalDragCancel: () {
-                      setState(() => _drag = null);
-                      widget.onDragging(false);
-                    },
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (dragging)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Glass(
-                              radius: 16,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              child: Text(
-                                monthLabel(widget.index.dateOf(m)),
-                                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  child: Listener(
+                    // Grows as soon as the finger lands, before it moves
+                    onPointerDown: (_) => setState(() => _touching = true),
+                    onPointerUp: (_) => setState(() => _touching = false),
+                    onPointerCancel: (_) => setState(() => _touching = false),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onVerticalDragStart: (d) {
+                        HapticFeedback.lightImpact();
+                        _lastMonth = null;
+                        widget.onDragging(true);
+                        _update(y + d.localPosition.dy - _handle / 2, track);
+                      },
+                      onVerticalDragUpdate: (d) => _update((_drag ?? f) * track + d.delta.dy, track),
+                      onVerticalDragEnd: (_) {
+                        setState(() => _drag = null);
+                        widget.onDragging(false);
+                      },
+                      onVerticalDragCancel: () {
+                        setState(() => _drag = null);
+                        widget.onDragging(false);
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (dragging)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Glass(
+                                radius: 16,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                child: Text(
+                                  monthLabel(widget.index.dateOf(m)),
+                                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                                ),
                               ),
                             ),
-                          ),
-                        _EdgeTab(height: _handle, active: dragging),
-                      ],
+                          _Bar(height: _handle, active: dragging || _touching),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -185,9 +201,10 @@ class _TimeScrubberState extends State<TimeScrubber> {
   }
 }
 
-/// The handle: a frosted tab against the right edge of the screen, rounded on the left only.
-class _EdgeTab extends StatelessWidget {
-  const _EdgeTab({required this.height, required this.active});
+/// The handle: a thin rounded bar near the right edge, faint while scrolling; under the finger
+/// it grows wider and taller and turns solid. Its touch area is wider than the bar.
+class _Bar extends StatelessWidget {
+  const _Bar({required this.height, required this.active});
 
   final double height;
   final bool active;
@@ -195,28 +212,23 @@ class _EdgeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    const shape = BorderRadius.horizontal(left: Radius.circular(26));
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      width: active ? 40 : 34,
+    return SizedBox(
+      width: 28,
       height: height,
-      decoration: BoxDecoration(
-        borderRadius: shape,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(-2, 2)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: shape,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: ColoredBox(
-            color: active ? scheme.primary : scheme.surfaceContainerHigh.withValues(alpha: 0.82),
-            child: Icon(
-              Icons.unfold_more_rounded,
-              size: 22,
-              color: active ? scheme.onPrimary : scheme.onSurface,
-            ),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.only(right: 4),
+          width: active ? 8 : 4,
+          height: active ? height : height * 0.7,
+          decoration: BoxDecoration(
+            color: active ? scheme.onSurface.withValues(alpha: 0.9) : scheme.onSurface.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: active
+                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6)]
+                : null,
           ),
         ),
       ),

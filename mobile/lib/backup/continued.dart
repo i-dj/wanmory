@@ -57,8 +57,14 @@ class ContinuedSync {
         'total': total,
         'done': done,
       });
-      if (ok != true) _log.info('continued sync not available');
+      if (ok != true) {
+        _requested = false; // may be asked again later
+        _log.info('continued sync not available');
+      } else {
+        _log.info('continued sync requested');
+      }
     } on PlatformException catch (e) {
+      _requested = false;
       _log.info('continued sync refused: ${e.message}');
     } on MissingPluginException {
       // tests

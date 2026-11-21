@@ -61,7 +61,7 @@ class GlassButton extends StatelessWidget {
                 decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
                 child: Icon(icon, color: scheme.onPrimary),
               )
-            : Glass(radius: 22, child: Icon(icon, color: scheme.onSurface)),
+            : LiquidGlass(child: Icon(icon, color: scheme.onSurface)),
       ),
     );
     return tooltip == null ? button : Tooltip(message: tooltip, child: button);
@@ -208,6 +208,84 @@ class _GlassMenu extends StatelessWidget {
                   ),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Liquid glass", close to iOS 26's material: strongly blurred and see-through, a faint light
+/// sheen from the top, and a bright hairline edge. [shape] is a border radius, or null for a
+/// circle.
+class LiquidGlass extends StatelessWidget {
+  const LiquidGlass({
+    super.key,
+    required this.child,
+    this.radius,
+    this.tint,
+    this.shadow = true,
+    this.clear = false,
+  });
+
+  final Widget child;
+
+  /// Corner radius; null makes a circle.
+  final double? radius;
+
+  /// A color mixed into the glass (for a highlighted state).
+  final Color? tint;
+  final bool shadow;
+
+  /// Clearer and less frosted (the tab bar): the photos show through more.
+  final bool clear;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final shape = radius == null ? null : BorderRadius.circular(radius!);
+    final box = radius == null ? BoxShape.circle : BoxShape.rectangle;
+    Widget clip(Widget w) => radius == null ? ClipOval(child: w) : ClipRRect(borderRadius: shape!, child: w);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: box,
+        borderRadius: shape,
+        boxShadow: shadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: dark ? 0.35 : 0.14),
+                  blurRadius: 22,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: clip(
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: clear ? 9 : 12, sigmaY: clear ? 9 : 12),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: box,
+              borderRadius: shape,
+              // A light sheen from the top over very little color: the content shows through
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: tint != null
+                    ? [tint!.withValues(alpha: 0.9), tint!.withValues(alpha: 0.75)]
+                    : dark
+                    ? [
+                        Colors.white.withValues(alpha: clear ? 0.20 : 0.16),
+                        Colors.white.withValues(alpha: clear ? 0.10 : 0.06),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: clear ? 0.50 : 0.55),
+                        Colors.white.withValues(alpha: clear ? 0.32 : 0.28),
+                      ],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.22 : 0.7), width: 0.9),
+            ),
+            child: child,
           ),
         ),
       ),

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show FragmentProgram, FragmentShader, ImageFilter;
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:go_router/go_router.dart';
@@ -29,9 +31,18 @@ final libraryToTop = ValueNotifier(0);
 /// What floats over the grid while scrolling: the month at the top and where that is in the
 /// whole library.
 class _Overlay {
-  const _Overlay({this.label, this.position = 0, this.visible = false, this.pastHeader = false});
+  const _Overlay({
+    this.label,
+    this.subtitle,
+    this.position = 0,
+    this.visible = false,
+    this.pastHeader = false,
+  });
 
   final String? label;
+
+  /// Under the floating title: the date and place of the photos at the top of the screen.
+  final String? subtitle;
   final double position;
   final bool visible;
 
@@ -55,6 +66,9 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
   final _scroll = ScrollController();
   final _startKey = GlobalKey();
   final _overlay = ValueNotifier(const _Overlay());
+
+  /// Scrolled away from the top: the blur under the status bar shows.
+  final _scrolled = ValueNotifier(false);
   late final TimelineController _timeline;
   AssetFilter _filter = const AssetFilter();
   Summary? _summary;
@@ -108,6 +122,7 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     _hideTimer?.cancel();
     _scroll.dispose();
     _overlay.dispose();
+    _scrolled.dispose();
     _timeline.dispose();
     super.dispose();
   }
@@ -207,6 +222,7 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     final start = _timelineStart();
     final layout = _currentLayout();
     final offset = _scroll.offset;
+    _scrolled.value = offset > 6;
     final pastHeader = offset > 70;
     if (start == null || layout.isEmpty || offset < start - 40) {
       _overlay.value = _Overlay(pastHeader: pastHeader, position: 0);
@@ -215,8 +231,11 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     final (index, section) = layout.at(offset - start + 8);
     final months = _months;
     final yearOnly = resolveGrid(Zoom.all, _columns, _width).$1 == Zoom.year;
+    final top = _timeline.assets[index];
+    final day = DateFormat.yMMMd(currentLocale.replaceAll('-', '_')).format(top.sortTime);
     _overlay.value = _Overlay(
       label: monthLabel(section, yearOnly: yearOnly),
+      subtitle: [day, ?top.geo?.localCity].join(' · '),
       position: months == null || months.total < 2 ? 0 : index / (months.total - 1),
       visible: true,
       pastHeader: pastHeader,
@@ -225,7 +244,12 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     _hideTimer = Timer(const Duration(seconds: 3), () {
       if (_dragging || !mounted) return;
       final o = _overlay.value;
-      _overlay.value = _Overlay(label: o.label, position: o.position, pastHeader: o.pastHeader);
+      _overlay.value = _Overlay(
+        label: o.label,
+        subtitle: o.subtitle,
+        position: o.position,
+        pastHeader: o.pastHeader,
+      );
     });
   }
 
@@ -337,146 +361,272 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     final theme = Theme.of(context);
     final filtered = _filter.filtered;
     final months = _months;
-    return SafeArea(
-      bottom: false,
-      child: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _refresh,
-            child: PinchColumns(
-              controller: _scroll,
-              remap: _remap,
-              builder: (context, columns, physics) {
-                _columns = columns;
-                _width = MediaQuery.sizeOf(context).width;
-                return CustomScrollView(
-                  controller: _scroll,
-                  physics: physics,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 16, 4),
-                        child: Row(
-                          children: [
-                            Text(
-                              t('图库'),
-                              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const Spacer(),
-                            GlassButton(
-                              icon: Icons.more_horiz,
-                              active: filtered,
-                              tooltip: t('筛选'),
-                              onPressed: _showMenu,
-                            ),
-                            const SizedBox(width: 10),
-                            const AccountButton(),
-                          ],
-                        ),
+    // The photos scroll on under the status bar, behind a blur that fades out (see _TopFade)
+    final top = MediaQuery.paddingOf(context).top;
+    return Stack(
+      children: [
+        RefreshIndicator(
+          edgeOffset: top,
+          onRefresh: _refresh,
+          child: PinchColumns(
+            controller: _scroll,
+            remap: _remap,
+            builder: (context, columns, physics) {
+              _columns = columns;
+              _width = MediaQuery.sizeOf(context).width;
+              return CustomScrollView(
+                controller: _scroll,
+                physics: physics,
+                slivers: [
+                  SliverToBoxAdapter(child: SizedBox(height: top + 8)),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 16, 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            t('图库'),
+                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const Spacer(),
+                          GlassButton(
+                            icon: Icons.more_horiz,
+                            active: filtered,
+                            tooltip: t('筛选'),
+                            onPressed: _showMenu,
+                          ),
+                          const SizedBox(width: 10),
+                          const AccountButton(),
+                        ],
                       ),
                     ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 12, 4),
-                        child: Row(
-                          children: [
-                            Text(
-                              filtered ? t('筛选结果') : t('全部照片'),
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _counts(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_showHero && !filtered)
-                      SliverToBoxAdapter(
-                        child: HeroCarousel(key: _heroKey, api: _api, onOpen: _open),
-                      ),
-                    SliverToBoxAdapter(key: _startKey, child: const SizedBox.shrink()),
-                    ...timelineSlivers(
-                      context: context,
-                      controller: _timeline,
-                      zoom: Zoom.all,
-                      columns: columns,
-                      onOpen: _open,
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 110)),
-                  ],
-                );
-              },
-            ),
-          ),
-          ValueListenableBuilder(
-            valueListenable: _overlay,
-            builder: (context, o, _) => Stack(
-              children: [
-                Positioned(
-                  top: 8,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Center(
-                      child: AnimatedOpacity(
-                        opacity: (o.visible || _dragging) && o.label != null ? 1 : 0,
-                        duration: const Duration(milliseconds: 250),
-                        child: Glass(
-                          radius: 22,
-                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                          child: Text(
-                            o.label ?? '',
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 12, 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            filtered ? t('筛选结果') : t('全部照片'),
                             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                           ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _counts(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_showHero && !filtered)
+                    SliverToBoxAdapter(
+                      child: HeroCarousel(key: _heroKey, api: _api, onOpen: _open),
+                    ),
+                  SliverToBoxAdapter(key: _startKey, child: const SizedBox.shrink()),
+                  ...timelineSlivers(
+                    context: context,
+                    controller: _timeline,
+                    zoom: Zoom.all,
+                    columns: columns,
+                    onOpen: _open,
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 110)),
+                ],
+              );
+            },
+          ),
+        ),
+        // Built once, not on every scroll tick like the overlay below (blurs are costly)
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: _TopFade.height(top),
+          child: RepaintBoundary(
+            child: ValueListenableBuilder(
+              valueListenable: _scrolled,
+              builder: (context, scrolled, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+                // White clock and icons over the dark scrim
+                value: scrolled || theme.brightness == Brightness.dark
+                    ? SystemUiOverlayStyle.light
+                    : SystemUiOverlayStyle.dark,
+                child: AnimatedOpacity(
+                  opacity: scrolled ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: child,
+                ),
+              ),
+              child: _TopFade(inset: top),
+            ),
+          ),
+        ),
+        ValueListenableBuilder(
+          valueListenable: _overlay,
+          builder: (context, o, _) => Stack(
+            children: [
+              // Once the page header has scrolled away: the title at the top left, like Photos, with
+              // the date and place of what is on screen under it
+              Positioned(
+                top: top + 2,
+                left: 20,
+                right: 80,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: o.pastHeader ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          filtered ? t('筛选结果') : t('图库'),
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontSize: 30,
+                            height: 1.15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
+                        if (o.subtitle != null)
+                          Text(
+                            o.subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
+              ),
+              Positioned(
+                top: top + 8,
+                right: 12,
+                child: IgnorePointer(
+                  ignoring: !o.pastHeader,
+                  child: AnimatedOpacity(
+                    opacity: o.pastHeader ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: GlassButton(
+                      icon: Icons.more_horiz,
+                      active: filtered,
+                      tooltip: t('筛选'),
+                      onPressed: _showMenu,
+                    ),
+                  ),
+                ),
+              ),
+              if (months != null && months.total > 60)
                 Positioned(
-                  top: 8,
-                  right: 12,
-                  child: IgnorePointer(
-                    ignoring: !o.pastHeader,
-                    child: AnimatedOpacity(
-                      opacity: o.pastHeader ? 1 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: GlassButton(
-                        icon: Icons.more_horiz,
-                        active: filtered,
-                        tooltip: t('筛选'),
-                        onPressed: _showMenu,
-                      ),
-                    ),
+                  top: top + 64,
+                  bottom: 110,
+                  right: 0,
+                  width: 220,
+                  child: TimeScrubber(
+                    index: months,
+                    position: o.position,
+                    visible: o.visible,
+                    onScrub: _scrubTo,
+                    onDragging: (d) {
+                      _dragging = d;
+                      if (!d) _onScroll();
+                    },
                   ),
                 ),
-                if (months != null && months.total > 60)
-                  Positioned(
-                    top: 64,
-                    bottom: 110,
-                    right: 0,
-                    width: 220,
-                    child: TimeScrubber(
-                      index: months,
-                      position: o.position,
-                      visible: o.visible,
-                      onScrub: _scrubTo,
-                      onDragging: (d) {
-                        _dragging = d;
-                        if (!d) _onScroll();
-                      },
-                    ),
-                  ),
-              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The top of the library while photos scroll under the status bar, like Photos: a blur that is
+/// full behind the status bar and the title and then fades out smoothly (one shader,
+/// shaders/progressive_blur.frag, so there are no bands and it stays cheap while scrolling),
+/// under a dark scrim so the white title and the clock read over any photo.
+class _TopFade extends StatefulWidget {
+  const _TopFade({required this.inset});
+
+  /// Height of the status bar.
+  final double inset;
+
+  /// The full blur reaches below the title; then it fades out over [_fade].
+  static const _full = 22.0;
+  static const _fade = 62.0;
+  static double height(double inset) => inset + _full + _fade;
+
+  @override
+  State<_TopFade> createState() => _TopFadeState();
+}
+
+class _TopFadeState extends State<_TopFade> {
+  static Future<FragmentProgram>? _program;
+  FragmentShader? _shader;
+
+  @override
+  void initState() {
+    super.initState();
+    (_program ??= FragmentProgram.fromAsset('shaders/progressive_blur.frag')).then((p) {
+      if (mounted) setState(() => _shader = p.fragmentShader());
+    }, onError: (_) {});
+  }
+
+  @override
+  void dispose() {
+    _shader?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final full = (widget.inset + _TopFade._full) * dpr;
+    final shader = _shader;
+    final ImageFilter filter;
+    if (shader != null && ImageFilter.isShaderFilterSupported) {
+      shader
+        ..setFloat(2, full)
+        ..setFloat(3, full + _TopFade._fade * dpr)
+        ..setFloat(4, 8 * dpr);
+      filter = ImageFilter.shader(shader);
+    } else {
+      filter = ImageFilter.blur(sigmaX: 12, sigmaY: 12);
+    }
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRect(
+            child: BackdropFilter(filter: filter, child: const SizedBox.expand()),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                // A dark scrim like Photos, so the white title and clock read over any photo
+                // Eased so it thins out gradually instead of ending on a line
+                colors: [
+                  Color(0x99000000),
+                  Color(0x7A000000),
+                  Color(0x4D000000),
+                  Color(0x24000000),
+                  Color(0x0A000000),
+                  Color(0x00000000),
+                ],
+                stops: [0, 0.3, 0.55, 0.75, 0.9, 1],
+              ),
             ),
           ),
         ],

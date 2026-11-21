@@ -245,7 +245,12 @@ class BackupNotifier extends Notifier<BackupState> {
   @override
   BackupState build() {
     // Leaving the app (or locking the phone): keep uploading while iOS lets the app run.
-    final lifecycle = AppLifecycleListener(onHide: _maybeDirect);
+    final lifecycle = AppLifecycleListener(
+      onInactive: () => _askToContinue(leaving: true),
+      // Right after launch the app may not count as "in front" yet; ask again once it does
+      onResume: _askToContinue,
+      onHide: _maybeDirect,
+    );
     ref.onDispose(() {
       _updates?.cancel();
       _connectivity?.cancel();
@@ -680,6 +685,7 @@ class BackupNotifier extends Notifier<BackupState> {
         ? await PhotoManager.getPermissionState(requestOption: const PermissionRequestOption())
         : await PhotoManager.requestPermissionExtend();
     if (!perm.hasAccess) {
+      _log.info('no access to the photo library ($perm)');
       state = state.copyWith(phase: BackupPhase.noPermission);
       return;
     }
@@ -705,6 +711,9 @@ class BackupNotifier extends Notifier<BackupState> {
       pending: all.length - synced,
       queued: _queuedCount,
     );
+    _log.info('library: ${all.length} items, ${all.length - synced} not synced (${todo.length} to queue)');
+    // Before copying the first batch, which can take a minute on a phone syncing for the first time
+    _askToContinue();
 
     final deadline = _inBackground ? DateTime.now().add(_backgroundBudget) : null;
     var queuedBytes = _queued.values.fold<int>(0, (s, q) => s + q.bytes);
@@ -766,24 +775,32 @@ class BackupNotifier extends Notifier<BackupState> {
     state = state.copyWith(queued: _queuedCount, phase: BackupPhase.uploading);
   }
 
+  /// Something is left: asks iOS to let the app keep uploading after the user leaves it (the
+  /// progress shows on the lock screen). iOS only accepts this from an app in the foreground, so
+  /// it is asked as soon as there is something to sync, and again as the user leaves the app
+  /// ([leaving]: the app is already inactive then, but still in front).
+  void _askToContinue({bool leaving = false}) {
+    // Not known yet right after launch: try (iOS refuses it if the app isn't in front)
+    final life = WidgetsBinding.instance.lifecycleState;
+    final inFront = life == null || life == AppLifecycleState.resumed;
+    if (state.pending <= 0 || !state.enabled || (!inFront && !leaving)) return;
+    unawaited(
+      _cont.start(
+        title: t('同步相册'),
+        subtitle: t('还有 {n} 项', {'n': state.pending}),
+        total: state.total * 100,
+        done: state.synced * 100,
+      ),
+    );
+  }
+
   Future<void> _updatePhase() async {
     if (_queuedCount == 0 && state.pending == 0) {
       state = state.copyWith(phase: BackupPhase.done, clearCurrent: true, clearEta: true);
       _cont.finish();
       return;
     }
-    // Something is left: ask iOS to let the app keep uploading after the user leaves it
-    // (asked while the app is in the foreground; the progress shows on the lock screen).
-    if (state.pending > 0 && !_inBackground && state.enabled) {
-      unawaited(
-        _cont.start(
-          title: t('同步相册'),
-          subtitle: t('还有 {n} 项', {'n': state.pending}),
-          total: state.total * 100,
-          done: state.synced * 100,
-        ),
-      );
-    }
+    _askToContinue();
     if (_queuedCount > 0 && state.wifiOnly && !await _onWifi()) {
       state = state.copyWith(phase: BackupPhase.waitingWifi);
     } else if (_queuedCount > 0) {

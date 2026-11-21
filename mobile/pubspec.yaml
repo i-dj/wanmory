@@ -33,3 +33,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/i18n/
+  shaders:
+    - shaders/progressive_blur.frag
