@@ -50,5 +50,17 @@
   "还没有和别人的合影": "Chưa có ảnh chụp chung với người khác",
   "这些照片里没有位置信息": "Những ảnh này không có vị trí",
   "这些照片里没有拍摄时间": "Những ảnh này không có thời gian chụp",
-  "正在同步相册 · 还有 {n} 项": "Đang đồng bộ album · còn {n} mục"
+  "正在同步相册 · 还有 {n} 项": "Đang đồng bộ album · còn {n} mục",
+  "低电量模式已开启：iOS 会暂停后台同步，连上充电器和 Wi‑Fi 后会继续": "Chế độ nguồn điện thấp đang bật: iOS tạm dừng đồng bộ trong nền. Sẽ tiếp tục khi điện thoại đang sạc và có Wi‑Fi",
+  "可以继续同步相册了": "Có thể tiếp tục đồng bộ album",
+  "还有 {n} 项没同步，打开 App 即可继续": "Còn {n} mục chưa đồng bộ. Mở ứng dụng để tiếp tục",
+  "正在下载原片": "Đang tải bản gốc",
+  "正在上传": "Đang tải lên",
+  "剩余 {n} 项": "Còn {n} mục",
+  "已暂停": "Đã tạm dừng",
+  "继续": "Tiếp tục",
+  "暂停": "Tạm dừng",
+  "同步暂停": "Đồng bộ tạm dừng",
+  "{n} 项已在万象": "{n} mục trong Wanmory",
+  "已同步 {done} / {total}": "Đã đồng bộ {done} / {total}"
 }

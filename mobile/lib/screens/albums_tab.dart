@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/auth.dart';
 import '../i18n.dart';
 import 'create_album_screen.dart';
+import '../widgets/glass.dart';
 import 'people_tab.dart';
 import 'timeline_screen.dart';
 
@@ -49,7 +50,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
     final theme = Theme.of(context);
     return TabPage(
       title: t('相册'),
-      action: IconButton.filledTonal(tooltip: t('新建相册'), onPressed: _create, icon: const Icon(Icons.add)),
+      action: GlassButton(icon: Icons.add, tooltip: t('新建相册'), onPressed: _create),
       onRefresh: () async {
         setState(() {
           _albums = api.albums();

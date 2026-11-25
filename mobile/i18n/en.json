@@ -66,5 +66,17 @@
   "这些照片里没有位置信息": "These photos have no location",
   "这些照片里没有拍摄时间": "These photos have no date taken",
   "常和{name}一起出现在照片里的人，点一下看合影。": "People often in photos with {name}. Tap someone to see your photos together.",
-  "正在同步相册 · 还有 {n} 项": "Syncing albums · {n} left"
+  "正在同步相册 · 还有 {n} 项": "Syncing albums · {n} left",
+  "低电量模式已开启：iOS 会暂停后台同步，连上充电器和 Wi‑Fi 后会继续": "Low Power Mode is on: iOS pauses syncing in the background. It continues once the phone is charging and on Wi‑Fi",
+  "可以继续同步相册了": "Album sync can continue",
+  "还有 {n} 项没同步，打开 App 即可继续": "{n} items not synced yet. Open the app to continue",
+  "正在下载原片": "Getting the original",
+  "正在上传": "Uploading",
+  "剩余 {n} 项": "{n} left",
+  "已暂停": "Paused",
+  "继续": "Resume",
+  "暂停": "Pause",
+  "同步暂停": "Sync paused",
+  "{n} 项已在万象": "{n} items in Wanmory",
+  "已同步 {done} / {total}": "Synced {done} / {total}"
 }

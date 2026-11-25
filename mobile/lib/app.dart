@@ -9,6 +9,7 @@ import 'screens/code_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/viewer_screen.dart';
+import 'widgets/native_tab_bar.dart';
 
 /// The brand color of the web client (--color-accent).
 const accent = Color(0xFFCC632E);
@@ -19,6 +20,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
   return GoRouter(
     initialLocation: '/',
+    observers: [tabBarObserver],
     refreshListenable: refresh,
     redirect: (context, state) {
       final target = switch (ref.read(authProvider).status) {
@@ -63,10 +65,15 @@ class _WanmoryAppState extends ConsumerState<WanmoryApp> {
     ref.read(backupProvider);
   }
 
-  ThemeData _theme(Brightness b) => ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: accent, brightness: b),
-    useMaterial3: true,
-  );
+  ThemeData _theme(Brightness b) {
+    final light = b == Brightness.light;
+    // Plain white pages in light mode (the seeded surface has a warm tint)
+    final scheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: b,
+    ).copyWith(surface: light ? Colors.white : null);
+    return ThemeData(colorScheme: scheme, scaffoldBackgroundColor: scheme.surface, useMaterial3: true);
+  }
 
   @override
   Widget build(BuildContext context) {

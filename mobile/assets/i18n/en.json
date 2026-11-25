@@ -235,5 +235,17 @@
   "验证码": "Code",
   "验证码不对，或者已经过期了": "The code is wrong or has expired",
   "高于": "above",
-  "（没填名字）": "(no name)"
+  "（没填名字）": "(no name)",
+  "低电量模式已开启：iOS 会暂停后台同步，连上充电器和 Wi‑Fi 后会继续": "Low Power Mode is on: iOS pauses syncing in the background. It continues once the phone is charging and on Wi‑Fi",
+  "可以继续同步相册了": "Album sync can continue",
+  "还有 {n} 项没同步，打开 App 即可继续": "{n} items not synced yet. Open the app to continue",
+  "正在下载原片": "Getting the original",
+  "正在上传": "Uploading",
+  "剩余 {n} 项": "{n} left",
+  "已暂停": "Paused",
+  "继续": "Resume",
+  "暂停": "Pause",
+  "同步暂停": "Sync paused",
+  "{n} 项已在万象": "{n} items in Wanmory",
+  "已同步 {done} / {total}": "Synced {done} / {total}"
 }

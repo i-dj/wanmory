@@ -112,6 +112,42 @@ class _PersonCard extends StatelessWidget {
 }
 
 /// A tab page: large title with the avatar, pull to refresh, room for the tab bar.
+/// The title row at the top of each tab (Library, Albums, Collections). Same height, offset
+/// and type on every tab, so the title stays put when switching tabs.
+class TabHeader extends StatelessWidget {
+  const TabHeader({super.key, required this.title, this.actions = const []});
+
+  final String title;
+  final List<Widget> actions;
+
+  static const height = 52.0;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 8, 16, 0),
+    child: SizedBox(
+      height: height,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.w700, height: 1.1),
+            ),
+          ),
+          for (final a in actions) ...[
+            const SizedBox(width: 10),
+            SizedBox.square(dimension: 44, child: Center(child: a)),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
 class TabPage extends StatelessWidget {
   const TabPage({super.key, required this.title, required this.child, this.onRefresh, this.action});
 
@@ -132,21 +168,24 @@ class TabPage extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(pushed ? 4 : 20, 8, 16, 16),
-            child: Row(
-              children: [
-                if (pushed) const BackButton(),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+          child: pushed
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 16, 16),
+                  child: Row(
+                    children: [
+                      const BackButton(),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TabHeader(title: title, actions: [?action, const AccountButton()]),
                 ),
-                const Spacer(),
-                if (action != null) ...[action!, const SizedBox(width: 8)],
-                if (!pushed) const AccountButton(),
-              ],
-            ),
-          ),
         ),
         child,
         const SliverToBoxAdapter(child: SizedBox(height: 110)),

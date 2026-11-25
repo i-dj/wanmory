@@ -18,6 +18,7 @@ import '../i18n.dart';
 import '../widgets/account_sheet.dart';
 import '../widgets/avatar.dart';
 import '../widgets/glass.dart';
+import 'people_tab.dart';
 import '../widgets/hero_carousel.dart';
 import '../widgets/pinch_columns.dart';
 import '../widgets/time_scrubber.dart';
@@ -378,27 +379,19 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
                 controller: _scroll,
                 physics: physics,
                 slivers: [
-                  SliverToBoxAdapter(child: SizedBox(height: top + 8)),
+                  SliverToBoxAdapter(child: SizedBox(height: top)),
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 16, 4),
-                      child: Row(
-                        children: [
-                          Text(
-                            t('图库'),
-                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const Spacer(),
-                          GlassButton(
-                            icon: Icons.more_horiz,
-                            active: filtered,
-                            tooltip: t('筛选'),
-                            onPressed: _showMenu,
-                          ),
-                          const SizedBox(width: 10),
-                          const AccountButton(),
-                        ],
-                      ),
+                    child: TabHeader(
+                      title: t('图库'),
+                      actions: [
+                        GlassButton(
+                          icon: Icons.more_horiz,
+                          active: filtered,
+                          tooltip: t('筛选'),
+                          onPressed: _showMenu,
+                        ),
+                        const AccountButton(),
+                      ],
                     ),
                   ),
                   SliverToBoxAdapter(

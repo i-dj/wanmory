@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -6,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../backup/backup.dart';
 import '../i18n.dart';
 import '../widgets/glass.dart';
+import '../widgets/native_tab_bar.dart';
 import 'albums_tab.dart';
 import 'collections_tab.dart';
 import 'library_tab.dart';
@@ -35,6 +37,48 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
   /// progress in the Dynamic Island, so this is the way into the sync page from there.
   bool _chip = false;
   Timer? _chipTimer;
+
+  /// iOS draws the tab bar itself (see [NativeTabBar]).
+  bool _native = false;
+  String? _nativeLabels;
+
+  void _select(int i) => setState(() {
+    // Tapping Library again (or double-tapping it) goes back to the top
+    if (i == _tab && i == 0) libraryToTop.value++;
+    if (i != _tab && _visited.contains(i)) _refresh(i);
+    _tab = i;
+    _visited.add(i);
+  });
+
+  void _openSearch() =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SearchScreen()));
+
+  /// (Again when the language changes.)
+  void _showNative() {
+    final items = [
+      (t('图库'), 'photo.on.rectangle'),
+      (t('相册'), 'rectangle.stack'),
+      (t('合集'), 'square.grid.2x2'),
+    ];
+    final labels = items.map((i) => i.$1).join('|');
+    if (!Platform.isIOS || labels == _nativeLabels) return;
+    _nativeLabels = labels;
+    NativeTabBar.onSelect = (i) {
+      if (i != _tab) _select(i);
+    };
+    NativeTabBar.onReselect = (i) {
+      if (i == 0) libraryToTop.value++;
+    };
+    NativeTabBar.onSearch = _openSearch;
+    NativeTabBar.show(
+      items: items,
+      search: t('搜索照片'),
+      selected: _tab,
+      tint: Theme.of(context).colorScheme.primary,
+    ).then((ok) {
+      if (mounted && ok != _native) setState(() => _native = ok);
+    });
+  }
 
   void _showChip() {
     final s = ref.read(backupProvider);
@@ -70,7 +114,16 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    tabBarObserver.shell = ModalRoute.of(context);
+    _showNative();
+  }
+
+  @override
   void dispose() {
+    NativeTabBar.remove();
+    tabBarObserver.shell = null;
     _chipTimer?.cancel();
     _lifecycle.dispose();
     super.dispose();
@@ -101,7 +154,7 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: MediaQuery.paddingOf(context).bottom + 84,
+            bottom: MediaQuery.paddingOf(context).bottom + 74,
             child: Center(
               child: IgnorePointer(
                 ignoring: !_chip,
@@ -120,18 +173,13 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _TabBar(
-        index: _tab,
-        onTap: (i) => setState(() {
-          // Tapping Library again (or double-tapping it) goes back to the top
-          if (i == _tab && i == 0) libraryToTop.value++;
-          if (i != _tab && _visited.contains(i)) _refresh(i);
-          _tab = i;
-          _visited.add(i);
-        }),
-        onSearch: () =>
-            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SearchScreen())),
-      ),
+      // The system bar floats above; this keeps the room for it at the bottom of the pages
+      bottomNavigationBar: _native
+          ? const SafeArea(
+              minimum: EdgeInsets.only(bottom: 8),
+              child: SizedBox(height: _TabBar._height),
+            )
+          : _TabBar(index: _tab, onTap: _select, onSearch: _openSearch),
     );
   }
 }
@@ -146,7 +194,7 @@ class _TabBar extends StatelessWidget {
   final ValueChanged<int> onTap;
   final VoidCallback onSearch;
 
-  static const _height = 54.0;
+  static const _height = 48.0;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +266,7 @@ class _TabBar extends StatelessWidget {
                   radius: _height / 2,
                   child: SizedBox.square(
                     dimension: _height,
-                    child: Icon(Icons.search_rounded, size: 24, color: scheme.onSurface),
+                    child: Icon(Icons.search_rounded, size: 22, color: scheme.onSurface),
                   ),
                 ),
               ),
@@ -255,14 +303,14 @@ class _TabItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 21, color: color),
+              Icon(icon, size: 19, color: color),
               const SizedBox(height: 2),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: color,
                 ),

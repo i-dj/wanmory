@@ -44,21 +44,35 @@ void main() {
         eta: Duration(hours: 1, minutes: 25),
       ),
     );
-    expect(find.text('Uploading IMG_4821.HEIC'), findsOneWidget);
-    expect(find.text('300'), findsOneWidget);
-    expect(find.text('900'), findsOneWidget);
-    expect(find.text('1 h 25 min'), findsOneWidget);
+    expect(find.text('Uploading'), findsOneWidget);
+    expect(find.text('40% · 900 left'), findsOneWidget);
+    expect(find.textContaining('300 / 1,200'), findsOneWidget);
+    expect(find.textContaining('1 h 25 min'), findsOneWidget);
     expect(find.textContaining("2 items couldn't be uploaded"), findsOneWidget);
-    expect(find.text('Sync now'), findsNothing); // no button while uploading
+    expect(find.text('Pause'), findsOneWidget);
+    expect(find.text('Sync now'), findsNothing); // pause instead while uploading
   });
 
   testWidgets('estimating, waiting for Wi-Fi and done', (tester) async {
     await setLocale('zh-CN');
     await show(
       tester,
-      const BackupState(enabled: true, phase: BackupPhase.uploading, total: 10, pending: 10),
+      const BackupState(
+        enabled: true,
+        phase: BackupPhase.uploading,
+        total: 10,
+        pending: 10,
+        downloading: true,
+      ),
     );
-    expect(find.text('正在估算…'), findsOneWidget);
+    expect(find.text('正在下载原片'), findsOneWidget);
+    expect(find.text('0% · 剩余 10 项'), findsOneWidget);
+    await show(
+      tester,
+      const BackupState(enabled: true, phase: BackupPhase.uploading, total: 10, pending: 10, paused: true),
+    );
+    expect(find.text('已暂停'), findsOneWidget);
+    expect(find.text('继续'), findsOneWidget);
     await show(
       tester,
       const BackupState(enabled: true, phase: BackupPhase.waitingWifi, total: 10, pending: 4),

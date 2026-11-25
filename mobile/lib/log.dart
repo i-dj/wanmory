@@ -19,9 +19,22 @@ void setupLogging() {
     final error = r.error == null ? '' : ': ${r.error}';
     final line = '${r.time.toIso8601String()} ${r.level.name} ${r.loggerName}: ${r.message}$error';
     debugPrint(line);
-    _sink?.writeln(line);
+    try {
+      _sink?.writeln(line);
+    } on Object {
+      _reopen();
+    }
   });
   if (!kIsWeb) unawaited(_openFile());
+}
+
+bool _reopened = false;
+
+void _reopen() {
+  if (_sink == null) return;
+  _sink = null;
+  _reopened = true;
+  Future<void>.delayed(const Duration(seconds: 2), _openFile);
 }
 
 Future<void> _openFile() async {
@@ -32,8 +45,11 @@ Future<void> _openFile() async {
     if (await file.exists() && await file.length() > _maxLogBytes) {
       await file.rename('${file.path}.1');
     }
-    _sink = file.openWrite(mode: FileMode.append);
-    Logger('app').info('started');
+    final sink = file.openWrite(mode: FileMode.append);
+    _sink = sink;
+    // A write that fails (the phone locked at the wrong moment, say) would stop all later ones
+    unawaited(sink.done.catchError((Object _) => _reopen()));
+    if (!_reopened) Logger('app').info('started');
   } on Object catch (e) {
     debugPrint('cannot open the log file: $e');
   }

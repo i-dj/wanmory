@@ -65,5 +65,17 @@
   "还没有和别人的合影": "Pas encore de photos avec d'autres personnes",
   "这些照片里没有位置信息": "Ces photos n'ont pas de lieu",
   "这些照片里没有拍摄时间": "Ces photos n'ont pas de date de prise",
-  "正在同步相册 · 还有 {n} 项": "Synchronisation des albums · encore {n}"
+  "正在同步相册 · 还有 {n} 项": "Synchronisation des albums · encore {n}",
+  "低电量模式已开启：iOS 会暂停后台同步，连上充电器和 Wi‑Fi 后会继续": "Le mode économie d’énergie est activé : iOS met en pause la synchronisation en arrière-plan. Elle reprend quand le téléphone charge et est en Wi‑Fi",
+  "可以继续同步相册了": "La synchronisation de l’album peut reprendre",
+  "还有 {n} 项没同步，打开 App 即可继续": "{n} éléments pas encore synchronisés. Ouvrez l’app pour continuer",
+  "正在下载原片": "Récupération de l’original",
+  "正在上传": "Envoi en cours",
+  "剩余 {n} 项": "{n} restants",
+  "已暂停": "En pause",
+  "继续": "Reprendre",
+  "暂停": "Pause",
+  "同步暂停": "Synchronisation en pause",
+  "{n} 项已在万象": "{n} éléments dans Wanmory",
+  "已同步 {done} / {total}": "Synchronisés {done} / {total}"
 }

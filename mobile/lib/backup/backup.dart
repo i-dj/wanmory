@@ -58,6 +58,9 @@ class BackupState {
     this.eta,
     this.message,
     this.noRoomFor,
+    this.lowPower = false,
+    this.downloading = false,
+    this.paused = false,
   });
 
   final bool enabled;
@@ -95,6 +98,15 @@ class BackupState {
   /// A big file the server has no room for (its disk is too full); it is tried again later.
   final String? noRoomFor;
 
+  /// Low Power Mode is on: iOS pauses syncing in the background.
+  final bool lowPower;
+
+  /// The current file is still coming down from iCloud (not going up yet).
+  final bool downloading;
+
+  /// Paused from the settings until resumed (or the app starts again).
+  final bool paused;
+
   BackupState copyWith({
     bool? enabled,
     bool? videos,
@@ -113,6 +125,9 @@ class BackupState {
     String? message,
     String? noRoomFor,
     bool clearNoRoom = false,
+    bool? lowPower,
+    bool? downloading,
+    bool? paused,
   }) => BackupState(
     enabled: enabled ?? this.enabled,
     videos: videos ?? this.videos,
@@ -128,6 +143,9 @@ class BackupState {
     eta: clearEta ? null : (eta ?? this.eta),
     message: message,
     noRoomFor: clearNoRoom ? null : (noRoomFor ?? this.noRoomFor),
+    lowPower: lowPower ?? this.lowPower,
+    downloading: downloading ?? this.downloading,
+    paused: paused ?? this.paused,
   );
 }
 
@@ -194,6 +212,8 @@ class BackupNotifier extends Notifier<BackupState> {
   /// Per server and account: signing in somewhere else never starts uploading by itself.
   static const _kEnabled = 'backup.enabled';
   static const _kVideos = 'backup.videos';
+  static const _kLeft = 'backup.left';
+  static const _kNotified = 'backup.notified';
   static const _kWifiOnly = 'backup.wifi_only';
 
   /// Per server and account: the big files being sent in pieces.
@@ -207,6 +227,53 @@ class BackupNotifier extends Notifier<BackupState> {
   /// Big files sent in pieces at the same time. Their copies share the [_maxQueuedBytes]
   /// budget, except that one file bigger than all of it may go alone.
   static const _maxChunked = 2;
+
+  /// Runs [each] over [items] with [workers] going at once; [each] returns false to stop all.
+  static Future<void> _inParallel<T>(Iterable<T> items, int workers, Future<bool> Function(T) each) async {
+    final it = items.iterator;
+    var stop = false;
+    Future<void> worker() async {
+      while (!stop && it.moveNext()) {
+        if (!await each(it.current)) stop = true;
+      }
+    }
+
+    await Future.wait([for (var i = 0; i < workers; i++) worker()]);
+  }
+
+  /// Originals fetched from iCloud at the same time (most of the wait is iCloud's, not ours).
+  static const _cloudWorkers = 4;
+
+  /// What is already on the phone first (a second or two each), then what is only in iCloud,
+  /// more at a time: a slow iCloud download no longer holds up photos that are right there.
+  Future<void> _localFirst(
+    List<AssetEntity> items,
+    bool Function() going,
+    Future<bool> Function(AssetEntity) each,
+  ) async {
+    // In order, a few at a time. (Checking first which photos are on the phone took a request
+    // to the photo library per photo, which crawled when iOS was busy with iCloud.) While iCloud
+    // sends nothing ([_cloudPaused]) the pass ends: what is left waits for the next one.
+    var done = 0;
+    final started = DateTime.now();
+    final progress = Timer.periodic(const Duration(seconds: 30), (_) {
+      final fetching = _partial.values.where((f) => f < 0.5).length;
+      _log.info(
+        'working: $done of ${items.length} handled in ${DateTime.now().difference(started).inSeconds} s, '
+        '$fetching coming down from iCloud${_cloudPaused ? ', iCloud paused' : ''}',
+      );
+    });
+    try {
+      await _inParallel(items, _cloudWorkers, (a) async {
+        if (!going() || _cloudPaused) return false;
+        final go = await each(a);
+        done++;
+        return go;
+      });
+    } finally {
+      progress.cancel();
+    }
+  }
 
   /// Time to spend copying files when woken in the background (iOS allows about 30 s).
   static const _backgroundBudget = Duration(seconds: 20);
@@ -239,6 +306,68 @@ class BackupNotifier extends Notifier<BackupState> {
   /// Uploading by itself while the app runs in the background (see [ContinuedSync]).
   bool _direct = false;
   late final _cont = ContinuedSync(onStarted: _maybeDirect, onExpired: _continuedExpired);
+  late final _night = OvernightSync(
+    onStarted: () {
+      _slow.clear(); // more time for big originals now: the phone is charging
+      _maybeDirect();
+    },
+    onExpired: _continuedExpired,
+  );
+
+  /// iOS lets the app keep working in the background: the live sync, or the overnight job.
+  bool get _bgActive => _cont.active || _night.active || _fresh.going;
+
+  /// A short wake from iOS (background app refresh): the server is checked, what fits in the
+  /// time is uploaded, and a notification asks to open the app if much is left.
+  late final _fresh = RefreshSync(onStarted: () => unawaited(_onRefresh()), onExpired: _continuedExpired);
+
+  // Recovery: every loop remembers the generation it started in and stops when it changes, so a
+  // loop stuck on a call that never returns can be replaced (see [_checkStuck]).
+  int _gen = 0;
+  DateTime _lastActivity = DateTime.now();
+  Timer? _watchdog;
+  Timer? _retry;
+  void _alive() => _lastActivity = DateTime.now();
+
+  /// What is uploaded is saved a few seconds later, in one go (the list has an entry per photo:
+  /// saving it after every upload was slow with a big library).
+  Timer? _saveTimer;
+
+  /// The phone's library, read again only when it changed (or after a while): 25 000 items take
+  /// seconds to list.
+  List<AssetEntity>? _assets;
+  DateTime? _assetsAt;
+  bool _assetsStale = true;
+
+  /// Originals that took too long to come down from iCloud this time; tried again (with more
+  /// time) when the app is opened or the overnight job runs.
+  final Set<String> _slow = {};
+
+  /// iCloud downloads that timed out in a row in the background: iOS pauses iCloud Photos in
+  /// Low Power Mode (and sometimes on its own), and then no original comes down at all.
+  int _icloudStalls = 0;
+
+  /// After a few in a row: no iCloud downloads for a while, only what is on the phone. Trying
+  /// meanwhile only makes everything wait (and iOS end the background task as stalled).
+  DateTime _cloudPausedUntil = DateTime(0);
+  bool get _cloudPaused => DateTime.now().isBefore(_cloudPausedUntil);
+
+  void _noteIcloud({required bool ok}) {
+    if (ok) {
+      _icloudStalls = 0;
+      return;
+    }
+    if (++_icloudStalls < 3 || _cloudPaused) return;
+    _icloudStalls = 0;
+    _cloudPausedUntil = DateTime.now().add(const Duration(minutes: 10));
+    _log.info(
+      'iCloud is not sending originals${_lowPower ? ' (Low Power Mode)' : ''}: '
+      'only photos on the phone for 10 min',
+    );
+  }
+
+  /// Low Power Mode is on: iOS pauses background work (shown in the settings).
+  bool _lowPower = false;
   StreamSubscription<TaskUpdate>? _updates;
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
 
@@ -246,14 +375,42 @@ class BackupNotifier extends Notifier<BackupState> {
   BackupState build() {
     // Leaving the app (or locking the phone): keep uploading while iOS lets the app run.
     final lifecycle = AppLifecycleListener(
-      onInactive: () => _askToContinue(leaving: true),
-      // Right after launch the app may not count as "in front" yet; ask again once it does
-      onResume: _askToContinue,
-      onHide: _maybeDirect,
+      onInactive: () {
+        unawaited(_flushDone());
+        _askToContinue(leaving: true);
+      },
+      // Back in the app: what was put off is tried again. Right after launch the app may not
+      // count as "in front" yet, so the background task is asked for again too.
+      onResume: () {
+        // Opened: the next time sync can continue in the background deserves a notification again
+        unawaited(_p.then((p) => p.remove(_kNotified)));
+        _slow.clear();
+        _unreadable.clear();
+        _cloudPausedUntil = DateTime(0);
+        _assetsStale = true; // photos taken meanwhile
+        unawaited(_checkLowPower());
+        // Back after iOS suspended the app mid-sync (or launched it in the background with the
+        // phone locked, where photo library calls may never answer): whatever it was waiting on
+        // is stale
+        final quiet = DateTime.now().difference(_lastActivity);
+        _log.info('app opened (quiet for ${quiet.inSeconds} s)');
+        final stale = (_refilling || _direct) && quiet > const Duration(seconds: 45);
+        final neverRead = state.enabled && state.total == 0 && quiet > const Duration(seconds: 20);
+        if (stale || neverRead) _restart('back in the app after ${quiet.inSeconds} s');
+        _askToContinue();
+        start();
+      },
+      onHide: () {
+        _log.info('app left');
+        unawaited(_flushDone());
+        _maybeDirect();
+      },
     );
     ref.onDispose(() {
       _updates?.cancel();
       _connectivity?.cancel();
+      _watchdog?.cancel();
+      _retry?.cancel();
       lifecycle.dispose();
     });
     // Runs while signed in; stops on sign-out.
@@ -294,9 +451,13 @@ class BackupNotifier extends Notifier<BackupState> {
     }
     // On first load the tasks restored by _init belong to this account (same server and
     // token); they keep going instead of being copied and sent again from the start.
-    if (_loadedAccount != null) await _cancelAll();
+    if (_loadedAccount != null) {
+      await _flushDone();
+      await _cancelAll();
+    }
     _loadedAccount = account;
     _doneCache = null;
+    _assetsStale = true;
     await _loadChunked();
     _log.info('account loaded, ${_chunked.length} big files in pieces');
     final on = account != null && ((await _p).getBool('$_kEnabled:$account') ?? false);
@@ -313,8 +474,20 @@ class BackupNotifier extends Notifier<BackupState> {
       _doneCache ??= ((await _p).getStringList('backup.done:$_account') ?? []).toSet();
 
   Future<void> _saveDone() async {
+    _saveTimer ??= Timer(const Duration(seconds: 5), () {
+      _saveTimer = null;
+      unawaited(_flushDone());
+    });
+  }
+
+  Future<void> _flushDone() async {
+    _saveTimer?.cancel();
+    _saveTimer = null;
     final done = _doneCache;
-    if (done != null) await (await _p).setStringList('backup.done:$_account', done.toList());
+    final account = _account;
+    if (done != null && account != null) {
+      await (await _p).setStringList('backup.done:$account', done.toList());
+    }
   }
 
   Future<void> _loadChunked() async {
@@ -345,6 +518,8 @@ class BackupNotifier extends Notifier<BackupState> {
   int get _queuedCount => _queued.length + _chunked.length;
 
   Future<void> _init() async {
+    _night.active; // set up now: iOS may have launched the app for the overnight job
+    _fresh.active; // or for a background refresh
     final p = await _p;
     // Older builds kept one switch for the whole app; it must not carry over to other accounts.
     await p.remove(_kEnabled);
@@ -467,6 +642,7 @@ class BackupNotifier extends Notifier<BackupState> {
   Future<void> setVideos(bool on) async {
     await (await _p).setBool(_kVideos, on);
     state = state.copyWith(videos: on);
+    _assetsStale = true;
     await restart();
   }
 
@@ -474,6 +650,31 @@ class BackupNotifier extends Notifier<BackupState> {
     await (await _p).setBool(_kWifiOnly, on);
     state = state.copyWith(wifiOnly: on);
     await restart();
+  }
+
+  /// Stops syncing for now (what the system queue already has may still finish).
+  void pause() {
+    if (state.paused) return;
+    _log.info('paused');
+    state = state.copyWith(paused: true, downloading: false);
+    _gen++;
+    _refilling = false;
+    _direct = false;
+    for (final c in _downloads.toList()) {
+      unawaited(c.cancelRequest());
+    }
+    _downloads.clear();
+    _partial.clear();
+    _cont.finish();
+  }
+
+  void resume() {
+    if (!state.paused) return;
+    _log.info('resumed');
+    state = state.copyWith(paused: false);
+    _alive();
+    _askToContinue();
+    start();
   }
 
   /// Opens the system settings to allow photo access after it was denied.
@@ -526,7 +727,7 @@ class BackupNotifier extends Notifier<BackupState> {
 
   /// Tops up the upload queue if sync is on.
   void start() {
-    if (!_ready || !state.enabled || _api == null) return;
+    if (!_ready || !state.enabled || state.paused || _api == null) return;
     _watch();
     if (_direct) return; // uploading by itself in the background; the queue waits
     if (_refilling) {
@@ -539,27 +740,140 @@ class BackupNotifier extends Notifier<BackupState> {
   void _watch() {
     if (_watching) return;
     _watching = true;
-    PhotoManager.addChangeCallback((_) => start());
-    PhotoManager.startChangeNotify();
+    // No library change notifications: iOS sends them nonstop while originals come down from
+    // iCloud, and the photo plugin answers each with more queries to the photo library, which
+    // slows every other request (downloads included). New photos are found when the app is
+    // opened and when the list is read again (every 15 minutes).
     _connectivity = Connectivity().onConnectivityChanged.listen((_) => start());
+    _watchdog = Timer.periodic(const Duration(minutes: 1), (_) => _checkStuck());
+  }
+
+  /// Runs every minute while the app runs: a loop that made no progress for a long while is
+  /// stuck (a call into iOS that never returns, a connection that hangs) and is replaced; sync
+  /// that stopped with something left is started again.
+  void _checkStuck() {
+    // (total 0: the library hasn't been read yet, so nothing is known to be left)
+    if (!state.enabled || state.paused || (state.pending <= 0 && state.total > 0) || _api == null) return;
+    final quiet = DateTime.now().difference(_lastActivity);
+    if ((_refilling || _direct) && quiet > const Duration(minutes: 3)) {
+      _restart('sync made no progress for ${quiet.inMinutes} min');
+    } else if (!_refilling && !_direct && _queuedCount == 0 && quiet > const Duration(minutes: 2)) {
+      _alive();
+      start();
+    }
+  }
+
+  /// Drops the running sync loops, with the iCloud downloads they wait on, and starts again:
+  /// what restarting the app used to fix (a download that hangs, a loop left over from before iOS
+  /// suspended the app).
+  void _restart(String why) {
+    _log.warning('$why, starting over');
+    _gen++;
+    _refilling = false;
+    _direct = false;
+    for (final c in _downloads.toList()) {
+      unawaited(c.cancelRequest());
+    }
+    _downloads.clear();
+    _partial.clear();
+    _alive();
+    start();
+  }
+
+  /// iCloud downloads in progress, so a restart can cancel them.
+  final Set<PMCancelToken> _downloads = {};
+
+  /// iOS woke the app for half a minute. If the server can be reached and something is left:
+  /// a notification (at most every few hours) to open the app, and uploads until the time is up.
+  Future<void> _onRefresh() async {
+    final api = _api;
+    final prefs = await _p;
+    final left = state.total > 0 ? state.pending : (prefs.getInt(_kLeft) ?? 0);
+    // Already syncing: nothing to add
+    if (_cont.active || _night.active || !_inBackground) {
+      _fresh.finish();
+      return;
+    }
+    if (api == null || !state.enabled || left <= 0 || (state.wifiOnly && !await _onWifi())) {
+      _fresh.finish();
+      return;
+    }
+    try {
+      await api.probe().timeout(const Duration(seconds: 6));
+    } on Object {
+      _log.info('background refresh: server not reachable');
+      _fresh.finish();
+      return;
+    }
+    final last = DateTime.fromMillisecondsSinceEpoch(prefs.getInt(_kNotified) ?? 0);
+    if (left >= 20 && DateTime.now().difference(last) > const Duration(hours: 6)) {
+      await prefs.setInt(_kNotified, DateTime.now().millisecondsSinceEpoch);
+      await _fresh.notify(t('可以继续同步相册了'), t('还有 {n} 项没同步，打开 App 即可继续', {'n': left}));
+      _log.info('background refresh: asked to open the app, $left left');
+    }
+    _maybeDirect();
+    // Uploads go on until [RefreshSync.going] turns false; then iOS gets the wake back
+    await Future<void>.delayed(const Duration(seconds: 24));
+    await _flushDone();
+    _fresh.finish();
+  }
+
+  /// Tries again in a little while (after the library couldn't be read, say).
+  void _retryLater() {
+    _retry?.cancel();
+    _retry = Timer(const Duration(seconds: 30), start);
+  }
+
+  /// [f], given up on after [limit]; slow steps are logged.
+  Future<T> _step<T>(String what, Future<T> f, Duration limit) async {
+    final started = DateTime.now();
+    try {
+      return await f.timeout(limit);
+    } on TimeoutException {
+      _log.warning('$what: no answer after ${limit.inSeconds} s');
+      rethrow;
+    } finally {
+      final took = DateTime.now().difference(started);
+      if (took >= const Duration(seconds: 5)) _log.info('$what took ${took.inSeconds} s');
+      _alive();
+    }
+  }
+
+  Future<void> _checkLowPower() async {
+    final on = await _cont.lowPower();
+    if (on != _lowPower) {
+      _lowPower = on;
+      _log.info('Low Power Mode ${on ? 'on' : 'off'}');
+      state = state.copyWith(lowPower: on);
+    }
   }
 
   Future<void> _loop() async {
+    final gen = _gen;
     _refilling = true;
     try {
       do {
         _again = false;
-        await _refill();
-      } while (_again && state.enabled);
+        await _refill(gen);
+      } while (_again && state.enabled && gen == _gen);
+    } on TimeoutException {
+      // Logged by [_step]; tried again shortly
+      _retryLater();
     } finally {
-      _refilling = false;
+      if (gen == _gen) _refilling = false;
     }
-    _maybeDirect();
+    if (gen == _gen) _maybeDirect();
   }
 
   /// Starts uploading by itself if the app is in the background with a continued task running.
   void _maybeDirect() {
-    if (_cont.active && _inBackground && state.enabled && !_direct && !_refilling && _api != null) {
+    if (_bgActive &&
+        _inBackground &&
+        state.enabled &&
+        !state.paused &&
+        !_direct &&
+        !_refilling &&
+        _api != null) {
       unawaited(_directLoop());
     }
   }
@@ -572,12 +886,23 @@ class BackupNotifier extends Notifier<BackupState> {
   /// the piece-by-piece queue. Back in the foreground the system queue takes over again.
   Future<void> _directLoop() async {
     final api = _api;
-    if (api == null || (state.wifiOnly && !await _onWifi())) return;
+    if (api == null) return;
+    if (state.wifiOnly && !await _onWifi()) {
+      // Nothing to do until Wi-Fi: end the tasks as done, not stalled ("failed")
+      _log.info('background upload waits for Wi-Fi');
+      _cont.finish();
+      _night.finish(more: true);
+      return;
+    }
+    final gen = _gen;
     _direct = true;
-    _log.info('uploading in the background');
+    _alive();
+    _log.info('uploading in the background${_night.active ? ' (overnight)' : ''}');
     var failures = 0;
     var idle = false; // a whole pass sent nothing: what is left can't be sent now
-    bool going() => _cont.active && _inBackground && state.enabled && _api == api;
+    var offline = false; // the server can't be reached (away from home, say)
+
+    bool going() => gen == _gen && _bgActive && _inBackground && state.enabled && _api == api;
     try {
       while (going() && !idle) {
         final before = state.synced;
@@ -585,6 +910,13 @@ class BackupNotifier extends Notifier<BackupState> {
         await _directPass(api, () => going() && failures < 3, (o) {
           failures = o == Outcome.retry ? failures + 1 : 0;
         });
+        if (failures >= 3) {
+          // Not worth trying more now: ended as done so iOS doesn't count it as failed. Picked
+          // up again when the network changes, at the next background refresh or overnight.
+          _log.info('server not reachable, background upload stops');
+          offline = true;
+          break;
+        }
         final pieces = going() && await _directPieces(api);
         // Uploads still in the system queue (handed over while the app was open) keep going and
         // report back while the app runs: wait for them instead of ending the task
@@ -602,19 +934,24 @@ class BackupNotifier extends Notifier<BackupState> {
       _log.warning('cannot read the photo library', e);
     } on FileSystemException catch (e) {
       _log.warning('cannot copy a photo', e);
+    } on TimeoutException {
+      // Logged by [_step]
     } finally {
-      _direct = false;
+      if (gen == _gen) _direct = false;
+      await _flushDone();
     }
+    if (gen != _gen) return; // replaced by a new loop
     await _driveChunked();
     await _updatePhase();
     // Nothing more the app can send right now (the rest waits for the network, the server or
     // iCloud): end the task as done instead of letting iOS end it as stalled ("failed").
-    if (idle || state.pending == 0) {
+    if (idle || offline || state.pending == 0) {
       _log.info('background upload finished, ${state.pending} left');
       _cont.finish();
+      _night.finish(more: state.pending > 0);
     }
     // Back in the foreground, or the task ended: the system queue takes over.
-    if (!_cont.active || !_inBackground) start();
+    if (!_bgActive || !_inBackground) start();
   }
 
   /// One pass over the phone's library, uploading what isn't on the server yet one by one.
@@ -622,24 +959,50 @@ class BackupNotifier extends Notifier<BackupState> {
   Future<void> _directPass(ApiClient api, bool Function() going, void Function(Outcome) result) async {
     final all = await _localAssets();
     final done = await _done();
-    final skip = {for (final q in _queued.values) q.asset, ..._chunked.keys, ..._deferred, ..._unreadable};
+    final skip = {
+      for (final q in _queued.values) q.asset,
+      ..._chunked.keys,
+      ..._deferred,
+      ..._unreadable,
+      ..._slow,
+    };
+    // Overnight (charging, no watch on the progress) there is time for videos and big originals
+    final overnight = _night.active;
     var failures = 0;
-    for (final asset in all) {
-      if (!going()) break;
-      if (done.contains(asset.id) || skip.contains(asset.id)) continue;
-      final p = await _prepare(asset);
+    final todo = all.where((a) => !done.contains(a.id) && !skip.contains(a.id)).toList();
+    // A few at a time: while one photo comes down from iCloud another goes up
+    await _localFirst(todo, going, (asset) async {
+      if (!going()) return false;
+      // Videos can take minutes to come down from iCloud and go up, longer than iOS lets a
+      // background task go without visible progress: they upload while the app is open, or
+      // through the system queue
+      if (asset.type == AssetType.video && !overnight) return true;
+      var slow = false;
+      final p = await _prepare(
+        asset,
+        limit: overnight ? const Duration(minutes: 10) : const Duration(seconds: 40),
+        onTimeout: () => slow = true,
+      );
       if (p == null) {
-        _unreadable.add(asset.id); // still in iCloud: try again on the next run, not every pass
-        state = state.copyWith(failed: state.failed + 1);
-        continue;
+        _partial.remove(asset.id);
+        if (slow) {
+          _noteIcloud(ok: false);
+          _slow.add(asset.id); // later, with more time
+        } else {
+          _unreadable.add(asset.id); // can't be read now: tried again when the app is opened
+          state = state.copyWith(failed: state.failed + 1);
+        }
+        return true;
       }
+      _noteIcloud(ok: true);
       final info = p.info;
       if (info.bytes > chunkBytes) {
+        _partial.remove(asset.id);
         if (!await _addChunked(p)) {
           _deferred.add(asset.id);
           await _deleteFile(p.copy);
         }
-        continue;
+        return true;
       }
       final r = await api.uploadStream(
         body: _counting(p.copy.openRead(), info.asset, info.name, info.bytes),
@@ -659,7 +1022,7 @@ class BackupNotifier extends Notifier<BackupState> {
         code: r.status,
         why: why,
       );
-      if (signedOut) return;
+      if (signedOut) return false;
       result(o);
       if (o == Outcome.retry) {
         // The server or the network is down: wait a little (the caller stops after 3)
@@ -667,7 +1030,8 @@ class BackupNotifier extends Notifier<BackupState> {
       } else {
         failures = 0;
       }
-    }
+      return true;
+    });
   }
 
   bool get _inBackground => WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
@@ -677,13 +1041,21 @@ class BackupNotifier extends Notifier<BackupState> {
     return c.contains(ConnectivityResult.wifi) || c.contains(ConnectivityResult.ethernet);
   }
 
-  Future<void> _refill() async {
+  Future<void> _refill(int gen) async {
     final api = _api;
     if (api == null || !state.enabled) return;
-    // Don't show the permission prompt from the background.
-    final perm = _inBackground
-        ? await PhotoManager.getPermissionState(requestOption: const PermissionRequestOption())
-        : await PhotoManager.requestPermissionExtend();
+    _alive();
+    unawaited(_checkLowPower());
+    // Don't show the permission prompt from the background. Either can hang (a pending iOS
+    // prompt, the phone locked right after launch): given up on after a while, tried again.
+    final perm = await _step(
+      'photo access',
+      _inBackground
+          ? PhotoManager.getPermissionState(requestOption: const PermissionRequestOption())
+          : PhotoManager.requestPermissionExtend(),
+      // In front iOS may be waiting for the person to answer its prompt
+      _inBackground ? const Duration(seconds: 20) : const Duration(minutes: 5),
+    );
     if (!perm.hasAccess) {
       _log.info('no access to the photo library ($perm)');
       state = state.copyWith(phase: BackupPhase.noPermission);
@@ -697,11 +1069,14 @@ class BackupNotifier extends Notifier<BackupState> {
     } on PlatformException catch (e) {
       _log.warning('cannot read the photo library', e);
       state = state.copyWith(phase: BackupPhase.error, message: '读取手机相册失败');
+      _retryLater();
       return;
     }
     final done = await _done();
-    final queuedAssets = {for (final q in _queued.values) q.asset, ..._chunked.keys, ..._deferred};
-    final todo = all.where((a) => !done.contains(a.id) && !queuedAssets.contains(a.id)).toList();
+    final queuedAssets = {for (final q in _queued.values) q.asset, ..._chunked.keys, ..._deferred, ..._slow};
+    final todo = all.where((a) => !done.contains(a.id) && !queuedAssets.contains(a.id)).toList()
+      // Photos first: a video can take minutes to come down from iCloud
+      ..sort((a, b) => (a.type == AssetType.video ? 1 : 0) - (b.type == AssetType.video ? 1 : 0));
     final synced = all.where((a) => done.contains(a.id)).length;
     _photosLeft = todo.where((a) => a.type != AssetType.video).length;
     _videosLeft = todo.length - _photosLeft;
@@ -712,6 +1087,9 @@ class BackupNotifier extends Notifier<BackupState> {
       queued: _queuedCount,
     );
     _log.info('library: ${all.length} items, ${all.length - synced} not synced (${todo.length} to queue)');
+    if (todo.isNotEmpty && state.phase == BackupPhase.scanning) {
+      state = state.copyWith(phase: BackupPhase.uploading);
+    }
     // Before copying the first batch, which can take a minute on a phone syncing for the first time
     _askToContinue();
 
@@ -719,18 +1097,37 @@ class BackupNotifier extends Notifier<BackupState> {
     var queuedBytes = _queued.values.fold<int>(0, (s, q) => s + q.bytes);
     final batch = <UploadTask>[];
     var failed = state.failed;
-    for (final asset in todo) {
-      if (!state.enabled || _api == null) return;
-      if (_queued.length + batch.length >= _maxQueued || queuedBytes >= _maxQueuedBytes) break;
-      if (deadline != null && DateTime.now().isAfter(deadline)) break;
+    // A few at a time: a big original still coming down from iCloud holds up one of them,
+    // not the whole queue
+    await _localFirst(todo, () => gen == _gen && state.enabled && _api != null, (asset) async {
+      if (gen != _gen || !state.enabled || _api == null) return false;
+      if (_queued.length + batch.length >= _maxQueued || queuedBytes >= _maxQueuedBytes) return false;
+      if (deadline != null && DateTime.now().isAfter(deadline)) return false;
+      // In the background with the continued task: the direct loop takes over (it reports
+      // progress as it goes; this one only when a whole batch is queued)
+      if (_bgActive && _inBackground) return false;
       // Finished or queued since the list was made.
-      if (done.contains(asset.id) || _queued.containsKey('backup:${asset.id}')) continue;
+      if (done.contains(asset.id) || _queued.containsKey('backup:${asset.id}')) return true;
       try {
-        final p = await _prepare(asset);
+        var slow = false;
+        // Not forever: a hung download holds up only this one, and only for a while
+        final p = await _prepare(
+          asset,
+          limit: asset.type == AssetType.video ? const Duration(minutes: 5) : const Duration(seconds: 60),
+          onTimeout: () => slow = true,
+        );
+        // Handed to the system queue from here, which reports when it is done
+        _partial.remove(asset.id);
         if (p == null) {
-          failed++;
-          continue;
+          if (slow) {
+            _noteIcloud(ok: false);
+            _slow.add(asset.id);
+          } else {
+            failed++;
+          }
+          return true;
         }
+        _noteIcloud(ok: true);
         final info = p.info;
         if (info.bytes > chunkBytes) {
           if (await _addChunked(p)) {
@@ -740,7 +1137,7 @@ class BackupNotifier extends Notifier<BackupState> {
             _deferred.add(asset.id);
             await _deleteFile(p.copy);
           }
-          continue;
+          return true;
         }
         final task = backupTask(
           api: api,
@@ -754,13 +1151,15 @@ class BackupNotifier extends Notifier<BackupState> {
         batch.add(task);
         _queued[task.taskId] = info;
         info.video ? _videosLeft-- : _photosLeft--;
-        if (batch.length >= 10) await _enqueue(batch);
+        if (batch.length >= 6) await _enqueue(batch);
+        return true;
       } on FileSystemException catch (e) {
         // Usually the phone is out of space: stop adding and let the queue drain.
         _log.warning('cannot copy ${asset.id}', e);
-        break;
+        return false;
       }
-    }
+    });
+    if (gen != _gen) return; // replaced by a new loop
     await _enqueue(batch);
     await PhotoManager.clearFileCache();
     state = state.copyWith(failed: failed, queued: _queuedCount);
@@ -770,8 +1169,10 @@ class BackupNotifier extends Notifier<BackupState> {
 
   Future<void> _enqueue(List<UploadTask> batch) async {
     if (batch.isEmpty) return;
-    await FileDownloader().enqueueAll(List.of(batch));
+    // Taken out before waiting: the other workers keep adding to [batch] meanwhile
+    final tasks = List.of(batch);
     batch.clear();
+    await FileDownloader().enqueueAll(tasks);
     state = state.copyWith(queued: _queuedCount, phase: BackupPhase.uploading);
   }
 
@@ -780,10 +1181,15 @@ class BackupNotifier extends Notifier<BackupState> {
   /// it is asked as soon as there is something to sync, and again as the user leaves the app
   /// ([leaving]: the app is already inactive then, but still in front).
   void _askToContinue({bool leaving = false}) {
+    if (state.pending > 0 && state.enabled) {
+      unawaited(_night.schedule());
+      unawaited(_fresh.schedule());
+    }
     // Not known yet right after launch: try (iOS refuses it if the app isn't in front)
     final life = WidgetsBinding.instance.lifecycleState;
     final inFront = life == null || life == AppLifecycleState.resumed;
-    if (state.pending <= 0 || !state.enabled || (!inFront && !leaving)) return;
+    if (state.pending <= 0 || !state.enabled || state.paused || (!inFront && !leaving)) return;
+    if (inFront) unawaited(_fresh.allowNotifications());
     unawaited(
       _cont.start(
         title: t('同步相册'),
@@ -795,9 +1201,11 @@ class BackupNotifier extends Notifier<BackupState> {
   }
 
   Future<void> _updatePhase() async {
+    if (state.total > 0) unawaited(_p.then((p) => p.setInt(_kLeft, state.pending)));
     if (_queuedCount == 0 && state.pending == 0) {
       state = state.copyWith(phase: BackupPhase.done, clearCurrent: true, clearEta: true);
       _cont.finish();
+      _night.finish(more: false);
       return;
     }
     _askToContinue();
@@ -810,6 +1218,21 @@ class BackupNotifier extends Notifier<BackupState> {
 
   /// The phone's photos (and videos when chosen), newest first.
   Future<List<AssetEntity>> _localAssets() async {
+    final cached = _assets, at = _assetsAt;
+    if (cached != null &&
+        at != null &&
+        !_assetsStale &&
+        DateTime.now().difference(at) < const Duration(minutes: 15)) {
+      return cached;
+    }
+    final list = await _step('reading the library', _readLibrary(), const Duration(minutes: 2));
+    _assets = list;
+    _assetsAt = DateTime.now();
+    _assetsStale = false;
+    return list;
+  }
+
+  Future<List<AssetEntity>> _readLibrary() async {
     final paths = await PhotoManager.getAssetPathList(
       onlyAll: true,
       type: state.videos ? RequestType.common : RequestType.image,
@@ -829,9 +1252,64 @@ class BackupNotifier extends Notifier<BackupState> {
 
   /// Copies the original into the upload directory; null when the file can't be read (for
   /// example still in iCloud without a connection).
-  Future<({File copy, String fileName, QueuedAsset info})?> _prepare(AssetEntity asset) async {
+  Future<({File copy, String fileName, QueuedAsset info})?> _prepare(
+    AssetEntity asset, {
+    void Function(double)? onDownload,
+    Duration? limit,
+    void Function()? onTimeout,
+  }) async {
     final video = asset.type == AssetType.video;
-    final File? src = await asset.loadFile(isOrigin: true);
+    // Originals only in iCloud are downloaded first. Meanwhile the background task's progress
+    // moves: by how far the download is when iOS says so, and otherwise slowly by itself, since a
+    // step that doesn't move for a little while looks stalled to iOS, which then ends the task
+    final started = DateTime.now();
+    var reported = 0.0;
+    void step(double f, {bool real = true}) {
+      if (f <= reported) return;
+      reported = f;
+      _setPartial(asset.id, f, real: real);
+      // The download is the first half of a file's step: shown as 0–100 % of "getting the original"
+      _showProgress(asset.id, asset.title ?? '', f * 2, downloading: true);
+      onDownload?.call(f);
+    }
+
+    final creep = Timer.periodic(const Duration(seconds: 1), (_) {
+      final secs = DateTime.now().difference(started).inMilliseconds / 1000;
+      step(min(0.48, 0.25 * (1 - exp(-secs / 8)) + secs * 0.004), real: false);
+    });
+    final handler = Platform.isIOS ? PMProgressHandler() : null;
+    final sub = handler?.stream.listen((p) => step(p.progress * 0.5));
+    final cancel = PMCancelToken();
+    _downloads.add(cancel);
+    File? src;
+    try {
+      final load = asset.loadFile(isOrigin: true, progressHandler: handler, cancelToken: cancel);
+      if (limit == null) {
+        src = await load;
+      } else {
+        src = await load.timeout(
+          limit,
+          onTimeout: () {
+            // Too slow for now (a big original still in iCloud): left for later
+            unawaited(cancel.cancelRequest());
+            _log.info('getting ${asset.id} from iCloud is taking too long, later');
+            onTimeout?.call();
+            return null;
+          },
+        );
+      }
+    } on PlatformException catch (e) {
+      // Cancelled by a restart, or iOS couldn't get it: skipped for now
+      _log.info('getting ${asset.id} failed: ${e.message}');
+      src = null;
+    } finally {
+      _downloads.remove(cancel);
+      creep.cancel();
+      await sub?.cancel();
+    }
+    final took = DateTime.now().difference(started);
+    _alive();
+    if (took > const Duration(seconds: 3)) _log.info('getting ${asset.id} took ${took.inSeconds} s');
     if (src == null) return null;
     var name = await asset.titleAsync;
     if (name.isEmpty) name = '${asset.id.replaceAll('/', '_')}${video ? '.mov' : '.jpg'}';
@@ -980,7 +1458,7 @@ class BackupNotifier extends Notifier<BackupState> {
     final dir = await _dir();
     for (final c in _chunked.values.toList()) {
       if (_chunkTasks.containsValue(c.asset)) continue; // the system is sending a piece of it
-      while (_cont.active && _inBackground && state.enabled && _chunked.containsKey(c.asset)) {
+      while (_bgActive && _inBackground && state.enabled && _chunked.containsKey(c.asset)) {
         if (!await _locate(api, c)) break;
         final offset = c.offset!;
         final length = min(chunkBytes, c.bytes - offset);
@@ -1035,11 +1513,26 @@ class BackupNotifier extends Notifier<BackupState> {
 
   /// Tells iOS how far sync is (the progress on the lock screen); big files count by how much
   /// of them is sent, so the progress keeps moving while one uploads.
+  /// [extra] is how far the file being handled is (0–1): its download from iCloud and its
+  /// upload. iOS ends a background task whose progress stops moving, and one file (an original
+  /// fetched from iCloud, a video) can take a while.
+  /// How far each file being handled is (0–1), by photo ID: several go at once.
+  final Map<String, double> _partial = {};
+
+  /// [real]: from bytes actually moving (the creeping estimate during a download is not, so a
+  /// hung download still looks stuck to the watchdog).
+  void _setPartial(String asset, double f, {bool real = true}) {
+    if (real) _alive();
+    _partial[asset] = f;
+    _reportProgress();
+  }
+
   void _reportProgress() {
     final inBig = _chunked.values.fold<double>(0, (s, c) => s + c.sent / c.bytes);
+    final partial = _partial.values.fold<double>(0, (s, f) => s + f);
     _cont.progress(
       total: state.total * 100,
-      done: (state.synced * 100 + inBig * 100).round(),
+      done: (state.synced * 100 + inBig * 100 + partial * 100).round(),
       subtitle: t('还有 {n} 项', {'n': state.pending}),
     );
   }
@@ -1158,7 +1651,7 @@ class BackupNotifier extends Notifier<BackupState> {
   DateTime _shownAt = DateTime(0);
   DateTime _emittedAt = DateTime(0);
 
-  void _showProgress(String key, String name, double fraction) {
+  void _showProgress(String key, String name, double fraction, {bool downloading = false}) {
     final now = DateTime.now();
     if (key != _shownKey) {
       final busy = _shownKey != null && now.difference(_shownAt) < const Duration(milliseconds: 1500);
@@ -1174,6 +1667,7 @@ class BackupNotifier extends Notifier<BackupState> {
       phase: BackupPhase.uploading,
       current: name,
       currentProgress: fraction.clamp(0, 1),
+      downloading: downloading,
       eta: _eta.estimate(queuedBytesLeft: _queuedBytesLeft, photosLeft: _photosLeft, videosLeft: _videosLeft),
     );
   }
@@ -1195,7 +1689,10 @@ class BackupNotifier extends Notifier<BackupState> {
     var sent = 0;
     return body.map((chunk) {
       sent += chunk.length;
-      _showProgress(key, name, (before + sent) / (total ?? length));
+      final f = (before + sent) / (total ?? length);
+      _showProgress(key, name, f);
+      // Big files count in [_reportProgress] already; small ones move the second half of their step
+      if (total == null) _setPartial(key, 0.5 + f * 0.5);
       return chunk;
     });
   }
@@ -1205,6 +1702,7 @@ class BackupNotifier extends Notifier<BackupState> {
     switch (update) {
       case TaskProgressUpdate(:final progress):
         if (progress < 0) return;
+        _alive();
         final String name;
         final double fraction;
         final c = _chunked[_chunkTasks[update.task.taskId]];
@@ -1250,7 +1748,7 @@ class BackupNotifier extends Notifier<BackupState> {
         _reportProgress();
         // In the background with the continued task the app sends the next piece itself (a piece
         // queued now would wait for the charger); otherwise the system queue takes it
-        if (_cont.active && _inBackground) {
+        if (_bgActive && _inBackground) {
           _maybeDirect();
         } else {
           await _nextPiece(api, c);
@@ -1313,7 +1811,9 @@ class BackupNotifier extends Notifier<BackupState> {
     int? code,
     String? why,
   }) async {
+    _alive();
     _shownDone(q.asset);
+    _partial.remove(q.asset);
     try {
       return await _applyOutcome(o, q, duplicate: duplicate, code: code, why: why);
     } finally {

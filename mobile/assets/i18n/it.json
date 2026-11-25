@@ -235,5 +235,17 @@
   "验证码": "Codice",
   "验证码不对，或者已经过期了": "Il codice è errato o scaduto",
   "高于": "superiore a",
-  "（没填名字）": "(senza nome)"
+  "（没填名字）": "(senza nome)",
+  "低电量模式已开启：iOS 会暂停后台同步，连上充电器和 Wi‑Fi 后会继续": "La modalità risparmio energetico è attiva: iOS sospende la sincronizzazione in background. Riprende quando il telefono è in carica e in Wi‑Fi",
+  "可以继续同步相册了": "La sincronizzazione dell’album può continuare",
+  "还有 {n} 项没同步，打开 App 即可继续": "{n} elementi ancora da sincronizzare. Apri l’app per continuare",
+  "正在下载原片": "Scaricamento dell’originale",
+  "正在上传": "Caricamento",
+  "剩余 {n} 项": "{n} rimanenti",
+  "已暂停": "In pausa",
+  "继续": "Riprendi",
+  "暂停": "Pausa",
+  "同步暂停": "Sincronizzazione in pausa",
+  "{n} 项已在万象": "{n} elementi in Wanmory",
+  "已同步 {done} / {total}": "Sincronizzati {done} / {total}"
 }
