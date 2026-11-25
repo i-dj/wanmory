@@ -78,6 +78,19 @@ function useDesktop(): boolean {
   return desktop
 }
 
+// 窗口不够宽（不到 1200px，例如笔记本上没全屏的浏览器）时自动收成窄栏，给照片多留地方；
+// 这时点展开只在这次有效，窗口变宽、再变窄又会自动收起。宽窗口照旧按自己点的、记在浏览器里的来
+const COMPACT = window.matchMedia('(max-width: 75rem)')
+function useCompact(): boolean {
+  const [compact, setCompact] = useState(COMPACT.matches)
+  useEffect(() => {
+    const on = () => setCompact(COMPACT.matches)
+    COMPACT.addEventListener('change', on)
+    return () => COMPACT.removeEventListener('change', on)
+  }, [])
+  return compact
+}
+
 function useCollapsed(): [boolean, (v: boolean) => void] {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -109,7 +122,12 @@ export default function Sidebar({
   navigate: (to: string) => void
 }) {
   const { guest, signIn } = useCurrentUser()
-  const [collapsed, setCollapsed] = useCollapsed()
+  const [saved, setSaved] = useCollapsed()
+  const compact = useCompact()
+  const [expandedHere, setExpandedHere] = useState(false) // 窗口窄、自动收起后又点了展开
+  useEffect(() => setExpandedHere(false), [compact])
+  const collapsed = compact ? !expandedHere : saved
+  const setCollapsed = (v: boolean) => (compact ? setExpandedHere(!v) : setSaved(v))
   const desktop = useDesktop()
   const rail = collapsed && desktop // 窄屏上的下拉菜单总是展开的样子，不管宽屏上收没收起
   const navRef = useRef<HTMLElement>(null)
