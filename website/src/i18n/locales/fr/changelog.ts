@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.2': [
+    "Correctif : Le diaporama pouvait rester figé sur sa première image pendant que le compteur avançait, lorsqu’il commençait par deux photos portrait côte à côte dans une fenêtre large ; une vidéo qui ne démarre pas est désormais passée au bout de 8 secondes",
+    "La Sélection IA écarte les photos de mauvaise qualité : PNG (captures d’écran et images enregistrées), photos de moins de 3 mégapixels, fichiers de moins de 500 Ko ou trop compressés pour leur taille, et photos dont tous les visages sont flous. Les couvertures de « Ce jour-là » et les bannières d’album les placent en dernier",
+    "Les photos du dossier de photos sans date ni lieu reçoivent ceux indiqués par les noms de dossier, comme « 2023 », « 2019/07/Dali » ou « Voyage à Qingdao », grâce à une liste intégrée hors ligne d’environ 400 lieux ; les fichiers ne sont pas modifiés, et les photos importées auparavant sont complétées au prochain démarrage",
+    "La barre latérale se replie d’elle-même en icônes dans les fenêtres de moins de 1200 px de large",
+    "« Appliquer toutes les suggestions » dans Rafales envoie maintenant les grandes photothèques par lots, et fonctionne donc quel que soit le nombre de groupes",
+  ],
   'v0.6.1': [
     "Correctif : Rafales se figeait dans les grandes photothèques comptant des milliers de groupes ; les groupes s’affichent maintenant par lots au fil du défilement, et choisir une photo ne redessine plus toute la page",
     "Correctif : Le diaporama pouvait rester bloqué sur une photo : si la grande image met plus de quelques secondes, il affiche l’aperçu, précharge les photos suivantes et continue malgré les photos encore en traitement et à la fin de ce qui est chargé",

@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.2': [
+    "Corrección: La presentación podía quedarse congelada en la primera imagen mientras el contador seguía avanzando, cuando empezaba con dos fotos verticales mostradas una junto a otra en una ventana ancha; un vídeo que no llega a reproducirse se salta ahora a los 8 segundos",
+    "La Selección de IA deja fuera las fotos de baja calidad: PNG (capturas e imágenes guardadas), fotos de menos de 3 megapíxeles, archivos de menos de 500 KB o muy comprimidos para su tamaño, y fotos en las que todas las caras salen borrosas. Las portadas de «Un día como hoy» y los banners de álbum dejan esas fotos para el final",
+    "Las fotos de la carpeta de fotos que no tienen fecha ni ubicación propias las toman de los nombres de carpeta, como «2023», «2019/07/Dali» o «Viaje a Qingdao», con una lista integrada y sin conexión de unos 400 lugares; los archivos no se modifican, y las fotos importadas antes se completan en el siguiente arranque",
+    "La barra lateral se contrae sola a iconos en ventanas de menos de 1200 px de ancho",
+    "«Aplicar todas las sugerencias» en Ráfagas ahora envía las bibliotecas grandes por tandas, así que funciona con cualquier número de grupos",
+  ],
   'v0.6.1': [
     "Corrección: Ráfagas se bloqueaba en bibliotecas grandes con miles de grupos; ahora muestra los grupos por tandas al desplazarte, y elegir una foto ya no vuelve a dibujar toda la página",
     "Corrección: La presentación podía quedarse parada en una foto: si la imagen grande tarda más de unos segundos muestra la vista previa, carga por adelantado las siguientes fotos y sigue adelante con fotos que aún se procesan y al llegar al final de lo cargado",

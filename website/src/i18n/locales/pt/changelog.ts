@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.2': [
+    "Correção: A apresentação podia congelar na primeira imagem enquanto o contador seguia, quando começava com duas fotos verticais lado a lado em uma janela larga; um vídeo que não começa a tocar agora é pulado após 8 segundos",
+    "A Seleção da IA deixa de fora fotos de baixa qualidade: PNG (capturas de tela e imagens salvas), fotos com menos de 3 megapixels, arquivos com menos de 500 KB ou muito comprimidos para o tamanho, e fotos em que todos os rostos estão borrados. As capas de “Neste dia” e os banners de álbum colocam essas fotos por último",
+    "Fotos na pasta de fotos sem data ou local próprios recebem essas informações dos nomes das pastas, como “2023”, “2019/07/Dali” ou “Viagem a Qingdao”, usando uma lista integrada e offline de cerca de 400 lugares; os arquivos não são alterados, e as fotos importadas antes são completadas na próxima inicialização",
+    "A barra lateral se recolhe sozinha em ícones em janelas com menos de 1200 px de largura",
+    "“Aplicar todas as sugestões” em Sequências agora envia bibliotecas grandes em lotes, então funciona com qualquer quantidade de grupos",
+  ],
   'v0.6.1': [
     "Correção: Sequências travava em bibliotecas grandes com milhares de grupos; agora mostra os grupos aos poucos conforme você rola, e escolher uma foto não redesenha mais a página inteira",
     "Correção: A apresentação podia parar em uma foto: quando a imagem grande demora mais de alguns segundos, ela mostra a prévia, carrega as próximas fotos com antecedência e segue em frente em fotos ainda em processamento e no fim do que foi carregado",

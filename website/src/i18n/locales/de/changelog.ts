@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.2': [
+    "Fix: Die Diashow konnte auf dem ersten Bild stehen bleiben, während der Zähler weiterlief, wenn sie in einem breiten Fenster mit zwei nebeneinander gezeigten Hochformatfotos begann; ein Video, das nicht startet, wird jetzt nach 8 Sekunden übersprungen",
+    "Die KI-Auswahl lässt Fotos schlechter Qualität weg: PNGs (Screenshots und gespeicherte Bilder), Fotos unter 3 Megapixeln, Dateien unter 500 KB oder für ihre Größe stark komprimiert sowie Fotos, auf denen alle Gesichter unscharf sind. Titelbilder unter „An diesem Tag“ und Album-Banner stellen solche Fotos nach hinten",
+    "Fotos im Fotoordner ohne eigenes Datum oder eigenen Ort erhalten diese aus den Ordnernamen, etwa „2023“, „2019/07/Dali“ oder „Qingdao-Reise“, anhand einer eingebauten Offline-Liste mit rund 400 Orten; die Fotodateien bleiben unverändert, und früher importierte Fotos werden beim nächsten Start ergänzt",
+    "In Fenstern unter 1200 px Breite klappt die Seitenleiste von selbst zu Symbolen ein",
+    "„Alle Vorschläge anwenden“ in „Serien“ sendet große Bibliotheken jetzt in Teilen und funktioniert daher bei beliebig vielen Gruppen",
+  ],
   'v0.6.1': [
     "Fix: Bei großen Bibliotheken mit Tausenden von Gruppen fror „Serien“ ein; die Gruppen erscheinen jetzt beim Scrollen nach und nach, und die Auswahl eines Fotos zeichnet nicht mehr die ganze Seite neu",
     "Fix: Die Diashow konnte bei einem Foto hängen bleiben: Braucht das große Bild länger als ein paar Sekunden, zeigt sie stattdessen die Vorschau, lädt die nächsten Fotos vorab und läuft auch an Fotos, die noch verarbeitet werden, und am Ende des Geladenen weiter",

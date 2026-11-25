@@ -4,6 +4,14 @@ Each version's section becomes the notes of its GitHub Release, which Settings �
 Newest first; headings look like `## v0.5.1 — 2026-11-17`. Fixes start with `Fix: `.
 Translations live in `website/src/i18n/locales/<lang>/changelog.ts`, one string per bullet in the same order.
 
+## v0.6.2 — 2026-11-24
+
+- Fix: The slideshow could freeze on its first picture while the slide counter kept going, when it started on two portrait photos shown side by side in a wide window; a video slide that never starts playing is now skipped after 8 seconds
+- AI picks leave out low-quality photos: PNGs (screenshots and saved images), photos under 3 megapixels, files under 500 KB or heavily compressed for their size, and photos whose faces are all blurry. On this day covers and album banners put such photos last
+- Photos in the photo folder that have no date or location of their own get them from the folder names, such as “2023”, “2019/07/Dali” or “Qingdao trip”, using a built-in offline list of about 400 places; the photo files are not changed, and photos imported earlier are filled in at the next start
+- The sidebar collapses to icons on its own in windows narrower than 1200 px
+- “Apply all suggestions” in Burst cleanup now sends large libraries in batches, so it works however many groups there are
+
 ## v0.6.1 — 2026-11-24
 
 - Fix: Burst cleanup froze in large libraries with thousands of groups; it now shows the groups a batch at a time as you scroll, and picking a photo no longer redraws the whole page

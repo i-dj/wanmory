@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.2': [
+    "Sửa lỗi: Trình chiếu có thể đứng yên ở hình đầu tiên trong khi bộ đếm vẫn chạy, khi bắt đầu bằng hai ảnh dọc đặt cạnh nhau trên cửa sổ rộng; video mãi không phát được giờ sẽ bị bỏ qua sau 8 giây",
+    "AI chọn lọc không còn chọn ảnh chất lượng kém: PNG (ảnh chụp màn hình, ảnh đã lưu), ảnh dưới 3 megapixel, tệp dưới 500 KB hoặc bị nén quá mức so với kích thước, và ảnh mà mọi khuôn mặt đều mờ. Ảnh bìa “Ngày này năm xưa” và ảnh bìa album cũng xếp những ảnh này xuống cuối",
+    "Ảnh trong thư mục ảnh không có ngày chụp hoặc vị trí sẽ được bổ sung theo tên thư mục, ví dụ “2023”, “2019/07/Đại Lý” hay “Du lịch Thanh Đảo”, dựa trên danh sách khoảng 400 địa danh có sẵn, không cần mạng; tệp ảnh không bị thay đổi, và ảnh đã nhập trước đó sẽ được bổ sung ở lần khởi động tiếp theo",
+    "Thanh bên tự thu gọn thành biểu tượng khi cửa sổ hẹp hơn 1200 px",
+    "“Áp dụng mọi gợi ý” trong Ảnh liên tiếp giờ gửi thư viện lớn theo từng đợt, nên dùng được dù có bao nhiêu nhóm",
+  ],
   'v0.6.1': [
     "Sửa lỗi: Ảnh liên tiếp bị treo với thư viện lớn có hàng nghìn nhóm; giờ các nhóm hiện dần theo từng đợt khi cuộn, và chọn một ảnh không còn vẽ lại cả trang",
     "Sửa lỗi: Trình chiếu có thể dừng ở một ảnh: khi ảnh lớn mất hơn vài giây, nó hiện ảnh xem trước, tải trước vài ảnh tiếp theo và vẫn chạy tiếp qua những ảnh đang xử lý và khi tới cuối phần đã tải",

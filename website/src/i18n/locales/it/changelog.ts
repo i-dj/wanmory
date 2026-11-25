@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.2': [
+    "Correzione: La presentazione poteva bloccarsi sulla prima immagine mentre il contatore andava avanti, quando iniziava con due foto verticali affiancate in una finestra larga; un video che non parte viene ora saltato dopo 8 secondi",
+    "La Selezione IA esclude le foto di bassa qualità: PNG (screenshot e immagini salvate), foto sotto i 3 megapixel, file sotto i 500 KB o troppo compressi per le loro dimensioni, e foto in cui tutti i volti sono sfocati. Le copertine di «Accadde oggi» e i banner degli album le mettono in fondo",
+    "Le foto nella cartella delle foto senza data o luogo propri li ricavano dai nomi delle cartelle, come «2023», «2019/07/Dali» o «Viaggio a Qingdao», con un elenco integrato offline di circa 400 luoghi; i file non vengono modificati, e le foto importate in precedenza vengono completate al prossimo avvio",
+    "La barra laterale si riduce da sola a icone nelle finestre larghe meno di 1200 px",
+    "«Applica tutti i suggerimenti» in Raffiche ora invia le librerie grandi a blocchi, quindi funziona con qualsiasi numero di gruppi",
+  ],
   'v0.6.1': [
     "Correzione: Raffiche si bloccava nelle librerie grandi con migliaia di gruppi; ora mostra i gruppi un po’ alla volta mentre scorri, e scegliere una foto non ridisegna più l’intera pagina",
     "Correzione: La presentazione poteva fermarsi su una foto: se l’immagine grande impiega più di qualche secondo mostra l’anteprima, carica in anticipo le foto successive e prosegue oltre le foto ancora in elaborazione e oltre la fine di quelle caricate",
