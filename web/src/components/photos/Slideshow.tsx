@@ -36,6 +36,7 @@ const LOAD_AHEAD = 20
 const SLOW_MS = 3000 // 清晰大图过这么久还没好（服务器忙着处理刚传上来的照片时要现做），先用预览图放这一张
 const PREFETCH = 3 // 提前把后面几张的大图要过来
 const GROW_WAIT_MS = 6000 // 放到已加载的末尾时，等后面的照片加载这么久，没等到就从头再放
+const VIDEO_START_MS = 8000 // 视频过这么久还没开始放（缓冲卡住、格式放不了又不报错），跳过
 const VIDEO_MAX_MS = 60_000 // 视频最多放一分钟，长视频不会把幻灯片拖住
 const RING = 2 * Math.PI * 22 // 暂停按钮外面那圈进度环的周长（半径 22）
 
@@ -840,7 +841,7 @@ function Slide({
 
   useLayoutEffect(() => {
     if (!leaving) return
-    const e = EFFECTS[leaving]
+    const e = EFFECTS[leaving] ?? EFFECTS.dissolve // 和进来时一样：名字可能是 WebGL 转场的
     outer.current?.animate(e.exit, { duration: e.ms, easing: EASE, fill: 'both' })
   }, [leaving])
 
@@ -982,6 +983,19 @@ function VideoLayer({
       void v.play().catch(() => finish())
     })
   }, [running, started])
+  // 视频一直缓冲、也不报错时不会有 ended 或 error，幻灯片就停在这里了：开始放以后 VIDEO_START_MS 还没放出来，
+  // 或者放了比最长时间还多一截，都当作放完，接着下一张
+  const playing = useRef(false)
+  useEffect(() => {
+    if (!started || !running) return
+    const noStart = window.setTimeout(() => !playing.current && finish(), VIDEO_START_MS)
+    const cap = window.setTimeout(finish, maxMs + VIDEO_START_MS)
+    return () => {
+      window.clearTimeout(noStart)
+      window.clearTimeout(cap)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, running, maxMs])
   useEffect(() => {
     if (video.current) video.current.volume = volume
   }, [volume])
@@ -994,7 +1008,10 @@ function VideoLayer({
       src={originalUrl(asset)}
       playsInline
       preload="auto"
-      onPlaying={() => setVisible(true)}
+      onPlaying={() => {
+        playing.current = true
+        setVisible(true)
+      }}
       onEnded={finish}
       onError={finish}
       onTimeUpdate={(e) => e.currentTarget.currentTime * 1000 >= maxMs && finish()}

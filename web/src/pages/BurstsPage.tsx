@@ -26,6 +26,26 @@ const BATCH = 40
 
 const keyOf = (b: Burst) => b.photos[0].id
 
+// 整理时每批最多这么多张（一组不拆开）：2000 个 ID 大约 80 KB，离服务器 1 MB 的上限很远
+const BATCH_PHOTOS = 2000
+
+function batches(targets: Burst[]): Burst[][] {
+  const out: Burst[][] = []
+  let cur: Burst[] = []
+  let n = 0
+  for (const b of targets) {
+    if (cur.length && n + b.photos.length > BATCH_PHOTOS) {
+      out.push(cur)
+      cur = []
+      n = 0
+    }
+    cur.push(b)
+    n += b.photos.length
+  }
+  if (cur.length) out.push(cur)
+  return out
+}
+
 export default function BurstsPage() {
   const [bursts, setBursts] = useState<Burst[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -107,20 +127,26 @@ export default function BurstsPage() {
   const review = useCallback(async (targets: Burst[], keepAll: boolean) => {
     const keeperOf = (b: Burst) => keepRef.current[keyOf(b)] ?? b.best
     setBusy(true)
+    let trashed = 0
+    const done = new Set<string>()
     try {
-      const ids = targets.flatMap((b) => b.photos.map((p) => p.id))
-      const trash = keepAll ? [] : targets.flatMap((b) => b.photos.filter((p) => p.id !== keeperOf(b)).map((p) => p.id))
-      await reviewBursts(ids, trash)
-      const done = new Set(targets.map(keyOf))
-      setBursts((prev) => prev?.filter((b) => !done.has(keyOf(b))) ?? null)
+      // 分批发：服务器一次最多收 1 MB，几千组一起发会超；每批最多 BATCH_PHOTOS 张
+      for (const batch of batches(targets)) {
+        const ids = batch.flatMap((b) => b.photos.map((p) => p.id))
+        const trash = keepAll ? [] : batch.flatMap((b) => b.photos.filter((p) => p.id !== keeperOf(b)).map((p) => p.id))
+        await reviewBursts(ids, trash)
+        trashed += trash.length
+        for (const b of batch) done.add(keyOf(b))
+      }
       showAlert(
         keepAll
           ? tr('都保留了，这一组不会再出现')
-          : tr('已把 {v0} 张放进「最近删除」', { v0: trash.length.toLocaleString() }),
+          : tr('已把 {v0} 张放进「最近删除」', { v0: trashed.toLocaleString() }),
       )
     } catch (e) {
-      showError(tr('没有整理成功'), e)
+      showError(tr('没有整理成功'), e) // 已经发出去的几批整理好了，下面照样从列表拿掉
     } finally {
+      if (done.size) setBursts((prev) => prev?.filter((b) => !done.has(keyOf(b))) ?? null)
       setBusy(false)
     }
   }, [])

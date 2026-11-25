@@ -117,9 +117,15 @@ export class GLSlideshow {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
     this.program('still', STILL) // 先编译一个，编译不过就在这里抛错，让外面退回 CSS
     this.last = performance.now()
+    // 先排好下一帧再画：哪一帧画出错也不会让循环停掉，画面一直定在那一帧（幻灯片看起来就是不动了）
     const loop = (now: number) => {
-      this.draw(now)
       this.raf = requestAnimationFrame(loop)
+      try {
+        this.draw(now)
+      } catch (e) {
+        console.error(e)
+        this.transition = null
+      }
     }
     this.raf = requestAnimationFrame(loop)
   }
@@ -145,10 +151,12 @@ export class GLSlideshow {
     const drift: Drift = still ? [1, 0, 0, 1, 0, 0] : DRIFTS[Math.floor(Math.random() * DRIFTS.length)]
     const frame = { image, mode, texture, drift, start: this.clock, hold }
     if (this.from) this.gl.deleteTexture(this.from.texture) // 上一次转场还没放完就又换了，丢掉最早那张
-    this.from = this.to && effect ? this.to : null
-    if (this.to && !effect) this.gl.deleteTexture(this.to.texture)
+    // 不认识的转场（例如 CSS 转场的名字）当作直接换上，不做转场
+    const known = effect && effect in GL_EFFECTS ? effect : null
+    this.from = this.to && known ? this.to : null
+    if (this.to && !known) this.gl.deleteTexture(this.to.texture)
     this.to = frame
-    this.transition = this.from && effect ? { effect, start: this.clock } : null
+    this.transition = this.from && known ? { effect: known, start: this.clock } : null
     this.dirty = true
   }
 
