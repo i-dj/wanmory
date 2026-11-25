@@ -18,7 +18,7 @@ import (
 //  1. 是不是横图：加分最多，横图放进横幅裁得最少，照片展示得最完整；竖图裁完只剩一小条
 //  2. 有没有清楚的人脸、脸放不放得进横幅：所有脸（往上多留一点头发）的上下跨度，
 //     要放得进横幅能露出来的那一窄条；放得进的加分，放不进的扣分
-//  3. 好不好看：CLIP 算的 beauty，收藏、星级加分
+//  3. 好不好看：CLIP 算的 beauty，收藏、星级加分；截图、小图、压坏了的（lowQuality）扣很多，排在好照片后面
 //
 // 裁的位置由网页按横幅实际的宽高算（见 web 的 AlbumHero），这里只给出要对准的那一点（focus，0–1）。
 
@@ -44,6 +44,9 @@ func heroScore(a *Asset, faces []heroFace) (float64, *heroFocus) {
 		beauty = float64(*a.Beauty)
 	}
 	score := beauty + float64(a.Rating)*0.05
+	if lowQuality(a) {
+		score -= 1 // 截图、小图、压坏了的排在所有好照片后面（相册里只有这些时照样用）
+	}
 	if a.Favorite {
 		score += 0.25
 	}

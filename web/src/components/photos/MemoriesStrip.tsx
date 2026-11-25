@@ -60,6 +60,14 @@ function Strip({
 }
 
 // MemoryCard：一张照片铺满大圆角卡片，下面压一层渐暗，写「三年前的今天」、地点和日期
+// lowQuality 和服务端精选的画质要求一样（server/internal/assets/highlights.go 的 lowQuality）：
+// PNG（截图、存下来的图）、不到 300 万像素、文件不到 500 KB 或者每像素不到 0.05 字节
+function lowQuality(a: Asset) {
+  if (a.type !== 'image') return false
+  const pixels = (a.width ?? 0) * (a.height ?? 0)
+  return a.mime_type === 'image/png' || pixels < 3_000_000 || a.file_size < 500 * 1024 || a.file_size < pixels * 0.05
+}
+
 function MemoryCard({ memory, covers, onOpen }: { memory: Memory; covers: Asset[]; onOpen: () => void }) {
   const [main] = covers
   const geo = main?.geo?.city ? localGeo(main.geo) : null
@@ -131,9 +139,14 @@ function useMemories(filter: Pick<Filter, 'kinds' | 'uploaders'>) {
               null,
               24,
             )
-            // 封面用最好看的一张（CLIP 打的 beauty，收藏、星级加分）；视频的缩略图是第一帧，常常不好看，排在后面
+            // 封面用最好看的一张（CLIP 打的 beauty，收藏、星级加分）；视频的缩略图是第一帧，常常不好看，
+            // 截图、小图、压坏了的（lowQuality）画质差，都排在后面
             const score = (a: Asset) =>
-              (a.beauty ?? 0.3) + (a.favorite ? 0.25 : 0) + a.rating * 0.05 - (a.type === 'video' ? 1 : 0)
+              (a.beauty ?? 0.3) +
+              (a.favorite ? 0.25 : 0) +
+              a.rating * 0.05 -
+              (a.type === 'video' ? 1 : 0) -
+              (lowQuality(a) ? 1 : 0)
             const photos = page.items.filter((a) => a.has_thumbnail).sort((a, b) => score(b) - score(a))
             return { memory, covers: photos.slice(0, 1) }
           }),

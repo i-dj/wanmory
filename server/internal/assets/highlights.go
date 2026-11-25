@@ -23,9 +23,43 @@ func (s *Service) SetAesthetic(a Aesthetic) { s.store.aesthetic = a }
 // subjectFace 是算作照片主角的人脸：认出是谁的、够清楚的，或者占画面 1% 以上的（背景里很小的路人脸不算）
 const subjectFace = `(good OR person_id IS NOT NULL OR box_w * box_h > 0.01)`
 
+// 画质够不够好：精选只要拍得好的原片，这些不要（「那年今天」的封面、相册横幅也按这个往后排，见 lowQuality）：
+//   - PNG：相机不出 PNG，多半是截图、存下来的图、修过的图
+//   - 不到 qualityPixels：下载、转发来的小图（手机拍的都在 800 万像素以上）
+//   - 文件不到 qualityBytes，或者每像素不到 qualityBytesPerPixel 字节：压得很厉害的转存图，
+//     或者糊的、没细节的（同样大小的照片，糊的压出来小得多）
+//   - 有显眼的人脸，但没有一张是清楚的（拉普拉斯方差都不到 qualitySharpFace，大约是最糊的 2%）
+const (
+	qualityPixels        = 3_000_000
+	qualityBytes         = 500 << 10
+	qualityBytesPerPixel = 0.05
+	qualitySharpFace     = 100
+)
+
+var highlightQuality = fmt.Sprintf(`mime_type <> 'image/png'
+		  AND COALESCE(width, 0)::bigint * COALESCE(height, 0) >= %d
+		  AND file_size >= %d AND file_size >= COALESCE(width, 0)::bigint * COALESCE(height, 0) * %g
+		  AND NOT (EXISTS (SELECT 1 FROM faces WHERE asset_id = assets.id AND box_w * box_h > 0.01)
+		       AND NOT EXISTS (SELECT 1 FROM faces WHERE asset_id = assets.id AND box_w * box_h > 0.01 AND blur >= %d))`,
+	qualityPixels, qualityBytes, qualityBytesPerPixel, qualitySharpFace)
+
+// lowQuality 和 highlightQuality 一样判断（人脸清不清楚除外），给不能整个不要、只能往后排的地方用
+func lowQuality(a *Asset) bool {
+	if a.Type != TypeImage {
+		return false
+	}
+	pixels := 0
+	if a.Width != nil && a.Height != nil {
+		pixels = *a.Width * *a.Height
+	}
+	return a.MimeType == "image/png" || pixels < qualityPixels ||
+		a.FileSize < qualityBytes || float64(a.FileSize) < float64(pixels)*qualityBytesPerPixel
+}
+
 // Highlights 挑出最好看的几张横图给图库顶上的轮播。
 //
 // 候选：照片（不要视频、动图、截图、文档、证件）、有大图、没被点过「不再精选」、beauty 不低（拍坏了的不要），
+// 画质够好（见 highlightQuality：不要截图、小图、压坏了的、糊的），
 // 而且要能铺满又宽又矮的轮播画面：至少 3:2 那么宽；有人脸的照片会按人脸裁，4:3 也行（宽比高大 1.3 倍）。
 // 人脸太散、铺满会切到人的，网页再拿掉（要看画面多大）。
 // 排序：先看照片在「好照片」方向上的投影在整个候选里排第几（0–1 的百分位，CLIP 只适合比先后，不适合当绝对分数），
@@ -57,6 +91,7 @@ func (s *Store) Highlights(ctx context.Context, f Filter, limit int, slideshow b
 		FROM assets` + f.where(&args) + `
 		  AND type = 'image' AND mime_type <> 'image/gif' AND preview_path IS NOT NULL
 		  AND beauty >= 0.5 AND NOT no_highlight
+		  AND ` + highlightQuality + `
 		  AND ` + shape + `
 		  AND NOT (tags && '{screenshot,document,id}')
 	), ranked AS (
