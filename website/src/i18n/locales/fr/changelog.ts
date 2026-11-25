@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.1': [
+    "Correctif : Rafales se figeait dans les grandes photothèques comptant des milliers de groupes ; les groupes s’affichent maintenant par lots au fil du défilement, et choisir une photo ne redessine plus toute la page",
+    "Correctif : Le diaporama pouvait rester bloqué sur une photo : si la grande image met plus de quelques secondes, il affiche l’aperçu, précharge les photos suivantes et continue malgré les photos encore en traitement et à la fin de ce qui est chargé",
+    "Plus rapide pour les membres non administrateurs : le serveur désactive la compilation JIT de PostgreSQL, qui ajoutait environ un tiers de seconde à chaque requête depuis que les photos sont privées (les statistiques de la photothèque passent d’environ 1 s à 40 ms)",
+    "Dans la barre latérale, Paysages, Cuisine, Animaux et Plantes passent dans « Plus » sous Catégories, à côté des captures d’écran, documents et pièces d’identité",
+    "L’app mobile en développement a la barre d’onglets native d’iOS, une page de synchronisation repensée avec pause et reprise, et une synchronisation des albums qui continue en arrière-plan et reprend d’elle-même",
+  ],
   'v0.6.0': [
     "Les photos sont désormais privées par défaut : chaque membre ne voit que les photos qu'il a importées et celles partagées avec lui, dans la photothèque, Personnes, Lieux, catégories, recherche et albums. Les photos existantes deviennent privées pour la personne qui les a importées ; celles sans auteur (importées du dossier photos ou envoyées avant les comptes) restent visibles par tous, et les administrateurs peuvent voir et gérer les photos de chacun",
     "Partager avec la famille : sélectionnez des photos et cliquez sur « Partager avec des membres », ou activez « Partager ma photothèque » dans Mon compte pour partager tout ce que vous importez, y compris à l'avenir ; mettre vos propres photos dans un album partagé les partage aussi avec ceux qui voient l'album. Les photos partagées avec vous affichent l'avatar de la personne avant le titre, et le menu de filtre vous liste avec ceux qui partagent avec vous",

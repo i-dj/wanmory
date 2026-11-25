@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.1': [
+    "Correzione: Raffiche si bloccava nelle librerie grandi con migliaia di gruppi; ora mostra i gruppi un po’ alla volta mentre scorri, e scegliere una foto non ridisegna più l’intera pagina",
+    "Correzione: La presentazione poteva fermarsi su una foto: se l’immagine grande impiega più di qualche secondo mostra l’anteprima, carica in anticipo le foto successive e prosegue oltre le foto ancora in elaborazione e oltre la fine di quelle caricate",
+    "Più veloce per i membri non amministratori: il server disattiva la compilazione JIT di PostgreSQL, che da quando le foto sono private aggiungeva circa un terzo di secondo a ogni query (le statistiche della libreria passano da circa 1 s a 40 ms)",
+    "Nella barra laterale, Paesaggi, Cibo, Animali e Piante sono ora in «Altro» sotto Categorie, insieme a Screenshot, Documenti e Documenti d’identità",
+    "L’app mobile in sviluppo ha la barra delle schede nativa di iOS, una pagina di sincronizzazione ridisegnata con pausa e ripresa, e una sincronizzazione degli album che continua in background e riparte da sola",
+  ],
   'v0.6.0': [
     "Le foto ora sono private per impostazione predefinita: ogni membro vede solo le foto che ha caricato e quelle condivise con lui, nella libreria, in Persone, Luoghi, categorie, ricerca e album. Le foto esistenti diventano private di chi le ha caricate; quelle senza autore (importate dalla cartella delle foto o caricate prima degli account) restano visibili a tutti, e gli amministratori possono vedere e gestire le foto di tutti",
     "Condividi con la famiglia: seleziona le foto e fai clic su «Condividi con i membri», oppure attiva «Condividi la mia libreria» in Il mio account per condividere tutto ciò che carichi, anche in futuro; mettere le tue foto in un album condiviso le condivide anche con chi può vedere l'album. Le foto condivise con te mostrano l'avatar di chi le ha condivise prima del titolo, e il menu dei filtri elenca te e chi condivide con te",

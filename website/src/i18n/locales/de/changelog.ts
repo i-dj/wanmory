@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.1': [
+    "Fix: Bei großen Bibliotheken mit Tausenden von Gruppen fror „Serien“ ein; die Gruppen erscheinen jetzt beim Scrollen nach und nach, und die Auswahl eines Fotos zeichnet nicht mehr die ganze Seite neu",
+    "Fix: Die Diashow konnte bei einem Foto hängen bleiben: Braucht das große Bild länger als ein paar Sekunden, zeigt sie stattdessen die Vorschau, lädt die nächsten Fotos vorab und läuft auch an Fotos, die noch verarbeitet werden, und am Ende des Geladenen weiter",
+    "Schneller für Mitglieder ohne Adminrechte: Der Server schaltet die JIT-Kompilierung von PostgreSQL aus, die seit den privaten Fotos jede Abfrage um etwa eine Drittelsekunde verlangsamte (die Bibliotheksstatistik sank von etwa 1 s auf 40 ms)",
+    "In der Seitenleiste sind Landschaft, Essen, Tiere und Pflanzen unter „Kategorien“ jetzt in „Mehr“, neben Screenshots, Dokumenten und Ausweisen",
+    "Die mobile App in Entwicklung hat die native iOS-Tableiste, eine neu gestaltete Sync-Seite mit Pause und Fortsetzen und eine Albumsynchronisierung, die im Hintergrund weiterläuft und von selbst wieder anläuft",
+  ],
   'v0.6.0': [
     "Fotos sind jetzt standardmäßig privat: Jedes Mitglied sieht nur die Fotos, die es selbst hochgeladen hat, und die, die mit ihm geteilt wurden – in Mediathek, Personen, Orten, Kategorien, Suche und Alben. Vorhandene Fotos gehören privat dem, der sie hochgeladen hat; Fotos ohne Uploader (aus dem Fotoordner importiert oder vor den Konten hochgeladen) bleiben für alle sichtbar, und Admins können die Fotos aller sehen und verwalten",
     "Mit der Familie teilen: Fotos auswählen und auf „Mit Mitgliedern teilen“ klicken, oder unter „Mein Konto“ „Meine Mediathek teilen“ einschalten, um alles zu teilen, was du hochlädst, auch künftige Uploads; eigene Fotos in einem geteilten Album werden ebenfalls mit allen geteilt, die das Album sehen. Mit dir geteilte Fotos zeigen das Profilbild der teilenden Person vor dem Titel, und das Filtermenü listet dich und alle, die mit dir teilen",

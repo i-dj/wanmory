@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.1': [
+    "Correção: Sequências travava em bibliotecas grandes com milhares de grupos; agora mostra os grupos aos poucos conforme você rola, e escolher uma foto não redesenha mais a página inteira",
+    "Correção: A apresentação podia parar em uma foto: quando a imagem grande demora mais de alguns segundos, ela mostra a prévia, carrega as próximas fotos com antecedência e segue em frente em fotos ainda em processamento e no fim do que foi carregado",
+    "Mais rápido para membros que não são administradores: o servidor desativa a compilação JIT do PostgreSQL, que desde que as fotos ficaram privadas somava cerca de um terço de segundo a cada consulta (as estatísticas da biblioteca caíram de cerca de 1 s para 40 ms)",
+    "Na barra lateral, Paisagens, Comida, Animais e Plantas foram para “Mais” em Categorias, junto com Capturas de tela, Documentos e Documentos de identidade",
+    "O app móvel em desenvolvimento tem a barra de abas nativa do iOS, uma página de sincronização redesenhada com pausa e retomada, e a sincronização de álbuns continua em segundo plano e retoma sozinha",
+  ],
   'v0.6.0': [
     "As fotos agora são privadas por padrão: cada membro vê apenas as fotos que enviou e as compartilhadas com ele, na fototeca, em Pessoas, Lugares, categorias, busca e álbuns. As fotos existentes passam a ser privadas de quem as enviou; as sem autor (importadas da pasta de fotos ou enviadas antes das contas) continuam visíveis para todos, e os administradores podem ver e gerenciar as fotos de todos",
     "Compartilhar com a família: selecione fotos e clique em \"Compartilhar com membros\", ou ative \"Compartilhar minha fototeca\" em Minha conta para compartilhar tudo o que você enviar, inclusive no futuro; colocar suas próprias fotos num álbum compartilhado também as compartilha com quem vê o álbum. Fotos compartilhadas com você mostram o avatar de quem compartilhou antes do título, e o menu de filtros lista você e quem compartilha com você",

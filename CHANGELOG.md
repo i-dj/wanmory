@@ -4,6 +4,14 @@ Each version's section becomes the notes of its GitHub Release, which Settings �
 Newest first; headings look like `## v0.5.1 — 2026-11-17`. Fixes start with `Fix: `.
 Translations live in `website/src/i18n/locales/<lang>/changelog.ts`, one string per bullet in the same order.
 
+## v0.6.1 — 2026-11-24
+
+- Fix: Burst cleanup froze in large libraries with thousands of groups; it now shows the groups a batch at a time as you scroll, and picking a photo no longer redraws the whole page
+- Fix: The slideshow could stall on a photo: when the large image takes more than a few seconds it shows the preview instead, it loads the next few photos ahead, and it keeps going past photos that are still being processed and past the end of what has loaded
+- Faster for members who aren't admins: the server now turns off PostgreSQL's JIT compilation, which added about a third of a second to every query once photos became private (the library stats went from about 1 s to 40 ms)
+- In the sidebar, Scenery, Food, Animals and Plants moved under More in Categories, next to Screenshots, Documents and IDs
+- The mobile app in development has the native iOS tab bar, a redesigned sync page with pause and resume, and album sync that keeps going in the background and picks up again on its own
+
 ## v0.6.0 — 2026-11-19
 
 - Photos are now private by default: each member sees only the photos they uploaded and the ones shared with them, in the library, People, Footprints, categories, search and albums. Existing photos become private to whoever uploaded them; photos without an uploader (imported from the photo folder, or uploaded before accounts existed) stay visible to everyone, and admins can see and manage everyone's photos

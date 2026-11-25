@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.1': [
+    "Corrección: Ráfagas se bloqueaba en bibliotecas grandes con miles de grupos; ahora muestra los grupos por tandas al desplazarte, y elegir una foto ya no vuelve a dibujar toda la página",
+    "Corrección: La presentación podía quedarse parada en una foto: si la imagen grande tarda más de unos segundos muestra la vista previa, carga por adelantado las siguientes fotos y sigue adelante con fotos que aún se procesan y al llegar al final de lo cargado",
+    "Más rápido para los miembros que no son administradores: el servidor desactiva la compilación JIT de PostgreSQL, que añadía cerca de un tercio de segundo a cada consulta desde que las fotos son privadas (las estadísticas de la biblioteca pasaron de 1 s a 40 ms)",
+    "En la barra lateral, Paisajes, Comida, Animales y Plantas pasan a «Más» dentro de Categorías, junto a Capturas, Documentos y Documentos de identidad",
+    "La app móvil en desarrollo tiene la barra de pestañas nativa de iOS, una página de sincronización rediseñada con pausa y reanudación, y una sincronización de álbumes que sigue en segundo plano y se reanuda sola",
+  ],
   'v0.6.0': [
     "Las fotos ahora son privadas por defecto: cada miembro ve solo las fotos que subió y las que le compartieron, en la fototeca, Personas, Lugares, categorías, búsqueda y álbumes. Las fotos existentes pasan a ser privadas de quien las subió; las que no tienen autor (importadas de la carpeta de fotos o subidas antes de las cuentas) siguen visibles para todos, y los administradores pueden ver y gestionar las fotos de todos",
     "Compartir con la familia: selecciona fotos y pulsa «Compartir con miembros», o activa «Compartir mi fototeca» en Mi cuenta para compartir todo lo que subes, incluido lo que subas después; poner tus propias fotos en un álbum compartido también las comparte con quienes ven ese álbum. Las fotos que te compartieron muestran el avatar de quien las compartió antes del título, y el menú de filtros te muestra a ti y a quienes comparten contigo",

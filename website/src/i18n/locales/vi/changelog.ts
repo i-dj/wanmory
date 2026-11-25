@@ -3,6 +3,13 @@
 // A version missing here (or with a different number of bullets) falls back to the English original.
 
 const changelog: Record<string, string[]> = {
+  'v0.6.1': [
+    "Sửa lỗi: Ảnh liên tiếp bị treo với thư viện lớn có hàng nghìn nhóm; giờ các nhóm hiện dần theo từng đợt khi cuộn, và chọn một ảnh không còn vẽ lại cả trang",
+    "Sửa lỗi: Trình chiếu có thể dừng ở một ảnh: khi ảnh lớn mất hơn vài giây, nó hiện ảnh xem trước, tải trước vài ảnh tiếp theo và vẫn chạy tiếp qua những ảnh đang xử lý và khi tới cuối phần đã tải",
+    "Nhanh hơn cho thành viên không phải quản trị viên: máy chủ tắt biên dịch JIT của PostgreSQL, thứ làm mỗi truy vấn chậm thêm khoảng một phần ba giây từ khi ảnh chuyển sang riêng tư (thống kê thư viện giảm từ khoảng 1 giây xuống 40 ms)",
+    "Trên thanh bên, Phong cảnh, Ẩm thực, Động vật và Thực vật được chuyển vào “Thêm” trong Danh mục, cạnh Ảnh chụp màn hình, Tài liệu và Giấy tờ",
+    "Ứng dụng di động đang phát triển có thanh tab gốc của iOS, trang đồng bộ thiết kế lại với tạm dừng và tiếp tục, và đồng bộ album vẫn chạy trong nền và tự tiếp tục khi bị ngắt",
+  ],
   'v0.6.0': [
     "Ảnh giờ mặc định là riêng tư: mỗi thành viên chỉ thấy ảnh mình tải lên và ảnh người khác chia sẻ với mình, trong thư viện, Người, Dấu chân, danh mục, tìm kiếm và album. Ảnh hiện có trở thành ảnh riêng của người đã tải lên; ảnh không có người tải lên (nhập từ thư mục ảnh hoặc tải lên trước khi có tài khoản) vẫn cả nhà xem được, và quản trị viên có thể xem và quản lý ảnh của mọi người",
     "Chia sẻ với gia đình: chọn ảnh rồi bấm \"Chia sẻ với thành viên\", hoặc bật \"Chia sẻ thư viện của tôi\" trong Tài khoản của tôi để chia sẻ mọi ảnh bạn tải lên, kể cả sau này; đưa ảnh của bạn vào album chia sẻ cũng là chia sẻ với những người xem được album đó. Ảnh được chia sẻ với bạn hiện ảnh đại diện của người chia sẻ trước tiêu đề, và menu lọc liệt kê bạn cùng những người chia sẻ với bạn",
