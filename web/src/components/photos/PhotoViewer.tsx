@@ -359,7 +359,15 @@ export default function PhotoViewer({
         </footer>
       </div>
 
-      {slideshow && <Slideshow assets={assets} startIndex={index} onLoadMore={onLoadMore} onClose={endSlideshow} />}
+      {slideshow && (
+        <Slideshow
+          assets={assets}
+          startIndex={index}
+          hasMore={total !== null && assets.length < total}
+          onLoadMore={onLoadMore}
+          onClose={endSlideshow}
+        />
+      )}
       {showInfo && (
         <PhotoInfoPanel
           key={asset.id} // 换了一张就整个重来，不留上一张的

@@ -72,10 +72,10 @@ export const DELETED: View = {
 // 自动分类：AI 看照片内容分出来的（截图还认文件名和 iPhone 的标记）。键和后端 clip 包里的一致。
 // more 的几类（截图、文档、证件）在菜单「分类」里收在「更多」下面
 export const CATEGORIES: { key: string; label: string; more?: boolean }[] = [
-  { key: 'scenery', label: t('风景') },
-  { key: 'food', label: t('美食') },
-  { key: 'pet', label: t('动物') }, // 键还叫 pet（以前叫「宠物」），猫狗以外的鸟、动物园里的动物也算
-  { key: 'plant', label: t('植物') },
+  { key: 'scenery', label: t('风景'), more: true },
+  { key: 'food', label: t('美食'), more: true },
+  { key: 'pet', label: t('动物'), more: true }, // 键还叫 pet（以前叫「宠物」），猫狗以外的鸟、动物园里的动物也算
+  { key: 'plant', label: t('植物'), more: true },
   { key: 'screenshot', label: t('截图'), more: true }, // 手机、电脑、网页、聊天的截图
   { key: 'document', label: t('文档'), more: true },
   { key: 'id', label: t('证件'), more: true },

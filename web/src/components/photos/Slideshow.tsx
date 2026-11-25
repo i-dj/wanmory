@@ -33,6 +33,9 @@ const SPEEDS = [4, 3, 2, 1.5, 1] // 每张停几小节，从慢到快；速度�
 const IDLE_MS = 2500
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)' // 先快后慢，收尾很柔
 const LOAD_AHEAD = 20
+const SLOW_MS = 3000 // 清晰大图过这么久还没好（服务器忙着处理刚传上来的照片时要现做），先用预览图放这一张
+const PREFETCH = 3 // 提前把后面几张的大图要过来
+const GROW_WAIT_MS = 6000 // 放到已加载的末尾时，等后面的照片加载这么久，没等到就从头再放
 const VIDEO_MAX_MS = 60_000 // 视频最多放一分钟，长视频不会把幻灯片拖住
 const RING = 2 * Math.PI * 22 // 暂停按钮外面那圈进度环的周长（半径 22）
 
@@ -158,11 +161,13 @@ interface Layer {
 export default function Slideshow({
   assets,
   startIndex,
+  hasMore = false,
   onLoadMore,
   onClose,
 }: {
   assets: Asset[]
   startIndex: number
+  hasMore?: boolean // 后面还有没加载的照片
   onLoadMore: (count: number) => void
   onClose: (index: number) => void
 }) {
@@ -214,27 +219,24 @@ export default function Slideshow({
       if (busy.current || i < 0) return
       busy.current = true
       const members = groups.at.get(i)
-      let img: HTMLImageElement
-      if (members) img = await composeGroup(members.map((k) => assets[k]))
-      else {
-        img = new Image()
-        img.src = slideUrl(assets[i])
-        await img.decode().catch(() => {})
-      }
+      const img = members ? await composeGroup(members.map((k) => assets[k])) : await loadSlide(assets[i])
       busy.current = false
-      // 顺手把下一张的清晰大图要过来（第一次看时服务器要现生成），播到它时不用等
-      const after = assets[(i + 1) % assets.length]
-      if (after?.type === 'image') new Image().src = largeUrl(after)
+      // 顺手把后面几张的清晰大图要过来（第一次看时服务器要现生成），播到它们时不用等
+      for (let k = 1, j = i; k <= PREFETCH; k++) {
+        j = findNext(j, assets.length, playable)
+        if (j < 0 || j === i) break
+        if (assets[j].type === 'image') new Image().src = largeUrl(assets[j])
+      }
       setLayers((list) => {
         const top = list[list.length - 1]
         const effect =
           effectChoice !== 'random' && names.includes(effectChoice) ? effectChoice : pick(names, top.effect)
-        const next = { key: top.key + 1, index: i, effect, leaving: null, image: members ? img : undefined }
+        const next = { key: top.key + 1, index: i, effect, leaving: null, image: img }
         if (gl) return [next] // WebGL 在一块画布上自己做转场，只要知道现在是哪张
         return [{ ...top, leaving: effect as Effect }, next] // 只留上一张做离开动画，更早的直接去掉
       })
     },
-    [assets, effectChoice, gl, names, groups],
+    [assets, effectChoice, gl, names, groups, playable],
   )
   // 第一页就是拼起来的竖图时，拼好后换上
   useEffect(() => {
@@ -256,12 +258,48 @@ export default function Slideshow({
     [show, index, assets.length, playable],
   )
   const back = useCallback(() => show(findPrev(index, assets.length, playable)), [show, index, assets.length, playable])
-  // 自动往下放：不循环时放到最后一张就停住
+  // 自动往下放：不循环时放到最后一张就停住。
+  // 放到已加载的末尾（或者已加载的一张都还放不了，例如刚传上来、还没生成预览图）时，先接着加载后面的照片，
+  // 有了新的就接着放；等了一会儿也没有更多，才从头再来
+  const waiting = useRef<number | null>(null) // 正在等后面的照片：开始等时有几张
+  const exhausted = useRef(false) // 等过一次没等到，后面没有更多了
+  const [waitTick, setWaitTick] = useState(0)
   const advance = useCallback(() => {
     const next = findNext(index, assets.length, playable)
+    const atEnd = next < 0 || next <= index
+    if (atEnd && hasMore && waiting.current === null && !exhausted.current) {
+      waiting.current = assets.length
+      onLoadMore(assets.length + LOAD_AHEAD)
+      setWaitTick((t) => t + 1)
+      return
+    }
+    waiting.current = null
+    if (next < 0) return
     if (!options.repeat && next <= index) setPlaying(false)
     else void show(next)
-  }, [index, assets.length, playable, options.repeat, show])
+  }, [index, assets.length, playable, options.repeat, show, onLoadMore, hasMore])
+  const advanceRef = useRef(advance)
+  advanceRef.current = advance
+  useEffect(() => {
+    const before = waiting.current
+    if (before === null) return
+    if (assets.length > before) {
+      waiting.current = null
+      advanceRef.current()
+      return
+    }
+    const timer = window.setTimeout(() => {
+      exhausted.current = true
+      waiting.current = null
+      advanceRef.current()
+    }, GROW_WAIT_MS)
+    return () => window.clearTimeout(timer)
+  }, [waitTick, assets.length])
+  // 一打开就没有能放的：马上去加载后面的
+  useEffect(() => {
+    if (first < 0) advanceRef.current()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 上一张离开动画放完就拿掉
   useEffect(() => {
@@ -394,7 +432,11 @@ export default function Slideshow({
       className="theme-dark fixed inset-0 z-40 overflow-clip bg-black text-white select-none"
       style={{ cursor: chromeVisible ? undefined : 'none' }}
     >
-      {gl ? (
+      {index < 0 ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="size-8 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+        </div>
+      ) : gl ? (
         <GLStage
           slideKey={current.key}
           asset={assets[index]}
@@ -407,17 +449,19 @@ export default function Slideshow({
           onFail={disableGL}
         />
       ) : (
-        layers.map((l) => (
-          <Slide
-            key={l.key}
-            asset={assets[l.index]}
-            image={l.image}
-            effect={l.effect as Effect}
-            leaving={l.leaving}
-            hold={slideMs + (EFFECTS[l.effect as Effect]?.ms ?? 1500) * 2}
-            background={options.background}
-          />
-        ))
+        layers
+          .filter((l) => assets[l.index])
+          .map((l) => (
+            <Slide
+              key={l.key}
+              asset={assets[l.index]}
+              image={l.image}
+              effect={l.effect as Effect}
+              leaving={l.leaving}
+              hold={slideMs + (EFFECTS[l.effect as Effect]?.ms ?? 1500) * 2}
+              background={options.background}
+            />
+          ))
       )}
       {videoSlide && currentAsset && (
         <VideoLayer
@@ -776,8 +820,10 @@ function Slide({
       const ctx = el.getContext('2d')
       if (ctx) paintFrame(ctx, img, el.width, el.height, background)
     }
-    if (image) paint()
-    else {
+    if (image) {
+      if (image.complete) paint()
+      else image.addEventListener('load', paint, { once: true }) // 大图太慢时换上的预览图，可能还在路上
+    } else {
       img.onload = paint
       img.src = slideUrl(asset)
       if (img.complete) paint()
@@ -1019,6 +1065,27 @@ function findPrev(from: number, total: number, ok: (i: number) => boolean) {
 // slideUrl 是幻灯片放的图：照片用 2560 像素的清晰大图（全屏放，1440 的预览图会糊），视频用预览图（第一帧）
 const slideUrl = (a: Asset) => (a.type === 'image' ? largeUrl(a) : previewUrl(a))
 
+const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms))
+
+// loadSlide 加载一张要放的图：先要清晰大图；服务器要现做、SLOW_MS 还没好时换成预览图（一般早就生成好了），
+// 幻灯片不会停在一张上等。预览图也慢的话照样往下走，画面等它到了再出来
+async function loadSlide(a: Asset): Promise<HTMLImageElement> {
+  const img = new Image()
+  img.src = slideUrl(a)
+  const ok = await Promise.race([
+    img.decode().then(
+      () => true,
+      () => false,
+    ),
+    sleep(SLOW_MS).then(() => false),
+  ])
+  if (ok || a.type !== 'image') return img
+  const small = new Image()
+  small.src = previewUrl(a)
+  await Promise.race([small.decode().catch(() => {}), sleep(SLOW_MS)])
+  return small
+}
+
 // SlideCaption 是鼠标动一下、按钮出来时顶上正中的拍摄时间和第几张，和大图查看器顶栏中间一样
 function SlideCaption({
   asset,
@@ -1097,14 +1164,7 @@ function portraitGroups(assets: Asset[]) {
 // composeGroup 把几张竖图并排画成一张和屏幕一样比例的图（中间细细的黑缝），每张裁成同样宽、铺满上下，
 // 偏上一点裁（人像的头不容易被切掉）。画好转成图片，交给转场和推拉，和一张照片一样用
 async function composeGroup(list: Asset[]): Promise<HTMLImageElement> {
-  const imgs = await Promise.all(
-    list.map(async (a) => {
-      const img = new Image()
-      img.src = slideUrl(a)
-      await img.decode().catch(() => {})
-      return img
-    }),
-  )
+  const imgs = await Promise.all(list.map(loadSlide))
   const scale = Math.min(devicePixelRatio, 2560 / Math.max(innerWidth, innerHeight))
   const W = Math.round(innerWidth * scale)
   const H = Math.round(innerHeight * scale)

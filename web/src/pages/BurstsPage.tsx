@@ -1,6 +1,6 @@
 import PageHeader from '@/components/layout/PageHeader'
 import { Check, ChevronLeft, ChevronRight, Layers, Maximize2, Sparkles, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import DialogButton from '@/components/ui/DialogButton'
 import Modal, { Button, DialogActions } from '@/components/ui/Modal'
@@ -21,6 +21,11 @@ import { t as tr } from '@/i18n'
 // 每组是一张按内容宽度的小卡片，一行放得下几组就放几组，按拍摄的日子分段。上面可以一键按推荐整理这一类的全部
 type Tab = 'bursts' | 'duplicates'
 
+// 一次只画这么多组，滚到下面再接着画。重复的可能有几千组、几万张缩略图，一下子全画出来页面会卡住
+const BATCH = 40
+
+const keyOf = (b: Burst) => b.photos[0].id
+
 export default function BurstsPage() {
   const [bursts, setBursts] = useState<Burst[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -40,9 +45,8 @@ export default function BurstsPage() {
     }
   }, [])
 
-  const keyOf = (b: Burst) => b.photos[0].id
   const keeperOf = (b: Burst) => keep[keyOf(b)] ?? b.best
-  const pick = (b: Burst, id: string) => setKeep((prev) => ({ ...prev, [keyOf(b)]: id }))
+  const pick = useCallback((b: Burst, id: string) => setKeep((prev) => ({ ...prev, [keyOf(b)]: id })), [])
 
   const lists = useMemo(
     () => ({
@@ -66,10 +70,28 @@ export default function BurstsPage() {
     return { count, bytes }
   }, [groups, keep])
 
+  // 先画前面几组，底下的标记滚进来时再多画一批；换了标签从头来
+  const [shown, setShown] = useState(BATCH)
+  useEffect(() => setShown(BATCH), [current])
+  const more = useRef<HTMLDivElement>(null)
+  const hasMore = shown < groups.length
+  useEffect(() => {
+    const el = more.current
+    if (!el || !hasMore) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setShown((n) => n + BATCH)
+      },
+      { rootMargin: '800px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, shown])
+
   // 按拍摄的日子分段（列表已经是最近的在前）
   const days = useMemo(() => {
     const out: { key: string; title: string; groups: Burst[] }[] = []
-    for (const b of groups) {
+    for (const b of groups.slice(0, shown)) {
       const t = new Date(b.photos[0].taken)
       const key = t.toDateString()
       const last = out[out.length - 1]
@@ -77,10 +99,13 @@ export default function BurstsPage() {
       else out.push({ key, title: dayTitle(t), groups: [b] })
     }
     return out
-  }, [groups])
+  }, [groups, shown])
 
   // 整理 groups：keepAll 是都保留，不然只留选中的那张
-  const review = async (targets: Burst[], keepAll: boolean) => {
+  const keepRef = useRef(keep)
+  keepRef.current = keep
+  const review = useCallback(async (targets: Burst[], keepAll: boolean) => {
+    const keeperOf = (b: Burst) => keepRef.current[keyOf(b)] ?? b.best
     setBusy(true)
     try {
       const ids = targets.flatMap((b) => b.photos.map((p) => p.id))
@@ -98,7 +123,8 @@ export default function BurstsPage() {
     } finally {
       setBusy(false)
     }
-  }
+  }, [])
+  const compare = useCallback((burst: Burst, index: number) => setComparing({ burst, index }), [])
 
   const label = current === 'duplicates' ? tr('重复') : tr('连拍和相似')
   return (
@@ -155,15 +181,15 @@ export default function BurstsPage() {
                 burst={b}
                 keeper={keeperOf(b)}
                 busy={busy}
-                onPick={(id) => pick(b, id)}
-                onCompare={(index) => setComparing({ burst: b, index })}
-                onKeepOne={() => void review([b], false)}
-                onKeepAll={() => void review([b], true)}
+                onPick={pick}
+                onCompare={compare}
+                onReview={review}
               />
             ))}
           </ul>
         </div>
       ))}
+      {hasMore && <div ref={more} className="h-px" />}
 
       {comparing && (
         <CompareViewer
@@ -207,22 +233,21 @@ export default function BurstsPage() {
 
 // BurstGroup 是一组：照片（多的换行），下面两个小按钮。不写标题，日子在分段上，是哪一类看上面的标签。
 // 卡片按照片的多少定宽度，两三张的几组能并排放
-function BurstGroup({
+// 只有自己这组变了（换了保留哪张）才重画，点一张不会把上千组都重画一遍
+const BurstGroup = memo(function BurstGroup({
   burst,
   keeper,
   busy,
   onPick,
   onCompare,
-  onKeepOne,
-  onKeepAll,
+  onReview,
 }: {
   burst: Burst
   keeper: string
   busy: boolean
-  onPick: (id: string) => void
-  onCompare: (index: number) => void
-  onKeepOne: () => void
-  onKeepAll: () => void
+  onPick: (burst: Burst, id: string) => void
+  onCompare: (burst: Burst, index: number) => void
+  onReview: (targets: Burst[], keepAll: boolean) => Promise<void>
 }) {
   return (
     <li className="max-w-full rounded-panel bg-surface p-2.5">
@@ -233,7 +258,7 @@ function BurstGroup({
             <div key={p.id} className="group relative">
               <button
                 type="button"
-                onClick={() => onPick(p.id)}
+                onClick={() => onPick(burst, p.id)}
                 aria-pressed={kept}
                 aria-label={kept ? tr('保留这张') : tr('换成保留这张')}
                 className={cx(
@@ -269,7 +294,7 @@ function BurstGroup({
               {!burst.duplicate && (
                 <button
                   type="button"
-                  onClick={() => onCompare(i)}
+                  onClick={() => onCompare(burst, i)}
                   aria-label={tr('放大对比')}
                   title={tr('放大对比')}
                   className="absolute top-1.5 right-1.5 flex size-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100 focus-visible:opacity-100"
@@ -282,16 +307,25 @@ function BurstGroup({
         })}
       </div>
       <div className="mt-2.5 flex justify-end gap-1.5">
-        <CardButton disabled={busy} onClick={onKeepAll} title={tr('这一组都留着，以后不再列出')}>
+        <CardButton
+          disabled={busy}
+          onClick={() => void onReview([burst], true)}
+          title={tr('这一组都留着，以后不再列出')}
+        >
           {tr('都保留')}
         </CardButton>
-        <CardButton primary disabled={busy} onClick={onKeepOne} title={tr('只留选中的那张，其余放进「最近删除」')}>
+        <CardButton
+          primary
+          disabled={busy}
+          onClick={() => void onReview([burst], false)}
+          title={tr('只留选中的那张，其余放进「最近删除」')}
+        >
           {tr('保留')}
         </CardButton>
       </div>
     </li>
   )
-}
+})
 
 // CardButton 是卡片下面的按钮：通用 Button 的小号（和设置里表格每行的按钮一样大）
 function CardButton({

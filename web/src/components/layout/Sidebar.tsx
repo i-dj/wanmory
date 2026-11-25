@@ -281,7 +281,7 @@ export default function Sidebar({
               ref={navRef}
               className="flex min-h-0 flex-1 [scrollbar-width:none] flex-col gap-0.5 overflow-y-auto px-3"
             >
-              {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频和 AI 自动分的类（截图、文档、证件收在「更多」里）；
+              {/* 常用的一组：图库、相册、人物、足迹；「分类」：收藏、星级、视频，AI 自动分的类（风景、美食、动物、植物、截图、文档、证件）收在「更多」里；
               「整理」：最近添加、连拍、隐藏、删除 */}
               {viewItem(LIBRARY, Images)}
               <NavItem
@@ -424,7 +424,7 @@ const categoryIcon = (v: View) => CATEGORY_ICONS[v.path.slice('/category/'.lengt
 
 const MORE_KEY = 'wanmory.sidebar.more' // 「更多」展开没有，记在这个浏览器里
 
-// MoreCategories 是「分类」最后的「更多」：点开显示截图、文档、证件（不常看，平时收着）。
+// MoreCategories 是「分类」最后的「更多」：点开显示 AI 自动分的类（风景、美食、动物、植物、截图、文档、证件），平时收着。
 // 进到其中一类时自动展开一次，之后可以收起
 function MoreCategories({
   path,

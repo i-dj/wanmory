@@ -709,6 +709,7 @@ export default function PhotosPage({
           <Slideshow
             assets={slideshow.only ?? ordered}
             startIndex={slideshow.start}
+            hasMore={!slideshow.only && timeline.hasMore}
             onLoadMore={slideshow.only ? () => {} : loadViewerMore}
             onClose={() => setSlideshow(null)}
           />,
