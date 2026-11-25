@@ -60,7 +60,9 @@ type Asset struct {
 	UploaderName  *string    `json:"uploader_name"`
 	Description   string     `json:"description"` // 用户写的说明，没写是空字符串
 	// Edited 是用户在信息栏里改过的字段：'taken_at'（拍摄时间）、'location'（位置）。没改过是空数组
-	Edited        []string   `json:"edited"`
+	Edited []string `json:"edited"`
+	// Guessed 是照片自己没有、按照片目录的文件夹名猜出来的字段：'taken_at'、'location'（见 folderguess.go）
+	Guessed       []string   `json:"guessed"`
 	DeletedAt     *time.Time `json:"deleted_at"` // 删除的时间，在「最近删除」里可以恢复；没删除时为空
 	HasThumbnail  bool       `json:"has_thumbnail"`
 	Beauty        *float32   `json:"beauty"`            // 好不好看（0–1，CLIP 算的，见 clip 包的 tags.go），还没算过是 null
@@ -81,6 +83,7 @@ type Metadata struct {
 	Latitude   *float64
 	Longitude  *float64
 	Exif       json.RawMessage
+	Guessed    []string // 上面哪些是按文件夹名猜的：'taken_at'、'location'
 }
 
 // Camera 是从 EXIF 里取出的拍摄参数，用于网页上鼠标悬停显示。

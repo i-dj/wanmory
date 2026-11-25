@@ -10,6 +10,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // 照片目录：把 NAS、移动硬盘上已有的照片挂载到照片目录下（默认 <数据目录>/library，Docker 里是 /photos），
@@ -36,11 +38,20 @@ func (s *Service) RunLibrary(ctx context.Context) {
 	}
 	timer := time.NewTimer(20 * time.Second)
 	defer timer.Stop()
+	guessedOld := false // 启动后先给以前导入的照片按文件夹名补一次时间、地点
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
+		}
+		if !guessedOld {
+			guessedOld = true
+			if n, err := s.guessOldLibraryFiles(ctx); err != nil {
+				log.Printf("library: filling in dates and places from folder names failed: %v", err)
+			} else if n > 0 {
+				log.Printf("library: filled in the date or place of %d photos from their folder names", n)
+			}
 		}
 		if n, err := s.scanLibrary(ctx); err != nil {
 			log.Printf("library: scanning %s failed: %v", s.libraryDir, err)
@@ -169,4 +180,66 @@ func (s *Store) inLibraryReadOnly(path string, err error) bool {
 		return false
 	}
 	return errors.Is(err, fs.ErrPermission) || errors.Is(err, syscall.EROFS) || errors.Is(err, syscall.EPERM)
+}
+
+// guessOldLibraryFiles 给照片目录里已经导入、读过信息，但没有拍摄时间或 GPS 的照片按文件夹名补上（以前的版本不会猜）。
+// 只补空着的、用户没改过的字段；还没读信息的照片不管，读的时候会猜。返回补了几张
+func (s *Service) guessOldLibraryFiles(ctx context.Context) (int, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT a.id, a.original_path, a.file_mtime, a.taken_at IS NULL, a.latitude IS NULL
+		FROM assets a JOIN library_files lf ON lf.asset_id = a.id
+		WHERE a.deleted_at IS NULL AND a.exif <> '{}'::jsonb
+		  AND ((a.taken_at IS NULL AND NOT 'taken_at' = ANY(a.edited) AND NOT 'taken_at' = ANY(a.guessed))
+		    OR (a.latitude IS NULL AND NOT 'location' = ANY(a.edited) AND NOT 'location' = ANY(a.guessed)))`)
+	if err != nil {
+		return 0, err
+	}
+	type todo struct {
+		id         uuid.UUID
+		taken      *time.Time
+		latV, lonV *float64
+		fields     []string
+	}
+	var list []todo
+	now := time.Now()
+	for rows.Next() {
+		var id uuid.UUID
+		var path string
+		var mtime time.Time
+		var noTime, noPlace bool
+		if err := rows.Scan(&id, &path, &mtime, &noTime, &noPlace); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		rel, ok := s.libraryRel(path)
+		if !ok {
+			continue
+		}
+		g := guessFromFolders(filepath.Dir(rel), mtime, now)
+		t := todo{id: id}
+		if noTime && g.TakenAt != nil {
+			t.taken = g.TakenAt
+			t.fields = append(t.fields, EditTakenAt)
+		}
+		if noPlace && g.Latitude != nil {
+			t.latV, t.lonV = g.Latitude, g.Longitude
+			t.fields = append(t.fields, EditLocation)
+		}
+		if len(t.fields) > 0 {
+			list = append(list, t)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for _, t := range list {
+		if _, err := s.db.ExecContext(ctx, `
+			UPDATE assets SET taken_at = COALESCE(taken_at, $2), latitude = COALESCE(latitude, $3),
+			       longitude = COALESCE(longitude, $4), guessed = guessed || $5::text[], updated_at = now()
+			WHERE id = $1`, t.id, t.taken, t.latV, t.lonV, t.fields); err != nil {
+			return 0, err
+		}
+	}
+	return len(list), nil
 }

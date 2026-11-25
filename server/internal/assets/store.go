@@ -50,7 +50,8 @@ const assetColumns = `id, type, original_path, file_size, file_mtime, checksum, 
 	(SELECT json_build_object('city', g.city, 'state', g.state, 'country', g.country,
 	        'city_en', g.city_en, 'state_en', g.state_en, 'country_code', g.country_code)::text
 	 FROM geo_places g WHERE g.key = ` + geo.KeyExpr + ` AND g.city IS NOT NULL),
-	uploaded_by, (SELECT name FROM users u WHERE u.id = uploaded_by), hidden_by, favorited_at`
+	uploaded_by, (SELECT name FROM users u WHERE u.id = uploaded_by), hidden_by, favorited_at,
+	array_to_json(guessed)::text`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -60,14 +61,14 @@ func scanAsset(row scanner) (*Asset, error) {
 	var a Asset
 	var c Camera
 	var exposure, fNumber, iso, focal, focal35, bias *string
-	var edited string
+	var edited, guessed string
 	var place *string
 	err := row.Scan(&a.ID, &a.Type, &a.OriginalPath, &a.FileSize, &a.FileMtime, &a.Checksum, &a.MimeType,
 		&a.Width, &a.Height, &a.DurationMs, &a.TakenAt, &a.Latitude, &a.Longitude,
 		&a.ThumbnailPath, &a.PreviewPath, &a.CreatedAt,
 		&c.Make, &c.Model, &c.Lens, &exposure, &fNumber, &iso, &focal, &focal35, &bias, &a.TakenAtOffset,
 		&a.Favorite, &a.Rating, &a.Hidden, &a.DeletedAt, &a.Description, &edited, &a.Beauty, &a.PlaceName, &place,
-		&a.UploadedBy, &a.UploaderName, &a.HiddenBy, &a.FavoritedAt)
+		&a.UploadedBy, &a.UploaderName, &a.HiddenBy, &a.FavoritedAt, &guessed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -76,6 +77,9 @@ func scanAsset(row scanner) (*Asset, error) {
 	}
 	if err := json.Unmarshal([]byte(edited), &a.Edited); err != nil {
 		return nil, fmt.Errorf("edited 格式不对: %w", err)
+	}
+	if err := json.Unmarshal([]byte(guessed), &a.Guessed); err != nil {
+		return nil, fmt.Errorf("guessed 格式不对: %w", err)
 	}
 	if place != nil {
 		if err := json.Unmarshal([]byte(*place), &a.Geo); err != nil {
@@ -722,15 +726,21 @@ func (s *Store) UpdateMetadata(ctx context.Context, id uuid.UUID, m Metadata) er
 	if len(m.Exif) > 0 {
 		exif = string(m.Exif)
 	}
-	// 用户在信息栏里改过的拍摄时间、位置不用文件里的覆盖
+	guessed := m.Guessed
+	if guessed == nil {
+		guessed = []string{}
+	}
+	// 用户在信息栏里改过的拍摄时间、位置不用文件里的（或者按文件夹名猜的）覆盖，也不算猜的
 	_, err := s.db.ExecContext(ctx, `
 		UPDATE assets SET width = $2, height = $3, duration_ms = $4,
 		       taken_at = CASE WHEN 'taken_at' = ANY(edited) THEN taken_at ELSE $5 END,
 		       latitude = CASE WHEN 'location' = ANY(edited) THEN latitude ELSE $6 END,
 		       longitude = CASE WHEN 'location' = ANY(edited) THEN longitude ELSE $7 END,
-		       exif = $8, updated_at = now()
+		       exif = $8,
+		       guessed = ARRAY(SELECT g FROM unnest($9::text[]) g WHERE NOT g = ANY(edited)),
+		       updated_at = now()
 		WHERE id = $1`,
-		id, m.Width, m.Height, m.DurationMs, m.TakenAt, m.Latitude, m.Longitude, exif)
+		id, m.Width, m.Height, m.DurationMs, m.TakenAt, m.Latitude, m.Longitude, exif, guessed)
 	return err
 }
 

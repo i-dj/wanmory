@@ -35,6 +35,7 @@ func (s *Service) runMetadata(ctx context.Context, job *jobs.Job) error {
 	if err != nil {
 		return err
 	}
+	s.guessFromFolder(a, &m)
 	if err := s.store.UpdateMetadata(ctx, a.ID, m); err != nil {
 		return err
 	}
